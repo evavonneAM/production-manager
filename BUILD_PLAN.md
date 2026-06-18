@@ -17,13 +17,13 @@ each, more for the workflow engine.
 
 **Goal:** an empty but running React PWA, connected to Supabase, deployable, in git.
 
-- [ ] Initialize a React + Vite project with Tailwind CSS configured.
-- [ ] Configure it as an installable PWA (manifest, service worker, app icon placeholder).
-- [ ] Set up `.env.example` and `.gitignore` (ignore `.env`, `node_modules`, build output).
-- [ ] Initialize git, make the first commit, connect to a GitHub repo.
-- [ ] Create the Supabase project connection (client setup, env vars for URL + anon key).
-- [ ] Deploy a "hello world" build to Vercel/Netlify to prove the pipeline works end to end.
-- [ ] Confirm the app installs to a phone home screen and opens.
+- [x] Initialize a React + Vite project with Tailwind CSS configured.
+- [x] Configure it as an installable PWA (manifest, service worker, app icon placeholder).
+- [x] Set up `.env.example` and `.gitignore` (ignore `.env`, `node_modules`, build output).
+- [x] Initialize git, make the first commit, connect to a GitHub repo.
+- [x] Create the Supabase project connection (client setup, env vars for URL + anon key).
+- [x] Deploy a "hello world" build to Vercel/Netlify to prove the pipeline works end to end.
+- [x] Confirm the app installs to a phone home screen and opens.
 
 **Done when:** I can open the deployed URL on my phone, install it, and see a placeholder home screen.
 
