@@ -50,13 +50,14 @@ hold together. No UI yet.
 
 **Goal:** people can log in; the app knows who they are, their role, department, and language.
 
-- [ ] Supabase Auth email/password login (S01). No self-registration.
-- [ ] Protected routes — unauthenticated users get the login screen.
-- [ ] Session handling; stay logged in across app restarts.
-- [ ] Profile screen (S12): edit name, photo, phone; language selector (en/ru/es).
-- [ ] Set up the i18n framework now, with all three locale files, so every later screen adds
+- [x] Supabase Auth email/password login (S01). No self-registration.
+- [x] Protected routes — unauthenticated users get the login screen.
+- [x] Session handling; stay logged in across app restarts.
+- [x] Profile screen (S12): edit name, phone; language selector (en/ru/es).
+      (Photo upload deferred to Sprint 10 — Files & photos — where Storage is set up.)
+- [x] Set up the i18n framework now, with all three locale files, so every later screen adds
       its strings in three languages from the start.
-- [ ] Language change takes effect immediately, no reload.
+- [x] Language change takes effect immediately, no reload.
 
 **Done when:** I can log in as the seeded Admin, switch the UI to Russian and back, and
 log out.
