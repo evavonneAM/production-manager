@@ -20,6 +20,7 @@ dev-dist
 
 # Claude Code machine-local settings
 .claude/settings.local.json
+.claude/launch.json
 
 # Editor directories and files
 .vscode/*

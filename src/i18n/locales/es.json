@@ -1,0 +1,53 @@
+{
+  "common": {
+    "appName": "Production Manager",
+    "signOut": "Cerrar sesión",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "cancel": "Cancelar",
+    "loading": "Cargando…",
+    "error": "Algo salió mal. Inténtalo de nuevo."
+  },
+  "login": {
+    "title": "Iniciar sesión",
+    "email": "Correo electrónico",
+    "emailPlaceholder": "tu@ejemplo.com",
+    "password": "Contraseña",
+    "passwordPlaceholder": "Tu contraseña",
+    "signIn": "Iniciar sesión",
+    "signingIn": "Iniciando sesión…",
+    "forgot": "¿Olvidaste tu contraseña?",
+    "forgotSent": "Si ese correo existe, el enlace de restablecimiento está en camino.",
+    "invalid": "Correo o contraseña incorrectos.",
+    "needEmailForReset": "Primero escribe tu correo arriba y luego toca «¿Olvidaste tu contraseña?»."
+  },
+  "profile": {
+    "title": "Perfil",
+    "name": "Nombre completo",
+    "phone": "Teléfono",
+    "phonePlaceholder": "Opcional",
+    "language": "Idioma",
+    "role": "Rol",
+    "changePassword": "Cambiar contraseña",
+    "newPassword": "Nueva contraseña",
+    "updatePassword": "Actualizar contraseña",
+    "passwordUpdated": "Contraseña actualizada.",
+    "passwordTooShort": "La contraseña debe tener al menos 8 caracteres.",
+    "profileSaved": "Perfil guardado."
+  },
+  "roles": {
+    "admin": "Administrador",
+    "lead": "Jefe de equipo",
+    "staff": "Personal"
+  },
+  "languages": {
+    "en": "English",
+    "ru": "Русский",
+    "es": "Español"
+  },
+  "home": {
+    "welcome": "Bienvenido, {{name}}",
+    "placeholder": "Has iniciado sesión. Las pantallas completas llegan en el próximo sprint.",
+    "profile": "Perfil"
+  }
+}

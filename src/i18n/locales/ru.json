@@ -1,0 +1,53 @@
+{
+  "common": {
+    "appName": "Production Manager",
+    "signOut": "Выйти",
+    "save": "Сохранить",
+    "saving": "Сохранение…",
+    "cancel": "Отмена",
+    "loading": "Загрузка…",
+    "error": "Что-то пошло не так. Попробуйте ещё раз."
+  },
+  "login": {
+    "title": "Вход",
+    "email": "Электронная почта",
+    "emailPlaceholder": "you@example.com",
+    "password": "Пароль",
+    "passwordPlaceholder": "Ваш пароль",
+    "signIn": "Войти",
+    "signingIn": "Вход…",
+    "forgot": "Забыли пароль?",
+    "forgotSent": "Если такой адрес существует, ссылка для сброса уже отправлена.",
+    "invalid": "Неверная почта или пароль.",
+    "needEmailForReset": "Сначала введите почту выше, затем нажмите «Забыли пароль?»."
+  },
+  "profile": {
+    "title": "Профиль",
+    "name": "Полное имя",
+    "phone": "Телефон",
+    "phonePlaceholder": "Необязательно",
+    "language": "Язык",
+    "role": "Роль",
+    "changePassword": "Изменить пароль",
+    "newPassword": "Новый пароль",
+    "updatePassword": "Обновить пароль",
+    "passwordUpdated": "Пароль обновлён.",
+    "passwordTooShort": "Пароль должен содержать не менее 8 символов.",
+    "profileSaved": "Профиль сохранён."
+  },
+  "roles": {
+    "admin": "Администратор",
+    "lead": "Руководитель",
+    "staff": "Сотрудник"
+  },
+  "languages": {
+    "en": "English",
+    "ru": "Русский",
+    "es": "Español"
+  },
+  "home": {
+    "welcome": "Добро пожаловать, {{name}}",
+    "placeholder": "Вы вошли в систему. Полные экраны приложения появятся в следующем спринте.",
+    "profile": "Профиль"
+  }
+}
