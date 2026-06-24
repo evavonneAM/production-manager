@@ -33,13 +33,13 @@ each, more for the workflow engine.
 
 **Goal:** every table from SPEC.md Section 10 exists in Supabase with relationships and RLS.
 
-- [ ] Create all tables: users, departments, projects, jobs, job_stages, inspections, tasks,
+- [x] Create all tables: users, departments, projects, jobs, job_stages, inspections, tasks,
       labor_logs, notes, materials, files, notifications.
-- [ ] Set up foreign keys, enums, defaults, and timestamps exactly per the spec.
-- [ ] Write Row-Level Security policies per the matrix in SPEC.md Section 17. Start strict.
-- [ ] Seed a small set of test data: a few departments, a handful of users (one Admin, one
+- [x] Set up foreign keys, enums, defaults, and timestamps exactly per the spec.
+- [x] Write Row-Level Security policies per the matrix in SPEC.md Section 17. Start strict.
+- [x] Seed a small set of test data: a few departments, a handful of users (one Admin, one
       Lead, two Staff), one project with two jobs, each with stages.
-- [ ] Document the schema decisions in a short `docs/schema-notes.md`.
+- [x] Document the schema decisions in a short `docs/schema-notes.md`.
 
 **Done when:** I can browse the seeded data in the Supabase dashboard and the relationships
 hold together. No UI yet.
