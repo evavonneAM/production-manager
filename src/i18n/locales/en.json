@@ -8,6 +8,17 @@
     "loading": "Loading…",
     "error": "Something went wrong. Please try again."
   },
+  "nav": {
+    "myWork": "My Work",
+    "projects": "Projects",
+    "calendar": "Calendar",
+    "inspection": "Inspection",
+    "profile": "Profile",
+    "scan": "Scan"
+  },
+  "placeholder": {
+    "comingSoon": "This screen arrives in a later sprint."
+  },
   "login": {
     "title": "Sign in",
     "email": "Email",
@@ -35,6 +46,72 @@
     "passwordTooShort": "Password must be at least 8 characters.",
     "profileSaved": "Profile saved."
   },
+  "projects": {
+    "searchPlaceholder": "Search projects, jobs, clients…",
+    "allStatuses": "All statuses",
+    "sortDate": "Newest",
+    "sortPriority": "Priority",
+    "sortStatus": "Status",
+    "sortUpdated": "Recently updated",
+    "materials": "Materials",
+    "jobsCount_one": "{{count}} job",
+    "jobsCount_other": "{{count}} jobs",
+    "inStage": "{{count}} in {{dept}}",
+    "noProjects": "No projects yet.",
+    "noResults": "No projects match your search."
+  },
+  "projectDetail": {
+    "tabOverview": "Overview",
+    "tabJobs": "Jobs",
+    "client": "Client",
+    "totalLabor": "Total labor",
+    "scheduledStart": "Start",
+    "scheduledEnd": "End",
+    "scope": "Scope",
+    "jobs": "Jobs",
+    "noJobs": "No jobs yet."
+  },
+  "jobDetail": {
+    "currentStage": "Current stage",
+    "tasksDone": "{{done}}/{{total}} tasks",
+    "submitForInspection": "Submit for inspection",
+    "comingLater": "Available in a later sprint",
+    "estimated": "Estimated",
+    "actual": "Actual",
+    "tabTasks": "Tasks",
+    "tabMaterials": "Materials",
+    "tabNotes": "Notes",
+    "tabFiles": "Files",
+    "tabHistory": "History",
+    "unassigned": "Unassigned",
+    "noTasks": "No tasks yet.",
+    "noMaterials": "No materials yet.",
+    "noNotes": "No notes yet.",
+    "noFiles": "No files yet.",
+    "noHistory": "No history yet.",
+    "arrived": "Arrived",
+    "ordered": "Ordered",
+    "notOrdered": "Not ordered",
+    "complete": "Complete",
+    "enteredStage": "Entered {{dept}}",
+    "approvedStage": "{{dept}} approved"
+  },
+  "projectStatus": {
+    "estimate": "Estimate",
+    "scheduled": "Scheduled",
+    "in_progress": "In progress",
+    "on_hold": "On hold",
+    "complete": "Complete",
+    "delivered": "Delivered"
+  },
+  "taskStatus": {
+    "pending_approval": "Pending approval",
+    "unstarted": "Unstarted",
+    "in_progress": "In progress",
+    "paused": "Paused",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
   "roles": {
     "admin": "Admin",
     "lead": "Lead",
@@ -44,10 +121,5 @@
     "en": "English",
     "ru": "Русский",
     "es": "Español"
-  },
-  "home": {
-    "welcome": "Welcome, {{name}}",
-    "placeholder": "You're signed in. The full app screens arrive in the next sprint.",
-    "profile": "Profile"
   }
 }

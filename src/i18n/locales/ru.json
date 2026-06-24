@@ -8,6 +8,17 @@
     "loading": "Загрузка…",
     "error": "Что-то пошло не так. Попробуйте ещё раз."
   },
+  "nav": {
+    "myWork": "Мои задачи",
+    "projects": "Проекты",
+    "calendar": "Календарь",
+    "inspection": "Приёмка",
+    "profile": "Профиль",
+    "scan": "Скан"
+  },
+  "placeholder": {
+    "comingSoon": "Этот экран появится в следующих спринтах."
+  },
   "login": {
     "title": "Вход",
     "email": "Электронная почта",
@@ -35,6 +46,74 @@
     "passwordTooShort": "Пароль должен содержать не менее 8 символов.",
     "profileSaved": "Профиль сохранён."
   },
+  "projects": {
+    "searchPlaceholder": "Поиск проектов, работ, клиентов…",
+    "allStatuses": "Все статусы",
+    "sortDate": "Сначала новые",
+    "sortPriority": "Приоритет",
+    "sortStatus": "Статус",
+    "sortUpdated": "Недавно обновлённые",
+    "materials": "Материалы",
+    "jobsCount_one": "{{count}} работа",
+    "jobsCount_few": "{{count}} работы",
+    "jobsCount_many": "{{count}} работ",
+    "jobsCount_other": "{{count}} работ",
+    "inStage": "{{count}} в {{dept}}",
+    "noProjects": "Пока нет проектов.",
+    "noResults": "Ничего не найдено."
+  },
+  "projectDetail": {
+    "tabOverview": "Обзор",
+    "tabJobs": "Работы",
+    "client": "Клиент",
+    "totalLabor": "Всего работы",
+    "scheduledStart": "Начало",
+    "scheduledEnd": "Окончание",
+    "scope": "Описание",
+    "jobs": "Работы",
+    "noJobs": "Пока нет работ."
+  },
+  "jobDetail": {
+    "currentStage": "Текущий этап",
+    "tasksDone": "{{done}}/{{total}} задач",
+    "submitForInspection": "Отправить на приёмку",
+    "comingLater": "Будет доступно позже",
+    "estimated": "Оценка",
+    "actual": "Факт",
+    "tabTasks": "Задачи",
+    "tabMaterials": "Материалы",
+    "tabNotes": "Заметки",
+    "tabFiles": "Файлы",
+    "tabHistory": "История",
+    "unassigned": "Не назначено",
+    "noTasks": "Пока нет задач.",
+    "noMaterials": "Пока нет материалов.",
+    "noNotes": "Пока нет заметок.",
+    "noFiles": "Пока нет файлов.",
+    "noHistory": "Пока нет истории.",
+    "arrived": "Получено",
+    "ordered": "Заказано",
+    "notOrdered": "Не заказано",
+    "complete": "Завершено",
+    "enteredStage": "Поступило в {{dept}}",
+    "approvedStage": "{{dept}}: одобрено"
+  },
+  "projectStatus": {
+    "estimate": "Смета",
+    "scheduled": "Запланирован",
+    "in_progress": "В работе",
+    "on_hold": "На паузе",
+    "complete": "Завершён",
+    "delivered": "Доставлен"
+  },
+  "taskStatus": {
+    "pending_approval": "Ожидает одобрения",
+    "unstarted": "Не начата",
+    "in_progress": "В работе",
+    "paused": "Приостановлена",
+    "completed": "Завершена",
+    "cancelled": "Отменена"
+  },
   "roles": {
     "admin": "Администратор",
     "lead": "Руководитель",
@@ -44,10 +123,5 @@
     "en": "English",
     "ru": "Русский",
     "es": "Español"
-  },
-  "home": {
-    "welcome": "Добро пожаловать, {{name}}",
-    "placeholder": "Вы вошли в систему. Полные экраны приложения появятся в следующем спринте.",
-    "profile": "Профиль"
   }
 }

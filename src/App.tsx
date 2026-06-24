@@ -1,16 +1,23 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from './auth/AuthProvider'
+import { AppLayout } from './components/AppLayout'
 import { FullScreenLoader } from './components/FullScreenLoader'
 import Login from './screens/Login'
-import Home from './screens/Home'
+import Projects from './screens/Projects'
+import ProjectDetail from './screens/ProjectDetail'
+import JobDetail from './screens/JobDetail'
 import Profile from './screens/Profile'
+import Placeholder from './screens/Placeholder'
 
-function ProtectedRoute({ children }: { children: ReactNode }) {
+function ProtectedLayout() {
   const { session, loading } = useAuth()
   if (loading) return <FullScreenLoader />
   if (!session) return <Navigate to="/login" replace />
-  return children
+  return (
+    <AppLayout>
+      <Outlet />
+    </AppLayout>
+  )
 }
 
 export default function App() {
@@ -30,22 +37,19 @@ export default function App() {
           )
         }
       />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
+
+      <Route element={<ProtectedLayout />}>
+        <Route path="/" element={<Navigate to="/projects" replace />} />
+        <Route path="/projects" element={<Projects />} />
+        <Route path="/projects/:projectId" element={<ProjectDetail />} />
+        <Route path="/jobs/:jobId" element={<JobDetail />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/my-work" element={<Placeholder titleKey="nav.myWork" />} />
+        <Route path="/calendar" element={<Placeholder titleKey="nav.calendar" />} />
+        <Route path="/inspection" element={<Placeholder titleKey="nav.inspection" />} />
+        <Route path="/scan" element={<Placeholder titleKey="nav.scan" />} />
+      </Route>
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

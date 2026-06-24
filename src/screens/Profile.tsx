@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { Avatar } from '../components/Avatar'
@@ -56,9 +55,7 @@ export default function Profile() {
     <main className="min-h-full bg-slate-900 text-slate-100">
       <div className="mx-auto w-full max-w-md px-6 py-8">
         <div className="mb-6 flex items-center justify-between">
-          <Link to="/" className="text-sm text-slate-400 hover:text-slate-200">
-            ← {t('common.appName')}
-          </Link>
+          <h1 className="text-2xl font-semibold">{t('profile.title')}</h1>
           <button
             type="button"
             onClick={() => void signOut()}

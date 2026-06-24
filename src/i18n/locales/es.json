@@ -8,6 +8,17 @@
     "loading": "Cargando…",
     "error": "Algo salió mal. Inténtalo de nuevo."
   },
+  "nav": {
+    "myWork": "Mi trabajo",
+    "projects": "Proyectos",
+    "calendar": "Calendario",
+    "inspection": "Inspección",
+    "profile": "Perfil",
+    "scan": "Escanear"
+  },
+  "placeholder": {
+    "comingSoon": "Esta pantalla llegará en un sprint posterior."
+  },
   "login": {
     "title": "Iniciar sesión",
     "email": "Correo electrónico",
@@ -35,6 +46,72 @@
     "passwordTooShort": "La contraseña debe tener al menos 8 caracteres.",
     "profileSaved": "Perfil guardado."
   },
+  "projects": {
+    "searchPlaceholder": "Buscar proyectos, trabajos, clientes…",
+    "allStatuses": "Todos los estados",
+    "sortDate": "Más recientes",
+    "sortPriority": "Prioridad",
+    "sortStatus": "Estado",
+    "sortUpdated": "Actualizados",
+    "materials": "Materiales",
+    "jobsCount_one": "{{count}} trabajo",
+    "jobsCount_other": "{{count}} trabajos",
+    "inStage": "{{count}} en {{dept}}",
+    "noProjects": "Aún no hay proyectos.",
+    "noResults": "No hay coincidencias."
+  },
+  "projectDetail": {
+    "tabOverview": "Resumen",
+    "tabJobs": "Trabajos",
+    "client": "Cliente",
+    "totalLabor": "Trabajo total",
+    "scheduledStart": "Inicio",
+    "scheduledEnd": "Fin",
+    "scope": "Alcance",
+    "jobs": "Trabajos",
+    "noJobs": "Aún no hay trabajos."
+  },
+  "jobDetail": {
+    "currentStage": "Etapa actual",
+    "tasksDone": "{{done}}/{{total}} tareas",
+    "submitForInspection": "Enviar a inspección",
+    "comingLater": "Disponible más adelante",
+    "estimated": "Estimado",
+    "actual": "Real",
+    "tabTasks": "Tareas",
+    "tabMaterials": "Materiales",
+    "tabNotes": "Notas",
+    "tabFiles": "Archivos",
+    "tabHistory": "Historial",
+    "unassigned": "Sin asignar",
+    "noTasks": "Aún no hay tareas.",
+    "noMaterials": "Aún no hay materiales.",
+    "noNotes": "Aún no hay notas.",
+    "noFiles": "Aún no hay archivos.",
+    "noHistory": "Aún no hay historial.",
+    "arrived": "Recibido",
+    "ordered": "Pedido",
+    "notOrdered": "No pedido",
+    "complete": "Completado",
+    "enteredStage": "Ingresó a {{dept}}",
+    "approvedStage": "{{dept}} aprobado"
+  },
+  "projectStatus": {
+    "estimate": "Presupuesto",
+    "scheduled": "Programado",
+    "in_progress": "En curso",
+    "on_hold": "En espera",
+    "complete": "Completado",
+    "delivered": "Entregado"
+  },
+  "taskStatus": {
+    "pending_approval": "Pendiente de aprobación",
+    "unstarted": "Sin iniciar",
+    "in_progress": "En curso",
+    "paused": "En pausa",
+    "completed": "Completada",
+    "cancelled": "Cancelada"
+  },
   "roles": {
     "admin": "Administrador",
     "lead": "Jefe de equipo",
@@ -44,10 +121,5 @@
     "en": "English",
     "ru": "Русский",
     "es": "Español"
-  },
-  "home": {
-    "welcome": "Bienvenido, {{name}}",
-    "placeholder": "Has iniciado sesión. Las pantallas completas llegan en el próximo sprint.",
-    "profile": "Perfil"
   }
 }
