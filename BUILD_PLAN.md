@@ -68,12 +68,12 @@ log out.
 
 **Goal:** see the work. The Home overview and the project/job detail screens, read-only.
 
-- [ ] Home / Project Overview (S02): project cards with status, job counts, per-stage
+- [x] Home / Project Overview (S02): project cards with status, job counts, per-stage
       breakdown, search, filter, sort.
-- [ ] Project Detail (S05): overview tab, jobs tab with the stage pipeline visualization.
-- [ ] Job Detail (S05a): job code header, stage pipeline bar, tabs (Tasks, Materials, Notes,
+- [x] Project Detail (S05): overview tab, jobs tab with the stage pipeline visualization.
+- [x] Job Detail (S05a): job code header, stage pipeline bar, tabs (Tasks, Materials, Notes,
       Files, History) — read-only for now.
-- [ ] Desktop layout (sidebar nav) alongside the mobile bottom-tab layout.
+- [x] Desktop layout (sidebar nav) alongside the mobile bottom-tab layout.
 
 **Done when:** I can browse from the home list into a project, into a job, and see its stages
 laid out, on both phone and desktop.
@@ -143,9 +143,16 @@ History.
 - [ ] Notes display in each viewer's language with an "originally written in X" label.
 - [ ] Graceful failure: show original + warning, retry in background.
 - [ ] Notes at project, job, and task level.
+- [ ] **Auto-translate work-description fields too** (decided in Sprint 3): on create/edit,
+      translate and store en/ru/es for job names + descriptions, project descriptions,
+      material item names (e.g. "6 dining chairs"), and task names — so non-English staff
+      can read what the work is. Job codes and client names stay canonical. This revises
+      the SPEC §5 "names not translated" decision at the owner's request. Reuses the same
+      DeepL Edge Function + a stored-translations pattern (like notes). Touches the schema
+      (translation columns/table) → plan in Plan Mode.
 
 **Done when:** I write a note in English, my colleague's account set to Russian sees it in
-Russian within a few seconds.
+Russian within a few seconds — and a job named in English shows up readable in Russian too.
 
 ---
 
