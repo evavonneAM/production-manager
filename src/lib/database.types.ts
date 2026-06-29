@@ -932,11 +932,16 @@ export type Database = {
       }
     }
     Functions: {
+      _close_open_session: { Args: { p_uid: string }; Returns: undefined }
       auth_department_id: { Args: never; Returns: string }
       auth_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      auto_close_stale_sessions: { Args: never; Returns: undefined }
+      clock_in: { Args: { p_task_id: string }; Returns: undefined }
+      clock_out: { Args: never; Returns: undefined }
+      complete_task: { Args: { p_task_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       user_department: { Args: { target: string }; Returns: string }
     }

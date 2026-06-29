@@ -4,6 +4,10 @@ import type {
   ProjectDetail,
   JobDetail,
   DirectoryUser,
+  TaskFull,
+  TaskWithJob,
+  DeptQueueJob,
+  MyWork,
 } from './types'
 
 function client() {
@@ -78,4 +82,85 @@ export async function getDirectory(): Promise<DirectoryUser[]> {
   const { data, error } = await client().from('user_directory').select('*')
   if (error) throw error
   return (data ?? []) as DirectoryUser[]
+}
+
+/** One task with its job, stage/dept, and full clock log (S06). */
+export async function getTask(id: string): Promise<TaskFull> {
+  const { data, error } = await client()
+    .from('tasks')
+    .select(
+      `*,
+       job:jobs ( id, job_code, name, project_id ),
+       stage:job_stages!tasks_job_stage_id_fkey ( id, sequence, department:departments ( id, name ) ),
+       labor_logs:labor_logs ( * )`,
+    )
+    .eq('id', id)
+    .single()
+  if (error) throw error
+  return data as unknown as TaskFull
+}
+
+/** My Work (S17): the caller's tasks + their department's current queue. */
+export async function getMyWork(userId: string, departmentId: string | null): Promise<MyWork> {
+  const c = client()
+
+  const { data: myTasks, error: tErr } = await c
+    .from('tasks')
+    .select(`*, job:jobs ( id, job_code, name )`)
+    .or(`assigned_user_id.eq.${userId},created_by.eq.${userId}`)
+    .order('created_at', { ascending: false })
+  if (tErr) throw tErr
+
+  let deptQueue: DeptQueueJob[] = []
+  if (departmentId) {
+    const { data: jobs, error: jErr } = await c
+      .from('jobs')
+      .select(
+        `id, job_code, name, status, queue_position,
+         current_stage:job_stages!jobs_current_stage_id_fkey ( department_id, status ),
+         tasks:tasks ( id, status )`,
+      )
+      .in('status', ['queued', 'in_production'])
+    if (jErr) throw jErr
+    deptQueue = ((jobs ?? []) as unknown as DeptQueueJob[])
+      .filter((j) => j.current_stage?.department_id === departmentId)
+      .sort((a, b) => (a.queue_position ?? 9999) - (b.queue_position ?? 9999))
+  }
+
+  return { myTasks: (myTasks ?? []) as unknown as TaskWithJob[], deptQueue }
+}
+
+/** The caller's currently-open session (for the live timer), or null. */
+export async function getActiveSession(
+  userId: string,
+): Promise<{ task_id: string; clocked_in_at: string } | null> {
+  const { data, error } = await client()
+    .from('labor_logs')
+    .select('task_id, clocked_in_at')
+    .eq('user_id', userId)
+    .is('clocked_out_at', null)
+    .order('clocked_in_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+// ---- Clock actions (server-side RPC; see clock_functions migration) ---------
+
+export type ClockResult = { error: string | null }
+
+export async function clockIn(taskId: string): Promise<ClockResult> {
+  const { error } = await client().rpc('clock_in', { p_task_id: taskId })
+  return { error: error ? error.message : null }
+}
+
+export async function clockOut(): Promise<ClockResult> {
+  const { error } = await client().rpc('clock_out')
+  return { error: error ? error.message : null }
+}
+
+export async function completeTask(taskId: string): Promise<ClockResult> {
+  const { error } = await client().rpc('complete_task', { p_task_id: taskId })
+  return { error: error ? error.message : null }
 }

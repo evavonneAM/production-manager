@@ -102,6 +102,38 @@
     "enteredStage": "Поступило в {{dept}}",
     "approvedStage": "{{dept}}: одобрено"
   },
+  "myWork": {
+    "myTasks": "Мои задачи",
+    "deptQueue": "Очередь отдела",
+    "active": "Активная",
+    "upNext": "Далее",
+    "pendingApproval": "Ожидают одобрения",
+    "recentlyCompleted": "Недавно завершённые",
+    "noTasks": "Вам пока ничего не назначено.",
+    "noQueue": "В очереди вашего отдела пусто.",
+    "clockOut": "Закончить",
+    "tasksProgress": "{{done}}/{{total}} задач"
+  },
+  "taskDetail": {
+    "department": "Отдел",
+    "assignee": "Назначено",
+    "clockedIn": "В работе",
+    "clockIn": "Начать",
+    "markComplete": "Завершить задачу",
+    "clockLog": "Журнал времени",
+    "noLog": "Время ещё не учтено.",
+    "active": "идёт",
+    "autoClosed": "автозакрытие",
+    "switchTitle": "Сменить задачу?",
+    "switchBody": "Вы уже работаете над другой задачей. Закончить её и начать эту?",
+    "switchConfirm": "Закончить и сменить"
+  },
+  "clockError": {
+    "already_clocked_in": "Вы уже работаете над другой задачей. Сначала закончите её.",
+    "not_eligible": "Вы не можете начать эту задачу.",
+    "not_clocked_in": "Вы не начинали работу.",
+    "not_authenticated": "Пожалуйста, войдите снова."
+  },
   "projectStatus": {
     "estimate": "Смета",
     "scheduled": "Запланирован",

@@ -63,9 +63,10 @@ function TasksTab({ job, nameOf }: { job: JobDetailT; nameOf: (id: string | null
             </p>
             <div className="flex flex-col gap-2">
               {byStage.get(stage.id)!.map((task) => (
-                <div
+                <Link
                   key={task.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5"
+                  to={`/tasks/${task.id}`}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5 hover:bg-slate-800/70"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm">{task.name}</p>
@@ -76,7 +77,7 @@ function TasksTab({ job, nameOf }: { job: JobDetailT; nameOf: (id: string | null
                     </p>
                   </div>
                   <TaskStatusBadge status={task.status} />
-                </div>
+                </Link>
               ))}
             </div>
           </div>

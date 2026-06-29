@@ -100,6 +100,38 @@
     "enteredStage": "Ingresó a {{dept}}",
     "approvedStage": "{{dept}} aprobado"
   },
+  "myWork": {
+    "myTasks": "Mis tareas",
+    "deptQueue": "Cola del departamento",
+    "active": "Activa",
+    "upNext": "Siguiente",
+    "pendingApproval": "Pendiente de aprobación",
+    "recentlyCompleted": "Completadas recientemente",
+    "noTasks": "Aún no tienes nada asignado.",
+    "noQueue": "No hay nada en la cola de tu departamento.",
+    "clockOut": "Finalizar",
+    "tasksProgress": "{{done}}/{{total}} tareas"
+  },
+  "taskDetail": {
+    "department": "Departamento",
+    "assignee": "Asignada a",
+    "clockedIn": "En curso",
+    "clockIn": "Iniciar",
+    "markComplete": "Marcar completada",
+    "clockLog": "Registro de tiempo",
+    "noLog": "Aún no hay tiempo registrado.",
+    "active": "en curso",
+    "autoClosed": "cierre automático",
+    "switchTitle": "¿Cambiar de tarea?",
+    "switchBody": "Estás trabajando en otra tarea. ¿Finalizarla e iniciar esta?",
+    "switchConfirm": "Finalizar y cambiar"
+  },
+  "clockError": {
+    "already_clocked_in": "Ya estás trabajando en otra tarea. Finalízala primero.",
+    "not_eligible": "No puedes iniciar esta tarea.",
+    "not_clocked_in": "No has iniciado ninguna tarea.",
+    "not_authenticated": "Por favor, inicia sesión de nuevo."
+  },
   "projectStatus": {
     "estimate": "Presupuesto",
     "scheduled": "Programado",

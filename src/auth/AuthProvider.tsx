@@ -18,6 +18,7 @@ export type Profile = {
   department_id: string | null
   role: 'admin' | 'lead' | 'staff'
   language: AppLanguage
+  active_task_id: string | null
   is_active: boolean
 }
 
@@ -35,6 +36,7 @@ type AuthContextValue = {
   ) => Promise<Result>
   changePassword: (newPassword: string) => Promise<Result>
   sendPasswordReset: (email: string) => Promise<Result>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -127,6 +129,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error ? error.message : null }
   }
 
+  const refreshProfile = async () => {
+    if (session) await loadProfile(session.user.id)
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -139,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateProfile,
         changePassword,
         sendPasswordReset,
+        refreshProfile,
       }}
     >
       {children}

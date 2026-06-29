@@ -3,9 +3,11 @@ import { useAuth } from './auth/AuthProvider'
 import { AppLayout } from './components/AppLayout'
 import { FullScreenLoader } from './components/FullScreenLoader'
 import Login from './screens/Login'
+import MyWork from './screens/MyWork'
 import Projects from './screens/Projects'
 import ProjectDetail from './screens/ProjectDetail'
 import JobDetail from './screens/JobDetail'
+import TaskDetail from './screens/TaskDetail'
 import Profile from './screens/Profile'
 import Placeholder from './screens/Placeholder'
 
@@ -39,12 +41,13 @@ export default function App() {
       />
 
       <Route element={<ProtectedLayout />}>
-        <Route path="/" element={<Navigate to="/projects" replace />} />
+        <Route path="/" element={<Navigate to="/my-work" replace />} />
+        <Route path="/my-work" element={<MyWork />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:projectId" element={<ProjectDetail />} />
         <Route path="/jobs/:jobId" element={<JobDetail />} />
+        <Route path="/tasks/:taskId" element={<TaskDetail />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/my-work" element={<Placeholder titleKey="nav.myWork" />} />
         <Route path="/calendar" element={<Placeholder titleKey="nav.calendar" />} />
         <Route path="/inspection" element={<Placeholder titleKey="nav.inspection" />} />
         <Route path="/scan" element={<Placeholder titleKey="nav.scan" />} />

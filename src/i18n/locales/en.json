@@ -100,6 +100,38 @@
     "enteredStage": "Entered {{dept}}",
     "approvedStage": "{{dept}} approved"
   },
+  "myWork": {
+    "myTasks": "My Tasks",
+    "deptQueue": "Department Queue",
+    "active": "Active",
+    "upNext": "Up Next",
+    "pendingApproval": "Pending Approval",
+    "recentlyCompleted": "Recently Completed",
+    "noTasks": "Nothing assigned to you yet.",
+    "noQueue": "Nothing in your department's queue.",
+    "clockOut": "Clock out",
+    "tasksProgress": "{{done}}/{{total}} tasks"
+  },
+  "taskDetail": {
+    "department": "Department",
+    "assignee": "Assigned to",
+    "clockedIn": "Clocked in",
+    "clockIn": "Clock in",
+    "markComplete": "Mark complete",
+    "clockLog": "Clock log",
+    "noLog": "No time logged yet.",
+    "active": "active",
+    "autoClosed": "auto-closed",
+    "switchTitle": "Switch task?",
+    "switchBody": "You're clocked into another task. Clock out of it and clock into this one?",
+    "switchConfirm": "Clock out & switch"
+  },
+  "clockError": {
+    "already_clocked_in": "You're already clocked into another task. Clock out first.",
+    "not_eligible": "You can't clock into this task.",
+    "not_clocked_in": "You're not clocked in.",
+    "not_authenticated": "Please sign in again."
+  },
   "projectStatus": {
     "estimate": "Estimate",
     "scheduled": "Scheduled",

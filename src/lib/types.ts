@@ -12,6 +12,7 @@ export type Department = Tables['departments']['Row']
 export type Material = Tables['materials']['Row']
 export type Note = Tables['notes']['Row']
 export type FileRow = Tables['files']['Row']
+export type LaborLog = Tables['labor_logs']['Row']
 export type DirectoryUser = Views['user_directory']['Row']
 
 export type ProjectStatus = Enums['project_status']
@@ -50,4 +51,30 @@ export type JobDetail = Job & {
   materials: Material[]
   notes: Note[]
   files: FileRow[]
+}
+
+export type JobRef = Pick<Job, 'id' | 'job_code' | 'name'>
+
+/** A task with its parent job — used in My Work and the clock-in confirmation. */
+export type TaskWithJob = Task & { job: JobRef | null }
+
+/** Task Detail (S06): task + job + stage/dept + its full clock log. */
+export type TaskFull = Task & {
+  job: (JobRef & { project_id: string }) | null
+  stage: (Pick<JobStage, 'id' | 'sequence'> & { department: DepartmentRef | null }) | null
+  labor_logs: LaborLog[]
+}
+
+/** A job row in the department queue (S17). */
+export type DeptQueueJob = Pick<
+  Job,
+  'id' | 'job_code' | 'name' | 'status' | 'queue_position'
+> & {
+  current_stage: { department_id: string; status: StageStatus } | null
+  tasks: Pick<Task, 'id' | 'status'>[]
+}
+
+export type MyWork = {
+  myTasks: TaskWithJob[]
+  deptQueue: DeptQueueJob[]
 }
