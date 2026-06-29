@@ -10,6 +10,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // We register the service worker ourselves in main.tsx so we can poll for
+      // updates and auto-refresh (avoids stale installed PWAs on iOS).
+      injectRegister: false,
       // Lets us test the installable app in `vite dev`, not just production builds.
       devOptions: { enabled: true },
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
