@@ -78,7 +78,7 @@ export default function ProjectDetail() {
             </div>
             <div>
               <dt className="text-slate-500">{t('projectDetail.totalLabor')}</dt>
-              <dd className="text-slate-200">{formatMinutes(totalLabor)}</dd>
+              <dd className="text-slate-200">{formatMinutes(totalLabor, { h: t('units.h'), m: t('units.m') })}</dd>
             </div>
             {project.scheduled_start && (
               <div>

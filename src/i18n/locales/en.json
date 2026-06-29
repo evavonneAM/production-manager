@@ -8,6 +8,10 @@
     "loading": "Loading…",
     "error": "Something went wrong. Please try again."
   },
+  "units": {
+    "h": "h",
+    "m": "m"
+  },
   "nav": {
     "myWork": "My Work",
     "projects": "Projects",

@@ -8,6 +8,10 @@
     "loading": "Cargando…",
     "error": "Algo salió mal. Inténtalo de nuevo."
   },
+  "units": {
+    "h": "h",
+    "m": "min"
+  },
   "nav": {
     "myWork": "Mi trabajo",
     "projects": "Proyectos",

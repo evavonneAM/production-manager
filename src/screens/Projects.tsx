@@ -57,7 +57,7 @@ function ProjectCard({ project }: { project: ProjectOverview }) {
           <span className={`h-2 w-2 rounded-full ${dotColor}`} />
           {t('projects.materials')}
         </span>
-        <span>{formatMinutes(project.total_labor_minutes)}</span>
+        <span>{formatMinutes(project.total_labor_minutes, { h: t('units.h'), m: t('units.m') })}</span>
       </div>
 
       {breakdown.length > 0 && (

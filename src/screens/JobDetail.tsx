@@ -163,11 +163,11 @@ export default function JobDetail() {
       <div className="mb-5 grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-lg border border-slate-800 bg-slate-800/40 p-3">
           <p className="text-xs text-slate-500">{t('jobDetail.estimated')}</p>
-          <p className="text-slate-200">{estHours}h</p>
+          <p className="text-slate-200">{estHours}{t('units.h')}</p>
         </div>
         <div className="rounded-lg border border-slate-800 bg-slate-800/40 p-3">
           <p className="text-xs text-slate-500">{t('jobDetail.actual')}</p>
-          <p className="text-slate-200">{formatMinutes(actualMin)}</p>
+          <p className="text-slate-200">{formatMinutes(actualMin, { h: t('units.h'), m: t('units.m') })}</p>
         </div>
       </div>
 
