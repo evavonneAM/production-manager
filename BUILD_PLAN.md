@@ -84,12 +84,13 @@ laid out, on both phone and desktop.
 
 **Goal:** the core daily action — clock into a task, work, clock out, time is recorded.
 
-- [ ] Task Detail (S06): show task, status, assignment, labor log.
-- [ ] Clock-in / clock-out logic with the **one-active-task** rule enforced.
-- [ ] Clock-In Confirmation (S08), including the "clock out of your other task first" flow.
-- [ ] Labor logs accumulate onto task, job, and project totals.
-- [ ] 12-hour auto clock-out safety net with flagging.
-- [ ] My Work / Department Queue (S17) — the personal landing screen.
+- [x] Task Detail (S06): show task, status, assignment, labor log.
+- [x] Clock-in / clock-out logic with the **one-active-task** rule enforced.
+- [x] Clock-In Confirmation (S08), including the "clock out of your other task first" flow.
+- [x] Labor logs accumulate onto task, job, and project totals.
+- [x] 12-hour auto clock-out safety net with flagging.
+- [x] My Work / Department Queue (S17) — the personal landing screen.
+- [x] (Pulled forward from Sprint 14) Auto-updating PWA: polls for new builds and refreshes.
 
 **Done when:** as a Staff user I can clock into a task, see a live timer, clock out, and the
 logged minutes show up on the job — and I'm blocked from clocking into a second task.
