@@ -84,6 +84,29 @@ export async function getDirectory(): Promise<DirectoryUser[]> {
   return (data ?? []) as DirectoryUser[]
 }
 
+// ---- QR deep-link resolvers (look up by qr_code_uuid) -----------------------
+
+export async function getProjectIdByQr(qr: string): Promise<string | null> {
+  const { data } = await client().from('projects').select('id').eq('qr_code_uuid', qr).maybeSingle()
+  return data?.id ?? null
+}
+
+export async function getJobByQr(qr: string): Promise<{ id: string } | null> {
+  const { data } = await client().from('jobs').select('id').eq('qr_code_uuid', qr).maybeSingle()
+  return data
+}
+
+export async function getMaterialJobIdByQr(qr: string): Promise<string | null> {
+  const { data } = await client().from('materials').select('job_id').eq('qr_code_uuid', qr).maybeSingle()
+  return data?.job_id ?? null
+}
+
+/** Resolve a typed job code (manual entry fallback) to a job id. */
+export async function getJobIdByCode(code: string): Promise<string | null> {
+  const { data } = await client().from('jobs').select('id').eq('job_code', code).maybeSingle()
+  return data?.id ?? null
+}
+
 /** One task with its job, stage/dept, and full clock log (S06). */
 export async function getTask(id: string): Promise<TaskFull> {
   const { data, error } = await client()

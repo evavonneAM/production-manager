@@ -7,6 +7,7 @@ import { formatMinutes, formatDate } from '../lib/format'
 import { EmptyState, ErrorState, Tabs, TaskStatusBadge } from '../components/ui'
 import { StagePipeline } from '../components/StagePipeline'
 import { FullScreenLoader } from '../components/FullScreenLoader'
+import { QrModal } from '../components/QrModal'
 import type { JobDetail as JobDetailT, StageWithDept, Task } from '../lib/types'
 
 function CurrentStageCard({ job }: { job: JobDetailT }) {
@@ -117,6 +118,7 @@ export default function JobDetail() {
   const { data: job, loading, error } = useAsync(() => getJob(jobId as string), [jobId])
   const { data: directory } = useAsync(getDirectory, [])
   const [tab, setTab] = useState('tasks')
+  const [showQr, setShowQr] = useState(false)
 
   const nameOf = useMemo(() => {
     const map = new Map((directory ?? []).map((u) => [u.id, u.full_name]))
@@ -148,10 +150,38 @@ export default function JobDetail() {
         </Link>
       )}
 
-      <div className="mt-3 mb-5">
-        <h1 className="font-mono text-3xl font-bold text-amber-300">{job.job_code}</h1>
-        <p className="mt-1 text-slate-300">{job.name}</p>
+      <div className="mt-3 mb-5 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="font-mono text-3xl font-bold text-amber-300">{job.job_code}</h1>
+          <p className="mt-1 text-slate-300">{job.name}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowQr(true)}
+          aria-label={t('qr.showQr')}
+          className="shrink-0 rounded-lg border border-slate-700 p-2 text-slate-300 hover:bg-slate-800"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-6 w-6">
+            <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" />
+          </svg>
+        </button>
       </div>
+
+      {showQr && (
+        <QrModal
+          value={`${window.location.origin}/j/${job.qr_code_uuid}`}
+          title={job.job_code}
+          onClose={() => setShowQr(false)}
+          onPrint={() =>
+            void import('../lib/labels').then((m) =>
+              m.printJobLabels(
+                [{ job_code: job.job_code, name: job.name, qr_code_uuid: job.qr_code_uuid }],
+                job.project?.client_name ?? '',
+              ),
+            )
+          }
+        />
+      )}
 
       <div className="mb-5 rounded-xl border border-slate-800 bg-slate-800/20 p-4">
         <StagePipeline stages={job.stages} />

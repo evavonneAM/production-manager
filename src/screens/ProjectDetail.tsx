@@ -7,6 +7,7 @@ import { formatMinutes, formatDate } from '../lib/format'
 import { StatusBadge, EmptyState, ErrorState, Tabs } from '../components/ui'
 import { StagePipeline } from '../components/StagePipeline'
 import { FullScreenLoader } from '../components/FullScreenLoader'
+import { QrModal } from '../components/QrModal'
 import type { JobWithStages } from '../lib/types'
 
 function JobRow({ job }: { job: JobWithStages }) {
@@ -37,11 +38,19 @@ export default function ProjectDetail() {
     [projectId],
   )
   const [tab, setTab] = useState('overview')
+  const [showQr, setShowQr] = useState(false)
 
   if (loading) return <FullScreenLoader />
   if (error || !project) return <ErrorState text={t('common.error')} />
 
   const totalLabor = project.jobs.reduce((sum, j) => sum + j.total_labor_minutes, 0)
+  const printAll = () =>
+    void import('../lib/labels').then((m) =>
+      m.printJobLabels(
+        project.jobs.map((j) => ({ job_code: j.job_code, name: j.name, qr_code_uuid: j.qr_code_uuid })),
+        project.client_name,
+      ),
+    )
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6">
@@ -58,7 +67,33 @@ export default function ProjectDetail() {
           {project.work_order_number ? `${project.work_order_number} · ` : ''}
           {project.client_name}
         </p>
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setShowQr(true)}
+            className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+          >
+            {t('qr.projectQr')}
+          </button>
+          {project.jobs.length > 0 && (
+            <button
+              type="button"
+              onClick={printAll}
+              className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+            >
+              {t('qr.printAll')}
+            </button>
+          )}
+        </div>
       </div>
+
+      {showQr && (
+        <QrModal
+          value={`${window.location.origin}/p/${project.qr_code_uuid}`}
+          title={project.work_order_number ?? project.name}
+          onClose={() => setShowQr(false)}
+        />
+      )}
 
       <Tabs
         tabs={[

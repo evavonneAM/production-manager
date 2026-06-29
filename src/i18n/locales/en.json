@@ -23,6 +23,21 @@
   "placeholder": {
     "comingSoon": "This screen arrives in a later sprint."
   },
+  "qr": {
+    "showQr": "Show QR",
+    "printLabel": "Print label",
+    "close": "Close",
+    "projectQr": "Project QR",
+    "printAll": "Print all labels"
+  },
+  "scan": {
+    "hint": "Point your camera at a job label",
+    "cameraUnavailable": "Camera unavailable. Enter a job code below.",
+    "manualLabel": "Or enter a job code",
+    "go": "Go",
+    "notFound": "Code not recognized.",
+    "tryAgain": "Try again"
+  },
   "login": {
     "title": "Sign in",
     "email": "Email",

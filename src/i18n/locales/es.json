@@ -23,6 +23,21 @@
   "placeholder": {
     "comingSoon": "Esta pantalla llegará en un sprint posterior."
   },
+  "qr": {
+    "showQr": "Mostrar QR",
+    "printLabel": "Imprimir etiqueta",
+    "close": "Cerrar",
+    "projectQr": "QR del proyecto",
+    "printAll": "Imprimir todas las etiquetas"
+  },
+  "scan": {
+    "hint": "Apunta la cámara a una etiqueta",
+    "cameraUnavailable": "Cámara no disponible. Escribe un código abajo.",
+    "manualLabel": "O escribe un código de trabajo",
+    "go": "Ir",
+    "notFound": "Código no reconocido.",
+    "tryAgain": "Intentar de nuevo"
+  },
   "login": {
     "title": "Iniciar sesión",
     "email": "Correo electrónico",
