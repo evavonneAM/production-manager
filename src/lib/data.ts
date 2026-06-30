@@ -8,6 +8,8 @@ import type {
   TaskWithJob,
   DeptQueueJob,
   MyWork,
+  InspectionQueueItem,
+  JobInspection,
 } from './types'
 
 function client() {
@@ -167,6 +169,64 @@ export async function getActiveSession(
     .maybeSingle()
   if (error) throw error
   return data
+}
+
+// ---- Inspection / workflow (S16) --------------------------------------------
+
+/** Stages awaiting inspection, ordered by project priority. */
+export async function getInspectionQueue(): Promise<InspectionQueueItem[]> {
+  const { data, error } = await client()
+    .from('job_stages')
+    .select(
+      `id, submitted_at, submitted_by,
+       department:departments ( id, name ),
+       job:jobs!job_stages_job_id_fkey ( id, job_code, name, project:projects ( name, client_name, priority_rank ) ),
+       tasks:tasks ( id, name, status, actual_minutes, estimated_hours )`,
+    )
+    .eq('status', 'pending_inspection')
+  if (error) throw error
+  const items = (data ?? []) as unknown as InspectionQueueItem[]
+  return items.sort(
+    (x, y) => (x.job?.project?.priority_rank ?? 9e9) - (y.job?.project?.priority_rank ?? 9e9),
+  )
+}
+
+/** Inspection decisions for one job (History tab). */
+export async function getJobInspections(jobId: string): Promise<JobInspection[]> {
+  const { data, error } = await client()
+    .from('inspections')
+    .select(
+      `decision, decided_at, inspector_id,
+       job_stage:job_stages!inner ( job_id, sequence, department:departments ( id, name ) ),
+       note:notes ( original_text, en_text, ru_text, es_text, original_language )`,
+    )
+    .eq('job_stage.job_id', jobId)
+    .order('decided_at', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as unknown as JobInspection[]
+}
+
+export async function submitStage(stageId: string): Promise<ClockResult> {
+  const { error } = await client().rpc('submit_stage_for_inspection', { p_job_stage_id: stageId })
+  return { error: error ? error.message : null }
+}
+
+export async function approveStage(stageId: string): Promise<ClockResult> {
+  const { error } = await client().rpc('approve_stage', { p_job_stage_id: stageId })
+  return { error: error ? error.message : null }
+}
+
+export async function rejectStage(
+  stageId: string,
+  note: string,
+  language: 'en' | 'ru' | 'es',
+): Promise<ClockResult> {
+  const { error } = await client().rpc('reject_stage', {
+    p_job_stage_id: stageId,
+    p_note_text: note,
+    p_note_language: language,
+  })
+  return { error: error ? error.message : null }
 }
 
 // ---- Clock actions (server-side RPC; see clock_functions migration) ---------

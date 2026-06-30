@@ -23,6 +23,18 @@
   "placeholder": {
     "comingSoon": "This screen arrives in a later sprint."
   },
+  "inspection": {
+    "empty": "No stages awaiting inspection.",
+    "allDepartments": "All departments",
+    "submittedBy": "Submitted by {{name}}",
+    "waiting": "waiting {{time}}",
+    "tasksHeader": "Tasks in this stage",
+    "notEligible": "Only this department's lead or an admin can inspect this.",
+    "approve": "Approve",
+    "reject": "Reject",
+    "confirmReject": "Confirm rejection",
+    "rejectNotePlaceholder": "Reason for rejection (required)"
+  },
   "qr": {
     "showQr": "Show QR",
     "printLabel": "Print label",
@@ -113,7 +125,13 @@
     "notOrdered": "Not ordered",
     "complete": "Complete",
     "enteredStage": "Entered {{dept}}",
-    "approvedStage": "{{dept}} approved"
+    "approvedStage": "{{dept}} approved",
+    "awaitingInspection": "Awaiting inspection",
+    "submitConfirmTitle": "Submit for inspection?",
+    "submitConfirmBody": "This sends the stage to the inspection queue.",
+    "submitIncompleteWarn": "Not all tasks are complete. Submit anyway?",
+    "inspApproved": "{{dept}} approved by {{name}}",
+    "inspRejected": "{{dept}} rejected by {{name}}"
   },
   "myWork": {
     "myTasks": "My Tasks",
@@ -145,7 +163,12 @@
     "already_clocked_in": "You're already clocked into another task. Clock out first.",
     "not_eligible": "You can't clock into this task.",
     "not_clocked_in": "You're not clocked in.",
-    "not_authenticated": "Please sign in again."
+    "not_authenticated": "Please sign in again.",
+    "not_pending": "This stage isn't awaiting inspection.",
+    "note_required": "A rejection note is required.",
+    "not_submittable": "This stage can't be submitted right now.",
+    "not_current_stage": "This isn't the job's current stage.",
+    "not_found": "Not found."
   },
   "projectStatus": {
     "estimate": "Estimate",

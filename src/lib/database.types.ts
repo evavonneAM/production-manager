@@ -933,6 +933,29 @@ export type Database = {
     }
     Functions: {
       _close_open_session: { Args: { p_uid: string }; Returns: undefined }
+      _eligible_inspector: {
+        Args: { p_job_stage_id: string; p_uid: string }
+        Returns: boolean
+      }
+      _notify: {
+        Args: {
+          p_body_en: string
+          p_body_es: string
+          p_body_ru: string
+          p_job_id: string
+          p_title_en: string
+          p_title_es: string
+          p_title_ru: string
+          p_type: Database["public"]["Enums"]["notification_type"]
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      _resequence_department_queue: {
+        Args: { p_department_id: string }
+        Returns: undefined
+      }
+      approve_stage: { Args: { p_job_stage_id: string }; Returns: undefined }
       auth_department_id: { Args: never; Returns: string }
       auth_role: {
         Args: never
@@ -943,6 +966,18 @@ export type Database = {
       clock_out: { Args: never; Returns: undefined }
       complete_task: { Args: { p_task_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
+      reject_stage: {
+        Args: {
+          p_job_stage_id: string
+          p_note_language: Database["public"]["Enums"]["language"]
+          p_note_text: string
+        }
+        Returns: undefined
+      }
+      submit_stage_for_inspection: {
+        Args: { p_job_stage_id: string }
+        Returns: undefined
+      }
       user_department: { Args: { target: string }; Returns: string }
     }
     Enums: {

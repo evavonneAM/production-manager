@@ -23,6 +23,18 @@
   "placeholder": {
     "comingSoon": "Этот экран появится в следующих спринтах."
   },
+  "inspection": {
+    "empty": "Нет этапов на приёмке.",
+    "allDepartments": "Все отделы",
+    "submittedBy": "Отправил(а): {{name}}",
+    "waiting": "ожидает {{time}}",
+    "tasksHeader": "Задачи этого этапа",
+    "notEligible": "Принимать может только руководитель этого отдела или администратор.",
+    "approve": "Одобрить",
+    "reject": "Отклонить",
+    "confirmReject": "Подтвердить отклонение",
+    "rejectNotePlaceholder": "Причина отклонения (обязательно)"
+  },
   "qr": {
     "showQr": "Показать QR",
     "printLabel": "Печать этикетки",
@@ -115,7 +127,13 @@
     "notOrdered": "Не заказано",
     "complete": "Завершено",
     "enteredStage": "Поступило в {{dept}}",
-    "approvedStage": "{{dept}}: одобрено"
+    "approvedStage": "{{dept}}: одобрено",
+    "awaitingInspection": "Ожидает приёмки",
+    "submitConfirmTitle": "Отправить на приёмку?",
+    "submitConfirmBody": "Этап будет добавлен в очередь приёмки.",
+    "submitIncompleteWarn": "Не все задачи завершены. Всё равно отправить?",
+    "inspApproved": "{{dept}} — одобрено ({{name}})",
+    "inspRejected": "{{dept}} — отклонено ({{name}})"
   },
   "myWork": {
     "myTasks": "Мои задачи",
@@ -147,7 +165,12 @@
     "already_clocked_in": "Вы уже работаете над другой задачей. Сначала закончите её.",
     "not_eligible": "Вы не можете начать эту задачу.",
     "not_clocked_in": "Вы не начинали работу.",
-    "not_authenticated": "Пожалуйста, войдите снова."
+    "not_authenticated": "Пожалуйста, войдите снова.",
+    "not_pending": "Этот этап не на приёмке.",
+    "note_required": "Требуется примечание при отклонении.",
+    "not_submittable": "Этот этап нельзя отправить сейчас.",
+    "not_current_stage": "Это не текущий этап работы.",
+    "not_found": "Не найдено."
   },
   "projectStatus": {
     "estimate": "Смета",

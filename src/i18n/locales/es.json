@@ -23,6 +23,18 @@
   "placeholder": {
     "comingSoon": "Esta pantalla llegará en un sprint posterior."
   },
+  "inspection": {
+    "empty": "No hay etapas en espera de inspección.",
+    "allDepartments": "Todos los departamentos",
+    "submittedBy": "Enviado por {{name}}",
+    "waiting": "esperando {{time}}",
+    "tasksHeader": "Tareas de esta etapa",
+    "notEligible": "Solo el jefe de este departamento o un administrador puede inspeccionar.",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "confirmReject": "Confirmar rechazo",
+    "rejectNotePlaceholder": "Motivo del rechazo (obligatorio)"
+  },
   "qr": {
     "showQr": "Mostrar QR",
     "printLabel": "Imprimir etiqueta",
@@ -113,7 +125,13 @@
     "notOrdered": "No pedido",
     "complete": "Completado",
     "enteredStage": "Ingresó a {{dept}}",
-    "approvedStage": "{{dept}} aprobado"
+    "approvedStage": "{{dept}} aprobado",
+    "awaitingInspection": "En espera de inspección",
+    "submitConfirmTitle": "¿Enviar a inspección?",
+    "submitConfirmBody": "Esto envía la etapa a la cola de inspección.",
+    "submitIncompleteWarn": "No todas las tareas están completas. ¿Enviar de todos modos?",
+    "inspApproved": "{{dept}} aprobado por {{name}}",
+    "inspRejected": "{{dept}} rechazado por {{name}}"
   },
   "myWork": {
     "myTasks": "Mis tareas",
@@ -145,7 +163,12 @@
     "already_clocked_in": "Ya estás trabajando en otra tarea. Finalízala primero.",
     "not_eligible": "No puedes iniciar esta tarea.",
     "not_clocked_in": "No has iniciado ninguna tarea.",
-    "not_authenticated": "Por favor, inicia sesión de nuevo."
+    "not_authenticated": "Por favor, inicia sesión de nuevo.",
+    "not_pending": "Esta etapa no está en inspección.",
+    "note_required": "Se requiere una nota de rechazo.",
+    "not_submittable": "Esta etapa no se puede enviar ahora.",
+    "not_current_stage": "Esta no es la etapa actual del trabajo.",
+    "not_found": "No encontrado."
   },
   "projectStatus": {
     "estimate": "Presupuesto",

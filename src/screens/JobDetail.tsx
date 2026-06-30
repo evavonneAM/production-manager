@@ -1,21 +1,43 @@
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getJob, getDirectory } from '../lib/data'
+import { getJob, getDirectory, getJobInspections, submitStage } from '../lib/data'
 import { formatMinutes, formatDate } from '../lib/format'
 import { EmptyState, ErrorState, Tabs, TaskStatusBadge } from '../components/ui'
 import { StagePipeline } from '../components/StagePipeline'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { QrModal } from '../components/QrModal'
-import type { JobDetail as JobDetailT, StageWithDept, Task } from '../lib/types'
+import type { JobDetail as JobDetailT, StageWithDept, Task, JobInspection } from '../lib/types'
 
-function CurrentStageCard({ job }: { job: JobDetailT }) {
+function CurrentStageCard({ job, onChanged }: { job: JobDetailT; onChanged: () => void }) {
   const { t } = useTranslation()
+  const { profile } = useAuth()
+  const [confirm, setConfirm] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   const current = job.stages.find((s) => s.id === job.current_stage_id)
   if (!current) return null
   const tasks = job.tasks.filter((tk) => tk.job_stage_id === current.id)
   const done = tasks.filter((tk) => tk.status === 'completed').length
+  const allComplete = tasks.length > 0 && done === tasks.length
+
+  const canSubmit =
+    (current.status === 'queued' || current.status === 'in_progress') &&
+    (profile?.role === 'admin' ||
+      (profile?.role === 'lead' && current.department?.id === profile?.department_id))
+
+  async function doSubmit() {
+    setBusy(true)
+    setError(null)
+    const { error } = await submitStage(current!.id)
+    setBusy(false)
+    setConfirm(false)
+    if (error) setError(t([`clockError.${error}`, 'common.error']))
+    else onChanged()
+  }
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-800/40 p-4">
@@ -28,14 +50,45 @@ function CurrentStageCard({ job }: { job: JobDetailT }) {
           {t('jobDetail.tasksDone', { done, total: tasks.length })}
         </span>
       </div>
-      <button
-        type="button"
-        disabled
-        title={t('jobDetail.comingLater')}
-        className="mt-3 w-full cursor-not-allowed rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-500"
-      >
-        {t('jobDetail.submitForInspection')}
-      </button>
+
+      {current.status === 'pending_inspection' ? (
+        <p className="mt-3 rounded-lg bg-amber-600/10 px-3 py-2 text-center text-sm text-amber-300">
+          {t('jobDetail.awaitingInspection')}
+        </p>
+      ) : (
+        canSubmit && (
+          <>
+            {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+            <button
+              type="button"
+              onClick={() => setConfirm(true)}
+              disabled={busy}
+              className="mt-3 w-full rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-60"
+            >
+              {t('jobDetail.submitForInspection')}
+            </button>
+          </>
+        )
+      )}
+
+      {confirm && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={() => setConfirm(false)}>
+          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-2 text-lg font-semibold">{t('jobDetail.submitConfirmTitle')}</h2>
+            <p className="mb-5 text-sm text-slate-400">
+              {allComplete ? t('jobDetail.submitConfirmBody') : t('jobDetail.submitIncompleteWarn')}
+            </p>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setConfirm(false)} className="flex-1 rounded-lg border border-slate-600 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800">
+                {t('common.cancel')}
+              </button>
+              <button type="button" onClick={() => void doSubmit()} disabled={busy} className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-60">
+                {t('jobDetail.submitForInspection')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -87,25 +140,49 @@ function TasksTab({ job, nameOf }: { job: JobDetailT; nameOf: (id: string | null
   )
 }
 
-function HistoryTab({ job }: { job: JobDetailT }) {
+function HistoryTab({
+  job,
+  inspections,
+  nameOf,
+}: {
+  job: JobDetailT
+  inspections: JobInspection[]
+  nameOf: (id: string | null) => string
+}) {
   const { t, i18n } = useTranslation()
-  const events = [...job.stages]
-    .sort((a, b) => a.sequence - b.sequence)
-    .flatMap((s) => {
-      const rows: { label: string; when: string }[] = []
-      if (s.entered_at)
-        rows.push({ label: t('jobDetail.enteredStage', { dept: s.department?.name }), when: s.entered_at })
-      if (s.approved_at)
-        rows.push({ label: t('jobDetail.approvedStage', { dept: s.department?.name }), when: s.approved_at })
-      return rows
-    })
+  type Event = { label: string; note?: string; when: string }
+  const events: Event[] = []
+
+  for (const s of job.stages) {
+    if (s.entered_at)
+      events.push({ label: t('jobDetail.enteredStage', { dept: s.department?.name }), when: s.entered_at })
+  }
+  for (const insp of inspections) {
+    const dept = insp.job_stage?.department?.name
+    const who = nameOf(insp.inspector_id)
+    if (insp.decision === 'approved') {
+      events.push({ label: t('jobDetail.inspApproved', { dept, name: who }), when: insp.decided_at })
+    } else {
+      events.push({
+        label: t('jobDetail.inspRejected', { dept, name: who }),
+        note: insp.note?.original_text ?? undefined,
+        when: insp.decided_at,
+      })
+    }
+  }
+
+  events.sort((a, b) => a.when.localeCompare(b.when))
   if (events.length === 0) return <EmptyState text={t('jobDetail.noHistory')} />
+
   return (
     <ul className="flex flex-col gap-3">
       {events.map((e, i) => (
-        <li key={i} className="flex justify-between gap-3 text-sm">
-          <span className="text-slate-300">{e.label}</span>
-          <span className="shrink-0 text-slate-500">{formatDate(e.when, i18n.language)}</span>
+        <li key={i} className="text-sm">
+          <div className="flex justify-between gap-3">
+            <span className="text-slate-300">{e.label}</span>
+            <span className="shrink-0 text-slate-500">{formatDate(e.when, i18n.language)}</span>
+          </div>
+          {e.note && <p className="mt-0.5 text-xs italic text-slate-500">"{e.note}"</p>}
         </li>
       ))}
     </ul>
@@ -115,8 +192,10 @@ function HistoryTab({ job }: { job: JobDetailT }) {
 export default function JobDetail() {
   const { jobId } = useParams()
   const { t } = useTranslation()
-  const { data: job, loading, error } = useAsync(() => getJob(jobId as string), [jobId])
+  const [reloadKey, setReloadKey] = useState(0)
+  const { data: job, loading, error } = useAsync(() => getJob(jobId as string), [jobId, reloadKey])
   const { data: directory } = useAsync(getDirectory, [])
+  const { data: inspections } = useAsync(() => getJobInspections(jobId as string), [jobId, reloadKey])
   const [tab, setTab] = useState('tasks')
   const [showQr, setShowQr] = useState(false)
 
@@ -188,7 +267,7 @@ export default function JobDetail() {
       </div>
 
       <div className="mb-5">
-        <CurrentStageCard job={job} />
+        <CurrentStageCard job={job} onChanged={() => setReloadKey((k) => k + 1)} />
       </div>
 
       <div className="mb-5 grid grid-cols-2 gap-3 text-sm">
@@ -224,7 +303,9 @@ export default function JobDetail() {
         )}
         {tab === 'notes' && <EmptyState text={t('jobDetail.noNotes')} />}
         {tab === 'files' && <EmptyState text={t('jobDetail.noFiles')} />}
-        {tab === 'history' && <HistoryTab job={job} />}
+        {tab === 'history' && (
+          <HistoryTab job={job} inspections={inspections ?? []} nameOf={nameOf} />
+        )}
       </div>
     </div>
   )

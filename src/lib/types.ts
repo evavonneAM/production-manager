@@ -78,3 +78,37 @@ export type MyWork = {
   myTasks: TaskWithJob[]
   deptQueue: DeptQueueJob[]
 }
+
+/** A stage awaiting inspection (S16 queue). */
+export type InspectionQueueItem = {
+  id: string // job_stage id
+  submitted_at: string | null
+  submitted_by: string | null
+  department: DepartmentRef | null
+  job:
+    | {
+        id: string
+        job_code: string
+        name: string
+        project: { name: string; client_name: string; priority_rank: number | null } | null
+      }
+    | null
+  tasks: Pick<Task, 'id' | 'name' | 'status' | 'actual_minutes' | 'estimated_hours'>[]
+}
+
+/** One inspection decision, for a job's History tab. */
+export type JobInspection = {
+  decision: 'approved' | 'rejected'
+  decided_at: string
+  inspector_id: string
+  job_stage: { sequence: number; department: DepartmentRef | null } | null
+  note:
+    | {
+        original_text: string
+        en_text: string | null
+        ru_text: string | null
+        es_text: string | null
+        original_language: 'en' | 'ru' | 'es'
+      }
+    | null
+}
