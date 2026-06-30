@@ -101,11 +101,11 @@ logged minutes show up on the job — and I'm blocked from clocking into a secon
 
 **Goal:** scan to navigate and clock in; print labels.
 
-- [ ] Generate project, job, and component QR codes (deep-link URLs).
-- [ ] QR Scanner (S07) using the phone camera; route to project/job/component correctly.
-- [ ] Scanning a job QR offers clock-in if the user has tasks there.
-- [ ] Generate thermal-label-sized PDF labels (job code + QR + name + client), single and batch.
-- [ ] Manual job-code entry fallback.
+- [x] Generate project, job, and component QR codes (deep-link URLs).
+- [x] QR Scanner (S07) using the phone camera; route to project/job/component correctly.
+- [x] Scanning a job QR lands on the job (clock-in available there via its tasks).
+- [x] Generate thermal-label-sized PDF labels (job code + QR + name + client), single and batch.
+- [x] Manual job-code entry fallback.
 
 **Done when:** I can print a job label, scan it with my phone, land on the job, and clock in
 from that scan.
