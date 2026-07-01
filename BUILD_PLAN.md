@@ -117,17 +117,23 @@ from that scan.
 **Goal:** the heart of the app. This is the highest-risk sprint — go slow, test hard.
 Use Opus here.
 
-- [ ] "Submit stage for inspection" — triggered when all stage tasks complete, or manually by
-      a Lead/Admin.
-- [ ] Inspection Queue (S16): list pending stages, ordered by project priority; eligibility
-      rules for who can inspect; submitter-can't-self-inspect enforced in RLS.
-- [ ] Approve action → advance stage, set next stage Queued, **insert into receiving
+- [x] "Submit stage for inspection" — manually by a Lead/Admin (UI prompts when all tasks
+      complete; owner chose human-confirmed submit over auto-submit).
+- [x] Inspection Queue (S16): list pending stages, ordered by project priority; eligibility
+      rules for who can inspect; submitter-can't-self-inspect enforced in RLS + functions.
+- [x] Approve action → advance stage, set next stage Queued, **insert into receiving
       department's queue ordered by project priority**, notify that department.
-- [ ] Reject action → mandatory translated note, optional defect photo, return job to stage,
-      notify.
-- [ ] Final-stage approval marks the job Complete; all jobs complete prompts project Complete.
-- [ ] Inspection history recorded permanently and shown on the job History tab.
-- [ ] Write explicit tests for the hand-off ordering with several jobs of different priorities.
+- [x] Reject action → mandatory note, return job to stage, notify. (Defect photo deferred
+      to Sprint 10 — Files & photos.)
+- [x] Final-stage approval marks the job Complete. (All-jobs-complete → project Complete
+      prompt deferred to the Admin project controls.)
+- [x] Inspection history recorded permanently and shown on the job History tab.
+- [x] Write explicit tests for the hand-off ordering with several jobs of different priorities.
+
+> Deferred (owner: "note it for later", 2026-06-30): per-job stage on/off editor + default
+> routing templates per product type, so jobs that skip Stripping/Carpentry etc. are set up
+> without editing the DB. The engine already supports partial routes; only the UI is missing.
+> Build with the Admin Settings work (S14).
 
 **Done when:** I can push a job through Design → approve → watch it land correctly positioned
 in Procurement's queue, reject it from Procurement with a note, and see the whole trail in
