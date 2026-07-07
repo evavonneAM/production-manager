@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "icons": "node scripts/generate-icons.mjs",
-    "seed": "node --env-file=.env scripts/seed-data.mjs"
+    "seed": "node --env-file=.env scripts/seed-data.mjs",
+    "backfill": "node --env-file=.env scripts/backfill-translations.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

@@ -10,7 +10,11 @@ import type {
   MyWork,
   InspectionQueueItem,
   JobInspection,
+  Note,
 } from './types'
+
+type NoteScope = { projectId: string; jobId?: string | null; taskId?: string | null }
+type TranslatableTable = 'notes' | 'jobs' | 'projects' | 'materials' | 'tasks'
 
 function client() {
   if (!supabase) throw new Error('Supabase is not configured')
@@ -115,7 +119,7 @@ export async function getTask(id: string): Promise<TaskFull> {
     .from('tasks')
     .select(
       `*,
-       job:jobs ( id, job_code, name, project_id ),
+       job:jobs ( id, job_code, name, name_i18n, project_id ),
        stage:job_stages!tasks_job_stage_id_fkey ( id, sequence, department:departments ( id, name ) ),
        labor_logs:labor_logs ( * )`,
     )
@@ -131,7 +135,7 @@ export async function getMyWork(userId: string, departmentId: string | null): Pr
 
   const { data: myTasks, error: tErr } = await c
     .from('tasks')
-    .select(`*, job:jobs ( id, job_code, name )`)
+    .select(`*, job:jobs ( id, job_code, name, name_i18n )`)
     .or(`assigned_user_id.eq.${userId},created_by.eq.${userId}`)
     .order('created_at', { ascending: false })
   if (tErr) throw tErr
@@ -141,7 +145,7 @@ export async function getMyWork(userId: string, departmentId: string | null): Pr
     const { data: jobs, error: jErr } = await c
       .from('jobs')
       .select(
-        `id, job_code, name, status, queue_position,
+        `id, job_code, name, name_i18n, status, queue_position,
          current_stage:job_stages!jobs_current_stage_id_fkey ( department_id, status ),
          tasks:tasks ( id, status )`,
       )
@@ -171,6 +175,58 @@ export async function getActiveSession(
   return data
 }
 
+// ---- Notes & translation (S11, DeepL Edge Function) -------------------------
+
+/** Ask the server to translate a row's field(s) into en/ru/es and store them. */
+export async function requestTranslation(table: TranslatableTable, id: string): Promise<void> {
+  try {
+    await client().functions.invoke('translate', { body: { table, id } })
+  } catch {
+    /* status stays pending/failed; a retry can re-invoke */
+  }
+}
+
+/** Notes at the most specific level given (task → job → project). */
+export async function getNotes(scope: NoteScope): Promise<Note[]> {
+  let q = client().from('notes').select('*').order('created_at', { ascending: false })
+  if (scope.taskId) q = q.eq('task_id', scope.taskId)
+  else if (scope.jobId) q = q.eq('job_id', scope.jobId).is('task_id', null)
+  else q = q.eq('project_id', scope.projectId).is('job_id', null).is('task_id', null)
+  const { data, error } = await q
+  if (error) throw error
+  return (data ?? []) as Note[]
+}
+
+/** Add a note (shows immediately in its original language), then kick off translation. */
+export async function addNote(params: {
+  scope: NoteScope
+  authorId: string
+  text: string
+  language: 'en' | 'ru' | 'es'
+}): Promise<{ error: string | null; id?: string }> {
+  const { data, error } = await client()
+    .from('notes')
+    .insert({
+      project_id: params.scope.projectId,
+      job_id: params.scope.jobId ?? null,
+      task_id: params.scope.taskId ?? null,
+      author_id: params.authorId,
+      original_text: params.text,
+      original_language: params.language,
+      translation_status: 'pending',
+    })
+    .select('id')
+    .single()
+  if (error) return { error: error.message }
+  await requestTranslation('notes', data.id)
+  return { error: null, id: data.id }
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  const { error } = await client().from('notes').delete().eq('id', id)
+  if (error) throw error
+}
+
 // ---- Inspection / workflow (S16) --------------------------------------------
 
 /** Stages awaiting inspection, ordered by project priority. */
@@ -180,8 +236,8 @@ export async function getInspectionQueue(): Promise<InspectionQueueItem[]> {
     .select(
       `id, submitted_at, submitted_by,
        department:departments ( id, name ),
-       job:jobs!job_stages_job_id_fkey ( id, job_code, name, project:projects ( name, client_name, priority_rank ) ),
-       tasks:tasks ( id, name, status, actual_minutes, estimated_hours )`,
+       job:jobs!job_stages_job_id_fkey ( id, job_code, name, name_i18n, project:projects ( name, client_name, priority_rank ) ),
+       tasks:tasks ( id, name, name_i18n, status, actual_minutes, estimated_hours )`,
     )
     .eq('status', 'pending_inspection')
   if (error) throw error

@@ -23,6 +23,16 @@
   "placeholder": {
     "comingSoon": "This screen arrives in a later sprint."
   },
+  "notes": {
+    "placeholder": "Write a note…",
+    "add": "Add note",
+    "posting": "Posting…",
+    "empty": "No notes yet.",
+    "originallyIn": "Originally in {{lang}}",
+    "translating": "Translating…",
+    "translationFailed": "Translation failed.",
+    "delete": "Delete"
+  },
   "inspection": {
     "empty": "No stages awaiting inspection.",
     "allDepartments": "All departments",

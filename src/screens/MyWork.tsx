@@ -7,19 +7,22 @@ import { getMyWork, getActiveSession, clockOut } from '../lib/data'
 import { Tabs, EmptyState, ErrorState, TaskStatusBadge } from '../components/ui'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { LiveTimer } from '../components/LiveTimer'
+import { localized } from '../lib/i18nText'
 import type { TaskWithJob, DeptQueueJob } from '../lib/types'
 
 function TaskRow({ task }: { task: TaskWithJob }) {
+  const { i18n } = useTranslation()
   return (
     <Link
       to={`/tasks/${task.id}`}
       className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5 hover:bg-slate-800/70"
     >
       <div className="min-w-0">
-        <p className="truncate text-sm">{task.name}</p>
+        <p className="truncate text-sm">{localized(task.name, task.name_i18n, i18n.language)}</p>
         {task.job && (
           <p className="truncate text-xs text-slate-500">
-            <span className="font-mono text-amber-300/80">{task.job.job_code}</span> · {task.job.name}
+            <span className="font-mono text-amber-300/80">{task.job.job_code}</span> ·{' '}
+            {localized(task.job.name, task.job.name_i18n, i18n.language)}
           </p>
         )}
       </div>
@@ -38,7 +41,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function DeptQueueRow({ job }: { job: DeptQueueJob }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const done = job.tasks.filter((tk) => tk.status === 'completed').length
   return (
     <Link
@@ -48,7 +51,7 @@ function DeptQueueRow({ job }: { job: DeptQueueJob }) {
       <div className="min-w-0">
         <p className="truncate text-sm">
           <span className="font-mono font-medium text-amber-300">{job.job_code}</span>
-          <span className="ml-2 text-slate-400">{job.name}</span>
+          <span className="ml-2 text-slate-400">{localized(job.name, job.name_i18n, i18n.language)}</span>
         </p>
         <p className="text-xs text-slate-500">{t('myWork.tasksProgress', { done, total: job.tasks.length })}</p>
       </div>

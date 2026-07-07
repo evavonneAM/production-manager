@@ -23,6 +23,16 @@
   "placeholder": {
     "comingSoon": "Esta pantalla llegará en un sprint posterior."
   },
+  "notes": {
+    "placeholder": "Escribe una nota…",
+    "add": "Añadir nota",
+    "posting": "Publicando…",
+    "empty": "Aún no hay notas.",
+    "originallyIn": "Original en {{lang}}",
+    "translating": "Traduciendo…",
+    "translationFailed": "Error de traducción.",
+    "delete": "Eliminar"
+  },
   "inspection": {
     "empty": "No hay etapas en espera de inspección.",
     "allDepartments": "Todos los departamentos",

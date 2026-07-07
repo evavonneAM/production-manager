@@ -23,6 +23,16 @@
   "placeholder": {
     "comingSoon": "Этот экран появится в следующих спринтах."
   },
+  "notes": {
+    "placeholder": "Написать заметку…",
+    "add": "Добавить",
+    "posting": "Отправка…",
+    "empty": "Пока нет заметок.",
+    "originallyIn": "Оригинал на {{lang}}",
+    "translating": "Перевод…",
+    "translationFailed": "Ошибка перевода.",
+    "delete": "Удалить"
+  },
   "inspection": {
     "empty": "Нет этапов на приёмке.",
     "allDepartments": "Все отделы",

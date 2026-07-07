@@ -8,10 +8,12 @@ import { StatusBadge, EmptyState, ErrorState, Tabs } from '../components/ui'
 import { StagePipeline } from '../components/StagePipeline'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { QrModal } from '../components/QrModal'
+import { Notes } from '../components/Notes'
+import { localized } from '../lib/i18nText'
 import type { JobWithStages } from '../lib/types'
 
 function JobRow({ job }: { job: JobWithStages }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const current = job.stages.find((s) => s.id === job.current_stage_id)
   return (
     <Link
@@ -24,7 +26,7 @@ function JobRow({ job }: { job: JobWithStages }) {
           {current?.department?.name ?? t('jobDetail.complete')}
         </span>
       </div>
-      <p className="mb-3 truncate text-sm text-slate-300">{job.name}</p>
+      <p className="mb-3 truncate text-sm text-slate-300">{localized(job.name, job.name_i18n, i18n.language)}</p>
       <StagePipeline stages={job.stages} />
     </Link>
   )
@@ -99,10 +101,17 @@ export default function ProjectDetail() {
         tabs={[
           { key: 'overview', label: t('projectDetail.tabOverview') },
           { key: 'jobs', label: t('projectDetail.tabJobs') },
+          { key: 'notes', label: t('jobDetail.tabNotes') },
         ]}
         active={tab}
         onChange={setTab}
       />
+
+      {tab === 'notes' && (
+        <div className="mt-5">
+          <Notes scope={{ projectId: project.id }} />
+        </div>
+      )}
 
       {tab === 'overview' && (
         <div className="mt-5 flex flex-col gap-5">
@@ -132,7 +141,7 @@ export default function ProjectDetail() {
           {project.description && (
             <div className="text-sm">
               <p className="mb-1 text-slate-500">{t('projectDetail.scope')}</p>
-              <p className="text-slate-300">{project.description}</p>
+              <p className="text-slate-300">{localized(project.description ?? '', project.description_i18n, i18n.language)}</p>
             </div>
           )}
 
@@ -149,7 +158,7 @@ export default function ProjectDetail() {
                   >
                     <span>
                       <span className="font-mono font-medium text-amber-300">{job.job_code}</span>
-                      <span className="ml-2 text-slate-400">{job.name}</span>
+                      <span className="ml-2 text-slate-400">{localized(job.name, job.name_i18n, i18n.language)}</span>
                     </span>
                     <span className="shrink-0 text-xs text-slate-500">
                       {current?.department?.name ?? t('jobDetail.complete')}

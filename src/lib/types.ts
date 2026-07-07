@@ -53,7 +53,7 @@ export type JobDetail = Job & {
   files: FileRow[]
 }
 
-export type JobRef = Pick<Job, 'id' | 'job_code' | 'name'>
+export type JobRef = Pick<Job, 'id' | 'job_code' | 'name' | 'name_i18n'>
 
 /** A task with its parent job — used in My Work and the clock-in confirmation. */
 export type TaskWithJob = Task & { job: JobRef | null }
@@ -68,7 +68,7 @@ export type TaskFull = Task & {
 /** A job row in the department queue (S17). */
 export type DeptQueueJob = Pick<
   Job,
-  'id' | 'job_code' | 'name' | 'status' | 'queue_position'
+  'id' | 'job_code' | 'name' | 'name_i18n' | 'status' | 'queue_position'
 > & {
   current_stage: { department_id: string; status: StageStatus } | null
   tasks: Pick<Task, 'id' | 'status'>[]
@@ -90,10 +90,11 @@ export type InspectionQueueItem = {
         id: string
         job_code: string
         name: string
+        name_i18n: Job['name_i18n']
         project: { name: string; client_name: string; priority_rank: number | null } | null
       }
     | null
-  tasks: Pick<Task, 'id' | 'name' | 'status' | 'actual_minutes' | 'estimated_hours'>[]
+  tasks: Pick<Task, 'id' | 'name' | 'name_i18n' | 'status' | 'actual_minutes' | 'estimated_hours'>[]
 }
 
 /** One inspection decision, for a job's History tab. */

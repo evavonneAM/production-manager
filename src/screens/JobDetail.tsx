@@ -9,6 +9,8 @@ import { EmptyState, ErrorState, Tabs, TaskStatusBadge } from '../components/ui'
 import { StagePipeline } from '../components/StagePipeline'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { QrModal } from '../components/QrModal'
+import { Notes } from '../components/Notes'
+import { localized } from '../lib/i18nText'
 import type { JobDetail as JobDetailT, StageWithDept, Task, JobInspection } from '../lib/types'
 
 function CurrentStageCard({ job, onChanged }: { job: JobDetailT; onChanged: () => void }) {
@@ -94,7 +96,7 @@ function CurrentStageCard({ job, onChanged }: { job: JobDetailT; onChanged: () =
 }
 
 function TasksTab({ job, nameOf }: { job: JobDetailT; nameOf: (id: string | null) => string }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   if (job.tasks.length === 0) return <EmptyState text={t('jobDetail.noTasks')} />
 
   // Group tasks by stage, in routing order.
@@ -123,7 +125,7 @@ function TasksTab({ job, nameOf }: { job: JobDetailT; nameOf: (id: string | null
                   className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5 hover:bg-slate-800/70"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm">{task.name}</p>
+                    <p className="truncate text-sm">{localized(task.name, task.name_i18n, i18n.language)}</p>
                     <p className="text-xs text-slate-500">
                       {task.assigned_user_id
                         ? nameOf(task.assigned_user_id)
@@ -191,7 +193,7 @@ function HistoryTab({
 
 export default function JobDetail() {
   const { jobId } = useParams()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [reloadKey, setReloadKey] = useState(0)
   const { data: job, loading, error } = useAsync(() => getJob(jobId as string), [jobId, reloadKey])
   const { data: directory } = useAsync(getDirectory, [])
@@ -232,7 +234,7 @@ export default function JobDetail() {
       <div className="mt-3 mb-5 flex items-start justify-between gap-3">
         <div>
           <h1 className="font-mono text-3xl font-bold text-amber-300">{job.job_code}</h1>
-          <p className="mt-1 text-slate-300">{job.name}</p>
+          <p className="mt-1 text-slate-300">{localized(job.name, job.name_i18n, i18n.language)}</p>
         </div>
         <button
           type="button"
@@ -292,7 +294,7 @@ export default function JobDetail() {
             <div className="flex flex-col gap-2">
               {job.materials.map((m) => (
                 <div key={m.id} className="flex justify-between rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5 text-sm">
-                  <span>{m.name}</span>
+                  <span>{localized(m.name, m.name_i18n, i18n.language)}</span>
                   <span className="text-slate-500">
                     {m.is_arrived ? t('jobDetail.arrived') : m.is_ordered ? t('jobDetail.ordered') : t('jobDetail.notOrdered')}
                   </span>
@@ -301,7 +303,12 @@ export default function JobDetail() {
             </div>
           )
         )}
-        {tab === 'notes' && <EmptyState text={t('jobDetail.noNotes')} />}
+        {tab === 'notes' &&
+          (job.project ? (
+            <Notes scope={{ projectId: job.project.id, jobId: job.id }} />
+          ) : (
+            <EmptyState text={t('jobDetail.noNotes')} />
+          ))}
         {tab === 'files' && <EmptyState text={t('jobDetail.noFiles')} />}
         {tab === 'history' && (
           <HistoryTab job={job} inspections={inspections ?? []} nameOf={nameOf} />

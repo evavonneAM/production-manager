@@ -303,9 +303,11 @@ export type Database = {
           created_at: string
           current_stage_id: string | null
           description: string | null
+          description_i18n: Json | null
           id: string
           job_code: string
           name: string
+          name_i18n: Json | null
           project_id: string
           qr_code_uuid: string
           queue_position: number | null
@@ -318,9 +320,11 @@ export type Database = {
           created_at?: string
           current_stage_id?: string | null
           description?: string | null
+          description_i18n?: Json | null
           id?: string
           job_code: string
           name: string
+          name_i18n?: Json | null
           project_id: string
           qr_code_uuid?: string
           queue_position?: number | null
@@ -333,9 +337,11 @@ export type Database = {
           created_at?: string
           current_stage_id?: string | null
           description?: string | null
+          description_i18n?: Json | null
           id?: string
           job_code?: string
           name?: string
+          name_i18n?: Json | null
           project_id?: string
           qr_code_uuid?: string
           queue_position?: number | null
@@ -449,6 +455,7 @@ export type Database = {
           is_ordered: boolean
           job_id: string
           name: string
+          name_i18n: Json | null
           ordered_at: string | null
           qr_code_uuid: string | null
           quantity: number
@@ -467,6 +474,7 @@ export type Database = {
           is_ordered?: boolean
           job_id: string
           name: string
+          name_i18n?: Json | null
           ordered_at?: string | null
           qr_code_uuid?: string | null
           quantity: number
@@ -485,6 +493,7 @@ export type Database = {
           is_ordered?: boolean
           job_id?: string
           name?: string
+          name_i18n?: Json | null
           ordered_at?: string | null
           qr_code_uuid?: string | null
           quantity?: number
@@ -676,6 +685,7 @@ export type Database = {
           client_name: string
           created_at: string
           description: string | null
+          description_i18n: Json | null
           estimate_rocket_id: string | null
           id: string
           name: string
@@ -693,6 +703,7 @@ export type Database = {
           client_name: string
           created_at?: string
           description?: string | null
+          description_i18n?: Json | null
           estimate_rocket_id?: string | null
           id?: string
           name: string
@@ -710,6 +721,7 @@ export type Database = {
           client_name?: string
           created_at?: string
           description?: string | null
+          description_i18n?: Json | null
           estimate_rocket_id?: string | null
           id?: string
           name?: string
@@ -739,6 +751,7 @@ export type Database = {
           job_id: string
           job_stage_id: string
           name: string
+          name_i18n: Json | null
           status: Database["public"]["Enums"]["task_status"]
           updated_at: string
         }
@@ -755,6 +768,7 @@ export type Database = {
           job_id: string
           job_stage_id: string
           name: string
+          name_i18n?: Json | null
           status?: Database["public"]["Enums"]["task_status"]
           updated_at?: string
         }
@@ -771,6 +785,7 @@ export type Database = {
           job_id?: string
           job_stage_id?: string
           name?: string
+          name_i18n?: Json | null
           status?: Database["public"]["Enums"]["task_status"]
           updated_at?: string
         }

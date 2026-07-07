@@ -11,8 +11,9 @@ import {
 import { formatMinutes } from '../lib/format'
 import { EmptyState, ErrorState, TaskStatusBadge } from '../components/ui'
 import { FullScreenLoader } from '../components/FullScreenLoader'
+import { localized } from '../lib/i18nText'
 import type { InspectionQueueItem } from '../lib/types'
-import i18n, { type AppLanguage } from '../i18n'
+import { type AppLanguage } from '../i18n'
 
 function waitingMinutes(since: string | null): number {
   if (!since) return 0
@@ -20,7 +21,7 @@ function waitingMinutes(since: string | null): number {
 }
 
 export default function Inspection() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { profile } = useAuth()
   const [reloadKey, setReloadKey] = useState(0)
   const [deptFilter, setDeptFilter] = useState('all')
@@ -85,7 +86,9 @@ export default function Inspection() {
                 <span className="font-mono font-semibold text-amber-300">{it.job?.job_code}</span>
                 <span className="text-xs text-slate-500">{it.department?.name}</span>
               </div>
-              <p className="mt-1 truncate text-sm text-slate-300">{it.job?.name}</p>
+              <p className="mt-1 truncate text-sm text-slate-300">
+                {it.job ? localized(it.job.name, it.job.name_i18n, i18n.language) : ''}
+              </p>
               <p className="mt-1 text-xs text-slate-500">
                 {t('inspection.submittedBy', { name: nameOf(it.submitted_by) })} ·{' '}
                 {t('inspection.waiting', {
@@ -125,7 +128,7 @@ function InspectionPanel({
   onClose: () => void
   onDone: () => void
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
@@ -173,7 +176,7 @@ function InspectionPanel({
             <div className="flex flex-col gap-1.5">
               {item.tasks.map((tk) => (
                 <div key={tk.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="truncate text-slate-300">{tk.name}</span>
+                  <span className="truncate text-slate-300">{localized(tk.name, tk.name_i18n, i18n.language)}</span>
                   <TaskStatusBadge status={tk.status} />
                 </div>
               ))}

@@ -6,6 +6,8 @@ import { useAsync } from '../hooks/useAsync'
 import { getTask, getDirectory, getActiveSession, clockIn, clockOut, completeTask } from '../lib/data'
 import { formatMinutes } from '../lib/format'
 import { ErrorState, Tabs, TaskStatusBadge } from '../components/ui'
+import { Notes } from '../components/Notes'
+import { localized } from '../lib/i18nText'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { LiveTimer } from '../components/LiveTimer'
 
@@ -87,7 +89,7 @@ export default function TaskDetail() {
       )}
 
       <div className="mt-3 mb-5 flex items-start justify-between gap-3">
-        <h1 className="text-xl font-semibold">{task.name}</h1>
+        <h1 className="text-xl font-semibold">{localized(task.name, task.name_i18n, i18n.language)}</h1>
         <TaskStatusBadge status={task.status} />
       </div>
 
@@ -182,6 +184,14 @@ export default function TaskDetail() {
           ))
         )}
       </div>
+
+      {/* Task-level notes */}
+      {task.job && (
+        <div className="mt-8 border-t border-slate-800 pt-6">
+          <p className="mb-3 text-sm font-medium text-slate-300">{t('jobDetail.tabNotes')}</p>
+          <Notes scope={{ projectId: task.job.project_id, jobId: task.job.id, taskId: task.id }} />
+        </div>
+      )}
 
       {/* Switch-task confirmation (S08) */}
       {confirmSwitch && (
