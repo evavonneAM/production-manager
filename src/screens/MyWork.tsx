@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getMyWork, getActiveSession, clockOut } from '../lib/data'
+import { getMyWork, getActiveSession, clockOut, getPendingApprovals, approveTask } from '../lib/data'
 import { Tabs, EmptyState, ErrorState, TaskStatusBadge } from '../components/ui'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { LiveTimer } from '../components/LiveTimer'
 import { localized } from '../lib/i18nText'
-import type { TaskWithJob, DeptQueueJob } from '../lib/types'
+import type { TaskWithJob, DeptQueueJob, PendingApproval } from '../lib/types'
 
 function TaskRow({ task }: { task: TaskWithJob }) {
   const { i18n } = useTranslation()
@@ -59,6 +59,37 @@ function DeptQueueRow({ job }: { job: DeptQueueJob }) {
   )
 }
 
+function ApprovalRow({ task, onApproved }: { task: PendingApproval; onApproved: () => void }) {
+  const { t, i18n } = useTranslation()
+  const [busy, setBusy] = useState(false)
+  async function approve() {
+    setBusy(true)
+    await approveTask(task.id)
+    setBusy(false)
+    onApproved()
+  }
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5">
+      <Link to={`/tasks/${task.id}`} className="min-w-0 flex-1">
+        <p className="truncate text-sm">{localized(task.name, task.name_i18n, i18n.language)}</p>
+        {task.job && (
+          <p className="truncate text-xs text-slate-500">
+            <span className="font-mono text-amber-300/80">{task.job.job_code}</span>
+          </p>
+        )}
+      </Link>
+      <button
+        type="button"
+        onClick={() => void approve()}
+        disabled={busy}
+        className="shrink-0 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-500 disabled:opacity-60"
+      >
+        {t('inspection.approve')}
+      </button>
+    </div>
+  )
+}
+
 export default function MyWork() {
   const { t } = useTranslation()
   const { profile, refreshProfile } = useAuth()
@@ -73,6 +104,10 @@ export default function MyWork() {
     [uid, profile?.department_id, reloadKey],
   )
   const { data: active } = useAsync(() => getActiveSession(uid), [uid, reloadKey])
+  const { data: approvals } = useAsync(
+    () => getPendingApprovals(profile?.role ?? '', profile?.department_id ?? null),
+    [profile?.role, profile?.department_id, reloadKey],
+  )
 
   const groups = useMemo(() => {
     const list = data?.myTasks ?? []
@@ -119,6 +154,15 @@ export default function MyWork() {
         <div className="mt-5 flex flex-col gap-6">
           {error && <ErrorState text={error} />}
 
+          {/* Awaiting your approval (approvers only) */}
+          {(approvals?.length ?? 0) > 0 && (
+            <Section title={t('myWork.awaitingApproval')}>
+              {approvals!.map((tk) => (
+                <ApprovalRow key={tk.id} task={tk} onApproved={() => setReloadKey((k) => k + 1)} />
+              ))}
+            </Section>
+          )}
+
           {/* Active (pinned) */}
           {groups.active && (
             <div className="rounded-xl border border-amber-600/40 bg-amber-600/10 p-4">
@@ -164,7 +208,8 @@ export default function MyWork() {
           {!groups.active &&
             groups.upNext.length === 0 &&
             groups.pending.length === 0 &&
-            groups.completed.length === 0 && <EmptyState text={t('myWork.noTasks')} />}
+            groups.completed.length === 0 &&
+            (approvals?.length ?? 0) === 0 && <EmptyState text={t('myWork.noTasks')} />}
         </div>
       )}
 

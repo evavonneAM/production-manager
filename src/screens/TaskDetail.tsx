@@ -3,7 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getTask, getDirectory, getActiveSession, clockIn, clockOut, completeTask } from '../lib/data'
+import { getTask, getDirectory, getActiveSession, clockIn, clockOut, completeTask, approveTask, rejectTask } from '../lib/data'
+import { type AppLanguage } from '../i18n'
 import { formatMinutes } from '../lib/format'
 import { ErrorState, Tabs, TaskStatusBadge } from '../components/ui'
 import { Notes } from '../components/Notes'
@@ -19,6 +20,8 @@ export default function TaskDetail() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmSwitch, setConfirmSwitch] = useState(false)
+  const [rejecting, setRejecting] = useState(false)
+  const [rejectNote, setRejectNote] = useState('')
 
   const { data: task, loading, error: loadErr } = useAsync(
     () => getTask(taskId as string),
@@ -52,6 +55,11 @@ export default function TaskDetail() {
     (task.assigned_user_id === profile.id ||
       profile.role === 'admin' ||
       (profile.role === 'lead' && stageDept === profile.department_id))
+
+  const isPending = task.status === 'pending_approval'
+  const canApprove =
+    isPending &&
+    (profile.role === 'admin' || (profile.role === 'lead' && stageDept === profile.department_id))
 
   async function run(fn: () => Promise<{ error: string | null }>) {
     setError(null)
@@ -113,6 +121,48 @@ export default function TaskDetail() {
           <dd className="text-slate-200">{formatMinutes(task.actual_minutes, { h: t('units.h'), m: t('units.m') })}</dd>
         </div>
       </dl>
+
+      {/* Pending approval */}
+      {isPending && (
+        <div className="mb-6 rounded-xl border border-orange-600/40 bg-orange-600/10 p-4">
+          <p className="mb-3 text-sm text-orange-300">{t('taskDetail.pendingApprovalInfo')}</p>
+          {error && <ErrorState text={error} />}
+          {canApprove &&
+            (rejecting ? (
+              <div className="flex flex-col gap-3">
+                <textarea
+                  value={rejectNote}
+                  onChange={(e) => setRejectNote(e.target.value)}
+                  placeholder={t('inspection.rejectNotePlaceholder')}
+                  rows={2}
+                  className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
+                />
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setRejecting(false)} className="flex-1 rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800">
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy || !rejectNote.trim()}
+                    onClick={() => void run(() => rejectTask(task.id, rejectNote.trim(), i18n.language as AppLanguage))}
+                    className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+                  >
+                    {t('inspection.confirmReject')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setRejecting(true)} disabled={busy} className="flex-1 rounded-lg border border-red-600/60 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-600/10">
+                  {t('inspection.reject')}
+                </button>
+                <button type="button" onClick={() => void run(() => approveTask(task.id))} disabled={busy} className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500 disabled:opacity-60">
+                  {t('inspection.approve')}
+                </button>
+              </div>
+            ))}
+        </div>
+      )}
 
       {/* Clock controls */}
       <div className="mb-6 flex flex-col gap-3">

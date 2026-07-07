@@ -23,6 +23,17 @@
   "placeholder": {
     "comingSoon": "Этот экран появится в следующих спринтах."
   },
+  "createTask": {
+    "title": "Новая задача",
+    "name": "Название задачи",
+    "stage": "Этап",
+    "assignee": "Назначить",
+    "estHours": "Оценка, ч",
+    "dueDate": "Срок",
+    "instructions": "Инструкции",
+    "create": "Создать",
+    "add": "Добавить задачу"
+  },
   "notes": {
     "placeholder": "Написать заметку…",
     "add": "Добавить",
@@ -147,6 +158,7 @@
   },
   "myWork": {
     "myTasks": "Мои задачи",
+    "awaitingApproval": "Ожидают вашего одобрения",
     "deptQueue": "Очередь отдела",
     "active": "Активная",
     "upNext": "Далее",
@@ -161,6 +173,7 @@
     "department": "Отдел",
     "assignee": "Назначено",
     "clockedIn": "В работе",
+    "pendingApprovalInfo": "Задача ожидает одобрения.",
     "clockIn": "Начать",
     "markComplete": "Завершить задачу",
     "clockLog": "Журнал времени",

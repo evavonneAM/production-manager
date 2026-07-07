@@ -58,6 +58,12 @@ export type JobRef = Pick<Job, 'id' | 'job_code' | 'name' | 'name_i18n'>
 /** A task with its parent job — used in My Work and the clock-in confirmation. */
 export type TaskWithJob = Task & { job: JobRef | null }
 
+/** A pending task shown to an approver (My Work "Awaiting your approval"). */
+export type PendingApproval = Task & {
+  job: JobRef | null
+  stage: { department_id: string } | null
+}
+
 /** Task Detail (S06): task + job + stage/dept + its full clock log. */
 export type TaskFull = Task & {
   job: (JobRef & { project_id: string }) | null

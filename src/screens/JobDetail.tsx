@@ -9,6 +9,7 @@ import { EmptyState, ErrorState, Tabs, TaskStatusBadge } from '../components/ui'
 import { StagePipeline } from '../components/StagePipeline'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { QrModal } from '../components/QrModal'
+import { CreateTaskModal } from '../components/CreateTaskModal'
 import { Notes } from '../components/Notes'
 import { localized } from '../lib/i18nText'
 import type { JobDetail as JobDetailT, StageWithDept, Task, JobInspection } from '../lib/types'
@@ -200,6 +201,7 @@ export default function JobDetail() {
   const { data: inspections } = useAsync(() => getJobInspections(jobId as string), [jobId, reloadKey])
   const [tab, setTab] = useState('tasks')
   const [showQr, setShowQr] = useState(false)
+  const [showCreateTask, setShowCreateTask] = useState(false)
 
   const nameOf = useMemo(() => {
     const map = new Map((directory ?? []).map((u) => [u.id, u.full_name]))
@@ -286,7 +288,18 @@ export default function JobDetail() {
       <Tabs tabs={tabs} active={tab} onChange={setTab} />
 
       <div className="mt-5">
-        {tab === 'tasks' && <TasksTab job={job} nameOf={nameOf} />}
+        {tab === 'tasks' && (
+          <div className="flex flex-col gap-4">
+            <button
+              type="button"
+              onClick={() => setShowCreateTask(true)}
+              className="self-start rounded-lg border border-slate-600 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"
+            >
+              ＋ {t('createTask.add')}
+            </button>
+            <TasksTab job={job} nameOf={nameOf} />
+          </div>
+        )}
         {tab === 'materials' && (
           job.materials.length === 0 ? (
             <EmptyState text={t('jobDetail.noMaterials')} />
@@ -314,6 +327,20 @@ export default function JobDetail() {
           <HistoryTab job={job} inspections={inspections ?? []} nameOf={nameOf} />
         )}
       </div>
+
+      {showCreateTask && (
+        <CreateTaskModal
+          jobId={job.id}
+          stages={job.stages}
+          directory={directory ?? []}
+          defaultStageId={job.current_stage_id ?? undefined}
+          onClose={() => setShowCreateTask(false)}
+          onCreated={() => {
+            setShowCreateTask(false)
+            setReloadKey((k) => k + 1)
+          }}
+        />
+      )}
     </div>
   )
 }

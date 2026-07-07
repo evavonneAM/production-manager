@@ -971,6 +971,7 @@ export type Database = {
         Returns: undefined
       }
       approve_stage: { Args: { p_job_stage_id: string }; Returns: undefined }
+      approve_task: { Args: { p_task_id: string }; Returns: undefined }
       auth_department_id: { Args: never; Returns: string }
       auth_role: {
         Args: never
@@ -988,6 +989,14 @@ export type Database = {
           p_note_text: string
         }
         Returns: undefined
+      }
+      reject_task: {
+        Args: {
+          p_note_language: Database["public"]["Enums"]["language"]
+          p_note_text: string
+          p_task_id: string
+        }
+        Returns: string
       }
       submit_stage_for_inspection: {
         Args: { p_job_stage_id: string }

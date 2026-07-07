@@ -23,6 +23,17 @@
   "placeholder": {
     "comingSoon": "Esta pantalla llegará en un sprint posterior."
   },
+  "createTask": {
+    "title": "Nueva tarea",
+    "name": "Nombre de la tarea",
+    "stage": "Etapa",
+    "assignee": "Asignar a",
+    "estHours": "Horas est.",
+    "dueDate": "Fecha límite",
+    "instructions": "Instrucciones",
+    "create": "Crear",
+    "add": "Añadir tarea"
+  },
   "notes": {
     "placeholder": "Escribe una nota…",
     "add": "Añadir nota",
@@ -145,6 +156,7 @@
   },
   "myWork": {
     "myTasks": "Mis tareas",
+    "awaitingApproval": "Pendiente de tu aprobación",
     "deptQueue": "Cola del departamento",
     "active": "Activa",
     "upNext": "Siguiente",
@@ -159,6 +171,7 @@
     "department": "Departamento",
     "assignee": "Asignada a",
     "clockedIn": "En curso",
+    "pendingApprovalInfo": "Esta tarea está pendiente de aprobación.",
     "clockIn": "Iniciar",
     "markComplete": "Marcar completada",
     "clockLog": "Registro de tiempo",

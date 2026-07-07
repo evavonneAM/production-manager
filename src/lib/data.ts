@@ -11,6 +11,7 @@ import type {
   InspectionQueueItem,
   JobInspection,
   Note,
+  PendingApproval,
 } from './types'
 
 type NoteScope = { projectId: string; jobId?: string | null; taskId?: string | null }
@@ -225,6 +226,76 @@ export async function addNote(params: {
 export async function deleteNote(id: string): Promise<void> {
   const { error } = await client().from('notes').delete().eq('id', id)
   if (error) throw error
+}
+
+// ---- Task creation & approval (S06, S09 rules) ------------------------------
+
+export async function createTask(fields: {
+  jobId: string
+  jobStageId: string
+  name: string
+  assignedUserId?: string | null
+  estimatedHours?: number | null
+  dueDate?: string | null
+  instructions?: string | null
+  createdBy: string
+}): Promise<{ error: string | null; id?: string }> {
+  const { data, error } = await client()
+    .from('tasks')
+    .insert({
+      job_id: fields.jobId,
+      job_stage_id: fields.jobStageId,
+      name: fields.name,
+      assigned_user_id: fields.assignedUserId ?? null,
+      estimated_hours: fields.estimatedHours ?? null,
+      due_date: fields.dueDate ?? null,
+      instructions: fields.instructions ?? null,
+      created_by: fields.createdBy,
+    })
+    .select('id')
+    .single()
+  if (error) return { error: error.message }
+  await requestTranslation('tasks', data.id)
+  return { error: null, id: data.id }
+}
+
+export async function approveTask(id: string): Promise<ClockResult> {
+  const { error } = await client().rpc('approve_task', { p_task_id: id })
+  return { error: error ? error.message : null }
+}
+
+export async function rejectTask(
+  id: string,
+  note: string,
+  language: 'en' | 'ru' | 'es',
+): Promise<ClockResult> {
+  const { data, error } = await client().rpc('reject_task', {
+    p_task_id: id,
+    p_note_text: note,
+    p_note_language: language,
+  })
+  if (error) return { error: error.message }
+  if (data) await requestTranslation('notes', data as string)
+  return { error: null }
+}
+
+/** Pending tasks the caller may approve (Admin: all; Lead: their department). */
+export async function getPendingApprovals(
+  role: string,
+  departmentId: string | null,
+): Promise<PendingApproval[]> {
+  if (role !== 'admin' && role !== 'lead') return []
+  const { data, error } = await client()
+    .from('tasks')
+    .select(
+      `*, job:jobs ( id, job_code, name, name_i18n ),
+       stage:job_stages!tasks_job_stage_id_fkey ( department_id )`,
+    )
+    .eq('status', 'pending_approval')
+  if (error) throw error
+  let list = (data ?? []) as unknown as PendingApproval[]
+  if (role === 'lead') list = list.filter((tk) => tk.stage?.department_id === departmentId)
+  return list
 }
 
 // ---- Inspection / workflow (S16) --------------------------------------------

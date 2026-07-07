@@ -23,6 +23,17 @@
   "placeholder": {
     "comingSoon": "This screen arrives in a later sprint."
   },
+  "createTask": {
+    "title": "New task",
+    "name": "Task name",
+    "stage": "Stage",
+    "assignee": "Assign to",
+    "estHours": "Est. hours",
+    "dueDate": "Due date",
+    "instructions": "Instructions",
+    "create": "Create",
+    "add": "Add task"
+  },
   "notes": {
     "placeholder": "Write a note…",
     "add": "Add note",
@@ -145,6 +156,7 @@
   },
   "myWork": {
     "myTasks": "My Tasks",
+    "awaitingApproval": "Awaiting your approval",
     "deptQueue": "Department Queue",
     "active": "Active",
     "upNext": "Up Next",
@@ -159,6 +171,7 @@
     "department": "Department",
     "assignee": "Assigned to",
     "clockedIn": "Clocked in",
+    "pendingApprovalInfo": "This task is awaiting approval.",
     "clockIn": "Clock in",
     "markComplete": "Mark complete",
     "clockLog": "Clock log",
