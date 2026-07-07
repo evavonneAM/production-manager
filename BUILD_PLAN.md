@@ -145,12 +145,12 @@ History.
 
 **Goal:** cross-language communication.
 
-- [ ] DeepL integration via an Edge Function (key never exposed to the client).
-- [ ] Add/Edit Note (S11): on save, translate to en/ru/es, store all three plus original.
-- [ ] Notes display in each viewer's language with an "originally written in X" label.
-- [ ] Graceful failure: show original + warning, retry in background.
-- [ ] Notes at project, job, and task level.
-- [ ] **Auto-translate work-description fields too** (decided in Sprint 3): on create/edit,
+- [x] DeepL integration via an Edge Function (key never exposed to the client).
+- [x] Add/Edit Note (S11): on save, translate to en/ru/es, store all three plus original.
+- [x] Notes display in each viewer's language with an "originally written in X" label.
+- [x] Graceful failure: show original + warning, retry in background.
+- [x] Notes at project, job, and task level.
+- [x] **Auto-translate work-description fields too** (decided in Sprint 3): on create/edit,
       translate and store en/ru/es for job names + descriptions, project descriptions,
       material item names (e.g. "6 dining chairs"), and task names — so non-English staff
       can read what the work is. Job codes and client names stay canonical. This revises
