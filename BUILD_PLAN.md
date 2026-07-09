@@ -167,10 +167,12 @@ Russian within a few seconds — and a job named in English shows up readable in
 
 **Goal:** anyone can create tasks; staff-created ones need approval.
 
-- [ ] Create-task UI available to all roles.
-- [ ] Staff-created tasks enter Pending Approval; Admin/Lead approve or reject.
-- [ ] Approval notifications with one-tap approve/reject.
-- [ ] Approved tasks become clockable; rejected tasks archived with the note.
+- [x] Create-task UI available to all roles.
+- [x] Staff-created tasks enter Pending Approval; Admin/Lead approve or reject.
+- [x] Approval notifications with one-tap approve/reject (My Work "awaiting your approval").
+- [x] Approved tasks become clockable; rejected tasks archived with the note.
+- [x] (Owner request, post-sprint) Admin can edit any task — including pending ones before
+      approving — and delete tasks (archives as Cancelled instead when time is logged).
 
 **Done when:** a Staff user creates a task, the department Lead gets a notification and
 approves it, and it becomes available to clock into.
