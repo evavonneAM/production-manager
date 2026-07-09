@@ -23,6 +23,18 @@
   "placeholder": {
     "comingSoon": "Esta pantalla llegará en un sprint posterior."
   },
+  "taskEdit": {
+    "title": "Editar tarea",
+    "edit": "Editar tarea",
+    "delete": "Eliminar tarea",
+    "assigneeLocked": "No se puede reasignar mientras alguien trabaja en la tarea.",
+    "deleteTitle": "¿Eliminar esta tarea?",
+    "deleteBody": "La tarea se eliminará permanentemente.",
+    "deleteConfirm": "Eliminar",
+    "cancelTitle": "¿Cancelar esta tarea?",
+    "cancelBody": "Esta tarea tiene tiempo registrado, así que se archivará como cancelada y se conservarán las horas.",
+    "cancelConfirm": "Cancelar tarea"
+  },
   "createTask": {
     "title": "Nueva tarea",
     "name": "Nombre de la tarea",

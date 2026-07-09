@@ -23,6 +23,18 @@
   "placeholder": {
     "comingSoon": "This screen arrives in a later sprint."
   },
+  "taskEdit": {
+    "title": "Edit task",
+    "edit": "Edit task",
+    "delete": "Delete task",
+    "assigneeLocked": "Can't reassign while someone is clocked in.",
+    "deleteTitle": "Delete this task?",
+    "deleteBody": "This permanently removes the task.",
+    "deleteConfirm": "Delete",
+    "cancelTitle": "Cancel this task?",
+    "cancelBody": "This task has logged time, so it will be archived as Cancelled and its hours kept.",
+    "cancelConfirm": "Cancel task"
+  },
   "createTask": {
     "title": "New task",
     "name": "Task name",

@@ -279,6 +279,35 @@ export async function rejectTask(
   return { error: null }
 }
 
+/** Admin edit of a task's details (RLS: tasks_admin). Re-translates a changed name. */
+export async function updateTask(
+  id: string,
+  patch: {
+    name?: string
+    assigned_user_id?: string | null
+    estimated_hours?: number | null
+    due_date?: string | null
+    instructions?: string | null
+  },
+): Promise<ClockResult> {
+  const { error } = await client().from('tasks').update(patch).eq('id', id)
+  if (error) return { error: error.message }
+  if (patch.name !== undefined) await requestTranslation('tasks', id)
+  return { error: null }
+}
+
+/** Admin hard-delete — only for tasks with no logged time (else use cancelTask). */
+export async function deleteTask(id: string): Promise<ClockResult> {
+  const { error } = await client().from('tasks').delete().eq('id', id)
+  return { error: error ? error.message : null }
+}
+
+/** Admin cancel — archives the task but preserves its logged hours (SPEC §9). */
+export async function cancelTask(id: string): Promise<ClockResult> {
+  const { error } = await client().from('tasks').update({ status: 'cancelled' }).eq('id', id)
+  return { error: error ? error.message : null }
+}
+
 /** Pending tasks the caller may approve (Admin: all; Lead: their department). */
 export async function getPendingApprovals(
   role: string,

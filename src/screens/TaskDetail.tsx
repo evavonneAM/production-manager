@@ -1,19 +1,21 @@
 import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getTask, getDirectory, getActiveSession, clockIn, clockOut, completeTask, approveTask, rejectTask } from '../lib/data'
+import { getTask, getDirectory, getActiveSession, clockIn, clockOut, completeTask, approveTask, rejectTask, deleteTask, cancelTask } from '../lib/data'
 import { type AppLanguage } from '../i18n'
 import { formatMinutes } from '../lib/format'
 import { ErrorState, Tabs, TaskStatusBadge } from '../components/ui'
 import { Notes } from '../components/Notes'
+import { EditTaskModal } from '../components/EditTaskModal'
 import { localized } from '../lib/i18nText'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { LiveTimer } from '../components/LiveTimer'
 
 export default function TaskDetail() {
   const { taskId } = useParams()
+  const navigate = useNavigate()
   const { t, i18n } = useTranslation()
   const { profile, refreshProfile } = useAuth()
   const [reloadKey, setReloadKey] = useState(0)
@@ -22,6 +24,8 @@ export default function TaskDetail() {
   const [confirmSwitch, setConfirmSwitch] = useState(false)
   const [rejecting, setRejecting] = useState(false)
   const [rejectNote, setRejectNote] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const { data: task, loading, error: loadErr } = useAsync(
     () => getTask(taskId as string),
@@ -61,6 +65,10 @@ export default function TaskDetail() {
     isPending &&
     (profile.role === 'admin' || (profile.role === 'lead' && stageDept === profile.department_id))
 
+  const isAdmin = profile.role === 'admin'
+  // Hard-delete would cascade away labor logs; with logged time we archive instead (SPEC §9).
+  const hasLoggedTime = task.labor_logs.length > 0 || task.actual_minutes > 0
+
   async function run(fn: () => Promise<{ error: string | null }>) {
     setError(null)
     setBusy(true)
@@ -87,6 +95,19 @@ export default function TaskDetail() {
   const logs = [...task.labor_logs].sort((a, b) => b.clocked_in_at.localeCompare(a.clocked_in_at))
   const fmtTime = (iso: string) =>
     new Date(iso).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
+
+  async function onConfirmDelete() {
+    setConfirmDelete(false)
+    if (hasLoggedTime) {
+      await run(() => cancelTask(task!.id))
+    } else {
+      setBusy(true)
+      const { error } = await deleteTask(task!.id)
+      setBusy(false)
+      if (error) setError(t('common.error'))
+      else navigate(task!.job ? `/jobs/${task!.job.id}` : '/my-work', { replace: true })
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6">
@@ -121,6 +142,34 @@ export default function TaskDetail() {
           <dd className="text-slate-200">{formatMinutes(task.actual_minutes, { h: t('units.h'), m: t('units.m') })}</dd>
         </div>
       </dl>
+
+      {task.instructions && (
+        <div className="mb-5 rounded-lg border border-slate-800 bg-slate-800/40 p-3">
+          <p className="mb-1 text-xs text-slate-500">{t('createTask.instructions')}</p>
+          <p className="whitespace-pre-wrap text-sm text-slate-200">{task.instructions}</p>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="mb-6 flex gap-3">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            disabled={busy}
+            className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+          >
+            {t('taskEdit.edit')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            disabled={busy}
+            className="rounded-lg border border-red-900/60 px-3 py-1.5 text-sm text-red-400/90 hover:bg-red-600/10"
+          >
+            {t('taskEdit.delete')}
+          </button>
+        </div>
+      )}
 
       {/* Pending approval */}
       {isPending && (
@@ -240,6 +289,50 @@ export default function TaskDetail() {
         <div className="mt-8 border-t border-slate-800 pt-6">
           <p className="mb-3 text-sm font-medium text-slate-300">{t('jobDetail.tabNotes')}</p>
           <Notes scope={{ projectId: task.job.project_id, jobId: task.job.id, taskId: task.id }} />
+        </div>
+      )}
+
+      {/* Admin: edit task */}
+      {editing && (
+        <EditTaskModal
+          task={task}
+          directory={directory ?? []}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false)
+            setReloadKey((k) => k + 1)
+          }}
+        />
+      )}
+
+      {/* Admin: delete / cancel confirmation */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={() => setConfirmDelete(false)}>
+          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-2 text-lg font-semibold">
+              {hasLoggedTime ? t('taskEdit.cancelTitle') : t('taskEdit.deleteTitle')}
+            </h2>
+            <p className="mb-5 text-sm text-slate-400">
+              {hasLoggedTime ? t('taskEdit.cancelBody') : t('taskEdit.deleteBody')}
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 rounded-lg border border-slate-600 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={() => void onConfirmDelete()}
+                disabled={busy}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-60"
+              >
+                {hasLoggedTime ? t('taskEdit.cancelConfirm') : t('taskEdit.deleteConfirm')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
