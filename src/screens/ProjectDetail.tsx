@@ -10,7 +10,46 @@ import { FullScreenLoader } from '../components/FullScreenLoader'
 import { QrModal } from '../components/QrModal'
 import { Notes } from '../components/Notes'
 import { localized } from '../lib/i18nText'
+import { getProjectMaterials } from '../lib/data'
 import type { JobWithStages } from '../lib/types'
+
+/** Read-only materials roll-up grouped by job (S05 Tab 3). */
+function ProjectMaterials({ projectId }: { projectId: string }) {
+  const { t, i18n } = useTranslation()
+  const { data: groups, loading } = useAsync(() => getProjectMaterials(projectId), [projectId])
+
+  if (loading) return <p className="mt-5 text-sm text-slate-500">{t('common.loading')}</p>
+  const nonEmpty = (groups ?? []).filter((g) => g.materials.length > 0)
+  if (nonEmpty.length === 0) return <div className="mt-5"><EmptyState text={t('jobDetail.noMaterials')} /></div>
+
+  return (
+    <div className="mt-5 flex flex-col gap-5">
+      {nonEmpty.map((g) => (
+        <div key={g.job_code}>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+            <span className="font-mono text-amber-300/80">{g.job_code}</span> ·{' '}
+            {localized(g.job_name, g.job_name_i18n, i18n.language)}
+          </p>
+          <div className="flex flex-col gap-2">
+            {g.materials.map((m) => (
+              <div key={m.id} className="flex justify-between gap-2 rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5 text-sm">
+                <span className="min-w-0 truncate">
+                  {localized(m.name, m.name_i18n, i18n.language)}
+                  <span className="ml-2 text-xs text-slate-500">
+                    {m.quantity}{m.unit ? ` ${m.unit}` : ''}
+                  </span>
+                </span>
+                <span className={`shrink-0 text-xs ${m.is_arrived ? 'text-green-400' : m.is_ordered ? 'text-blue-300' : 'text-slate-500'}`}>
+                  {m.is_arrived ? t('jobDetail.arrived') : m.is_ordered ? t('jobDetail.ordered') : t('jobDetail.notOrdered')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function JobRow({ job }: { job: JobWithStages }) {
   const { t, i18n } = useTranslation()
@@ -101,11 +140,14 @@ export default function ProjectDetail() {
         tabs={[
           { key: 'overview', label: t('projectDetail.tabOverview') },
           { key: 'jobs', label: t('projectDetail.tabJobs') },
+          { key: 'materials', label: t('jobDetail.tabMaterials') },
           { key: 'notes', label: t('jobDetail.tabNotes') },
         ]}
         active={tab}
         onChange={setTab}
       />
+
+      {tab === 'materials' && <ProjectMaterials projectId={project.id} />}
 
       {tab === 'notes' && (
         <div className="mt-5">

@@ -448,6 +448,7 @@ export type Database = {
       materials: {
         Row: {
           arrived_at: string | null
+          category: Database["public"]["Enums"]["material_category"]
           created_at: string
           description: string | null
           id: string
@@ -457,16 +458,19 @@ export type Database = {
           name: string
           name_i18n: Json | null
           ordered_at: string | null
+          payment_required: boolean
           qr_code_uuid: string | null
           quantity: number
           sheet_row_ref: string | null
           supplier: string | null
           sync_source: Database["public"]["Enums"]["sync_source"]
+          synced_snapshot: Json | null
           unit: string | null
           updated_at: string
         }
         Insert: {
           arrived_at?: string | null
+          category?: Database["public"]["Enums"]["material_category"]
           created_at?: string
           description?: string | null
           id?: string
@@ -476,16 +480,19 @@ export type Database = {
           name: string
           name_i18n?: Json | null
           ordered_at?: string | null
+          payment_required?: boolean
           qr_code_uuid?: string | null
           quantity: number
           sheet_row_ref?: string | null
           supplier?: string | null
           sync_source?: Database["public"]["Enums"]["sync_source"]
+          synced_snapshot?: Json | null
           unit?: string | null
           updated_at?: string
         }
         Update: {
           arrived_at?: string | null
+          category?: Database["public"]["Enums"]["material_category"]
           created_at?: string
           description?: string | null
           id?: string
@@ -495,11 +502,13 @@ export type Database = {
           name?: string
           name_i18n?: Json | null
           ordered_at?: string | null
+          payment_required?: boolean
           qr_code_uuid?: string | null
           quantity?: number
           sheet_row_ref?: string | null
           supplier?: string | null
           sync_source?: Database["public"]["Enums"]["sync_source"]
+          synced_snapshot?: Json | null
           unit?: string | null
           updated_at?: string
         }
@@ -1009,6 +1018,7 @@ export type Database = {
       inspection_decision: "approved" | "rejected"
       job_status: "queued" | "in_production" | "complete" | "cancelled"
       language: "en" | "ru" | "es"
+      material_category: "fabric" | "com" | "insert" | "other"
       notification_type:
         | "task_assigned"
         | "task_assigned_dept"
@@ -1183,6 +1193,7 @@ export const Constants = {
       inspection_decision: ["approved", "rejected"],
       job_status: ["queued", "in_production", "complete", "cancelled"],
       language: ["en", "ru", "es"],
+      material_category: ["fabric", "com", "insert", "other"],
       notification_type: [
         "task_assigned",
         "task_assigned_dept",

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
@@ -11,6 +11,7 @@ import { FullScreenLoader } from '../components/FullScreenLoader'
 import { QrModal } from '../components/QrModal'
 import { CreateTaskModal } from '../components/CreateTaskModal'
 import { Notes } from '../components/Notes'
+import { MaterialsTab } from '../components/MaterialsTab'
 import { localized } from '../lib/i18nText'
 import type { JobDetail as JobDetailT, StageWithDept, Task, JobInspection } from '../lib/types'
 
@@ -194,12 +195,15 @@ function HistoryTab({
 
 export default function JobDetail() {
   const { jobId } = useParams()
+  const [searchParams] = useSearchParams()
   const { t, i18n } = useTranslation()
   const [reloadKey, setReloadKey] = useState(0)
   const { data: job, loading, error } = useAsync(() => getJob(jobId as string), [jobId, reloadKey])
   const { data: directory } = useAsync(getDirectory, [])
   const { data: inspections } = useAsync(() => getJobInspections(jobId as string), [jobId, reloadKey])
-  const [tab, setTab] = useState('tasks')
+  // A material QR deep link opens the Materials tab with the item highlighted.
+  const [tab, setTab] = useState(searchParams.get('tab') === 'materials' ? 'materials' : 'tasks')
+  const highlightMaterial = searchParams.get('m')
   const [showQr, setShowQr] = useState(false)
   const [showCreateTask, setShowCreateTask] = useState(false)
 
@@ -301,20 +305,11 @@ export default function JobDetail() {
           </div>
         )}
         {tab === 'materials' && (
-          job.materials.length === 0 ? (
-            <EmptyState text={t('jobDetail.noMaterials')} />
-          ) : (
-            <div className="flex flex-col gap-2">
-              {job.materials.map((m) => (
-                <div key={m.id} className="flex justify-between rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5 text-sm">
-                  <span>{localized(m.name, m.name_i18n, i18n.language)}</span>
-                  <span className="text-slate-500">
-                    {m.is_arrived ? t('jobDetail.arrived') : m.is_ordered ? t('jobDetail.ordered') : t('jobDetail.notOrdered')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )
+          <MaterialsTab
+            job={job}
+            highlightId={highlightMaterial}
+            onChanged={() => setReloadKey((k) => k + 1)}
+          />
         )}
         {tab === 'notes' &&
           (job.project ? (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getProjectIdByQr, getJobByQr, getMaterialJobIdByQr } from '../lib/data'
+import { getProjectIdByQr, getJobByQr, getMaterialByQr } from '../lib/data'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 
 /** Resolves a QR deep link (by qr_code_uuid) to the right screen. */
@@ -23,8 +23,9 @@ export default function QrResolve({ kind }: { kind: 'project' | 'job' | 'materia
           const job = await getJobByQr(qr)
           target = job ? `/jobs/${job.id}` : null
         } else if (kind === 'material' && mqr) {
-          const jobId = await getMaterialJobIdByQr(mqr)
-          target = jobId ? `/jobs/${jobId}` : null
+          const material = await getMaterialByQr(mqr)
+          // Land on the job's Materials tab with the scanned item highlighted.
+          target = material ? `/jobs/${material.job_id}?tab=materials&m=${material.id}` : null
         }
         if (!active) return
         if (target) navigate(target, { replace: true })

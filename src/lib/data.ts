@@ -12,6 +12,7 @@ import type {
   JobInspection,
   Note,
   PendingApproval,
+  Material,
 } from './types'
 
 type NoteScope = { projectId: string; jobId?: string | null; taskId?: string | null }
@@ -103,9 +104,16 @@ export async function getJobByQr(qr: string): Promise<{ id: string } | null> {
   return data
 }
 
-export async function getMaterialJobIdByQr(qr: string): Promise<string | null> {
-  const { data } = await client().from('materials').select('job_id').eq('qr_code_uuid', qr).maybeSingle()
-  return data?.job_id ?? null
+export async function getMaterialByQr(qr: string): Promise<{ id: string; job_id: string } | null> {
+  const { data } = await client().from('materials').select('id, job_id').eq('qr_code_uuid', qr).maybeSingle()
+  return data
+}
+
+/** All departments (id + name) — e.g. to check Procurement membership. */
+export async function getDepartments(): Promise<{ id: string; name: string }[]> {
+  const { data, error } = await client().from('departments').select('id, name').eq('is_archived', false)
+  if (error) throw error
+  return data ?? []
 }
 
 /** Resolve a typed job code (manual entry fallback) to a job id. */
@@ -148,7 +156,8 @@ export async function getMyWork(userId: string, departmentId: string | null): Pr
       .select(
         `id, job_code, name, name_i18n, status, queue_position,
          current_stage:job_stages!jobs_current_stage_id_fkey ( department_id, status ),
-         tasks:tasks ( id, status )`,
+         tasks:tasks ( id, status ),
+         materials:materials ( id, is_arrived )`,
       )
       .in('status', ['queued', 'in_production'])
     if (jErr) throw jErr
@@ -325,6 +334,121 @@ export async function getPendingApprovals(
   let list = (data ?? []) as unknown as PendingApproval[]
   if (role === 'lead') list = list.filter((tk) => tk.stage?.department_id === departmentId)
   return list
+}
+
+// ---- Materials (S09) ---------------------------------------------------------
+
+/** Fire-and-forget sheet sync after app-side material changes ("within seconds"). */
+export function requestSheetSync(): void {
+  void client()
+    .functions.invoke('sheets-sync', { body: {} })
+    .catch(() => {/* cron sweep covers it */})
+}
+
+export type MaterialCategory = 'fabric' | 'com' | 'insert' | 'other'
+
+export async function createMaterial(fields: {
+  jobId: string
+  name: string
+  quantity: number
+  unit?: string | null
+  supplier?: string | null
+  description?: string | null
+  category?: MaterialCategory
+  payment_required?: boolean
+}): Promise<ClockResult> {
+  const { data, error } = await client()
+    .from('materials')
+    .insert({
+      job_id: fields.jobId,
+      name: fields.name,
+      quantity: fields.quantity,
+      unit: fields.unit ?? null,
+      supplier: fields.supplier ?? null,
+      description: fields.description ?? null,
+      category: fields.category ?? 'other',
+      payment_required: fields.payment_required ?? false,
+      sync_source: 'app',
+    })
+    .select('id')
+    .single()
+  if (error) return { error: error.message }
+  await requestTranslation('materials', data.id)
+  requestSheetSync()
+  return { error: null }
+}
+
+export async function updateMaterial(
+  id: string,
+  patch: {
+    name?: string
+    quantity?: number
+    unit?: string | null
+    supplier?: string | null
+    description?: string | null
+    category?: MaterialCategory
+    payment_required?: boolean
+  },
+): Promise<ClockResult> {
+  const { error } = await client()
+    .from('materials')
+    .update({ ...patch, sync_source: 'app' })
+    .eq('id', id)
+  if (error) return { error: error.message }
+  if (patch.name !== undefined) await requestTranslation('materials', id)
+  requestSheetSync()
+  return { error: null }
+}
+
+export async function deleteMaterial(id: string): Promise<ClockResult> {
+  const { error } = await client().from('materials').delete().eq('id', id)
+  if (!error) requestSheetSync()
+  return { error: error ? error.message : null }
+}
+
+/** Ordered/arrived flags — any role may flip these (guard trigger enforces). */
+export async function setMaterialStatus(
+  id: string,
+  patch: { is_ordered?: boolean; is_arrived?: boolean },
+): Promise<ClockResult> {
+  const stamped: {
+    is_ordered?: boolean
+    is_arrived?: boolean
+    ordered_at?: string | null
+    arrived_at?: string | null
+    sync_source: 'app' | 'sheet'
+  } = { ...patch, sync_source: 'app' }
+  if (patch.is_ordered !== undefined) stamped.ordered_at = patch.is_ordered ? new Date().toISOString() : null
+  if (patch.is_arrived !== undefined) stamped.arrived_at = patch.is_arrived ? new Date().toISOString() : null
+  const { error } = await client().from('materials').update(stamped).eq('id', id)
+  if (!error) requestSheetSync()
+  return { error: error ? error.message : null }
+}
+
+/** All materials across a project, grouped by job (Project Detail Tab 3). */
+export async function getProjectMaterials(
+  projectId: string,
+): Promise<{ job_code: string; job_name: string; job_name_i18n: unknown; materials: Material[] }[]> {
+  const { data, error } = await client()
+    .from('jobs')
+    .select('job_code, name, name_i18n, materials:materials ( * )')
+    .eq('project_id', projectId)
+    .order('job_code')
+  if (error) throw error
+  return (data ?? []).map((j) => ({
+    job_code: j.job_code,
+    job_name: j.name,
+    job_name_i18n: j.name_i18n,
+    materials: (j.materials ?? []) as Material[],
+  }))
+}
+
+/** Admin "Sync Now" — runs the reconcile and reports the outcome. */
+export async function syncSheetsNow(): Promise<{ error: string | null }> {
+  const { data, error } = await client().functions.invoke('sheets-sync', { body: {} })
+  if (error) return { error: error.message }
+  if (data && data.ok === false) return { error: String(data.error ?? 'sync failed') }
+  return { error: null }
 }
 
 // ---- Inspection / workflow (S16) --------------------------------------------

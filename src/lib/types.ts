@@ -78,6 +78,7 @@ export type DeptQueueJob = Pick<
 > & {
   current_stage: { department_id: string; status: StageStatus } | null
   tasks: Pick<Task, 'id' | 'status'>[]
+  materials: Pick<Material, 'id' | 'is_arrived'>[]
 }
 
 export type MyWork = {

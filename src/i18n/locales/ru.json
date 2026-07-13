@@ -23,6 +23,38 @@
   "placeholder": {
     "comingSoon": "Этот экран появится в следующих спринтах."
   },
+  "materials": {
+    "add": "Добавить материал",
+    "addTitle": "Новый материал",
+    "editTitle": "Изменить материал",
+    "edit": "Изменить",
+    "name": "Материал",
+    "namePlaceholder": "напр. Ореховая доска 8/4",
+    "qty": "Кол-во",
+    "unit": "Ед.",
+    "unitPlaceholder": "м, шт…",
+    "supplier": "Поставщик",
+    "category": "Категория",
+    "details": "Детали",
+    "detailsPlaceholder": "Узор, цвет, размеры…",
+    "paymentRequired": "Требуется оплата клиента до заказа",
+    "paymentRequiredShort": "Ожидает оплаты",
+    "markOrdered": "Заказано",
+    "markArrived": "Получено",
+    "undoArrived": "Отменить получение",
+    "deleteTitle": "Удалить этот материал?",
+    "deleteBody": "Он также будет удалён из таблицы материалов.",
+    "syncNow": "Синхронизировать",
+    "syncing": "Синхронизация…",
+    "syncDone": "Готово.",
+    "syncFailed": "Ошибка синхронизации."
+  },
+  "materialCategory": {
+    "fabric": "Ткань",
+    "com": "Ткань клиента",
+    "insert": "Наполнитель",
+    "other": "Другое"
+  },
   "taskEdit": {
     "title": "Редактирование задачи",
     "edit": "Редактировать",

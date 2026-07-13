@@ -43,6 +43,12 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function DeptQueueRow({ job }: { job: DeptQueueJob }) {
   const { t, i18n } = useTranslation()
   const done = job.tasks.filter((tk) => tk.status === 'completed').length
+  const matDot =
+    job.materials.length === 0
+      ? 'bg-slate-600'
+      : job.materials.every((m) => m.is_arrived)
+        ? 'bg-green-500'
+        : 'bg-red-500'
   return (
     <Link
       to={`/jobs/${job.id}`}
@@ -53,7 +59,10 @@ function DeptQueueRow({ job }: { job: DeptQueueJob }) {
           <span className="font-mono font-medium text-amber-300">{job.job_code}</span>
           <span className="ml-2 text-slate-400">{localized(job.name, job.name_i18n, i18n.language)}</span>
         </p>
-        <p className="text-xs text-slate-500">{t('myWork.tasksProgress', { done, total: job.tasks.length })}</p>
+        <p className="flex items-center gap-1.5 text-xs text-slate-500">
+          <span className={`h-2 w-2 rounded-full ${matDot}`} />
+          {t('myWork.tasksProgress', { done, total: job.tasks.length })}
+        </p>
       </div>
     </Link>
   )

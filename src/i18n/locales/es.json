@@ -23,6 +23,38 @@
   "placeholder": {
     "comingSoon": "Esta pantalla llegará en un sprint posterior."
   },
+  "materials": {
+    "add": "Añadir material",
+    "addTitle": "Añadir material",
+    "editTitle": "Editar material",
+    "edit": "Editar",
+    "name": "Material",
+    "namePlaceholder": "p. ej. Tablón de nogal 8/4",
+    "qty": "Cant.",
+    "unit": "Unidad",
+    "unitPlaceholder": "m, pzas…",
+    "supplier": "Proveedor",
+    "category": "Categoría",
+    "details": "Detalles",
+    "detailsPlaceholder": "Patrón, color, dimensiones…",
+    "paymentRequired": "Requiere pago del cliente antes de pedir",
+    "paymentRequiredShort": "Pago pendiente",
+    "markOrdered": "Marcar pedido",
+    "markArrived": "Marcar recibido",
+    "undoArrived": "Deshacer recibido",
+    "deleteTitle": "¿Eliminar este material?",
+    "deleteBody": "También se eliminará de la hoja de materiales.",
+    "syncNow": "Sincronizar hoja",
+    "syncing": "Sincronizando…",
+    "syncDone": "Sincronizado.",
+    "syncFailed": "Error de sincronización."
+  },
+  "materialCategory": {
+    "fabric": "Tela",
+    "com": "Tela del cliente",
+    "insert": "Relleno",
+    "other": "Otro"
+  },
   "taskEdit": {
     "title": "Editar tarea",
     "edit": "Editar tarea",

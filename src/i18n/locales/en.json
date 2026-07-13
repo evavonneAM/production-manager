@@ -23,6 +23,38 @@
   "placeholder": {
     "comingSoon": "This screen arrives in a later sprint."
   },
+  "materials": {
+    "add": "Add material",
+    "addTitle": "Add material",
+    "editTitle": "Edit material",
+    "edit": "Edit",
+    "name": "Material",
+    "namePlaceholder": "e.g. Walnut slab 8/4",
+    "qty": "Qty",
+    "unit": "Unit",
+    "unitPlaceholder": "yd, pcs, board ft…",
+    "supplier": "Supplier",
+    "category": "Category",
+    "details": "Details",
+    "detailsPlaceholder": "Pattern, color, dimensions…",
+    "paymentRequired": "Client payment required before ordering",
+    "paymentRequiredShort": "Payment required",
+    "markOrdered": "Mark ordered",
+    "markArrived": "Mark arrived",
+    "undoArrived": "Undo arrived",
+    "deleteTitle": "Delete this material?",
+    "deleteBody": "It will also be removed from the materials sheet.",
+    "syncNow": "Sync sheet",
+    "syncing": "Syncing…",
+    "syncDone": "Synced.",
+    "syncFailed": "Sync failed."
+  },
+  "materialCategory": {
+    "fabric": "Fabric",
+    "com": "COM",
+    "insert": "Insert",
+    "other": "Other"
+  },
   "taskEdit": {
     "title": "Edit task",
     "edit": "Edit task",
