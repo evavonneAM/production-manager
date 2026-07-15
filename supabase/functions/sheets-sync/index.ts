@@ -42,6 +42,22 @@ const n = (v: unknown): number => {
   const x = parseFloat(String(v ?? '').replace(',', '.'))
   return Number.isFinite(x) ? x : 0
 }
+// jsonb does NOT preserve key order, so stored snapshots must be rebuilt into
+// the fixed field order (with the same coercions) before a stringify compare.
+// deno-lint-ignore no-explicit-any
+function normalizeSnap(o: any): Snap {
+  return {
+    category: String(o?.category ?? 'other'),
+    name: String(o?.name ?? ''),
+    description: s(o?.description),
+    quantity: Number(o?.quantity ?? 0),
+    unit: s(o?.unit),
+    supplier: s(o?.supplier),
+    payment_required: !!o?.payment_required,
+    is_ordered: !!o?.is_ordered,
+    is_arrived: !!o?.is_arrived,
+  }
+}
 const sameSnap = (x: Snap, y: Snap) => JSON.stringify(x) === JSON.stringify(y)
 const stamp = () => new Date().toISOString().slice(0, 16).replace('T', ' ')
 
@@ -183,6 +199,9 @@ Deno.serve(async (req) => {
       if (!id) {
         const code = (s(row[2]) ?? '').toUpperCase()
         const snap = rowToSnap(row)
+        // Formatting noise (e.g. checkbox columns reporting FALSE on empty
+        // rows) is not a real entry — only react when someone actually typed.
+        if (!code && !snap.name) continue
         const job = jobByCode.get(code)
         if (!job || !snap.name) {
           updates.push({ range: `${tab.title}!N${rowNum}`, values: [['unknown job code - not imported']] })
@@ -217,7 +236,7 @@ Deno.serve(async (req) => {
       const clientName = job ? clientOf(job.project_id) : ''
       const sheetSnap = rowToSnap(row)
       const dbSnap = dbToSnap(m)
-      const last: Snap = (m.synced_snapshot as Snap | null) ?? dbSnap
+      const last: Snap = m.synced_snapshot ? normalizeSnap(m.synced_snapshot) : dbSnap
       const sheetChanged = !sameSnap(sheetSnap, last)
       const appChanged = !sameSnap(dbSnap, last)
 
@@ -258,18 +277,26 @@ Deno.serve(async (req) => {
       await supa.from('materials').update({ synced_snapshot: dbSnap, sheet_row_ref: String(rowNum) }).eq('id', id)
     }
 
-    // --- append app materials missing from the sheet ----------------------------
+    // --- add app materials missing from the sheet -------------------------------
+    // Written at the first empty row via explicit ranges (NOT the append API,
+    // which skips past formatted-but-empty rows and buries new rows out of sight).
     const idsInSheet = new Set<string>()
     for (let i = 1; i < grid.length; i++) {
       const id = s(grid[i]?.[0])
       if (id) idsInSheet.add(id)
     }
+    let nextRow = Math.max(grid.length, 1) + 1
     for (const m of mats ?? []) {
       if (seenIds.has(m.id) || idsInSheet.has(m.id)) continue
       const job = jobById.get(m.job_id)
       if (!job) continue
       appendRows.push(dbToRow(m, job.job_code, clientOf(job.project_id), `App @ ${stamp()}`))
-      await supa.from('materials').update({ synced_snapshot: dbToSnap(m) }).eq('id', m.id)
+      updates.push({
+        range: `${tab.title}!A${nextRow}:N${nextRow}`,
+        values: [dbToRow(m, job.job_code, clientOf(job.project_id), `App @ ${stamp()}`)],
+      })
+      await supa.from('materials').update({ synced_snapshot: dbToSnap(m), sheet_row_ref: String(nextRow) }).eq('id', m.id)
+      nextRow++
     }
 
     // --- write everything back ---------------------------------------------------
@@ -279,12 +306,6 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ valueInputOption: 'RAW', data: updates }),
       })
       if (!res.ok) return json({ ok: false, error: `sheet write: ${await res.text()}` }, 502)
-    }
-    if (appendRows.length) {
-      const res = await fetch(`${range('A1')}:append?valueInputOption=RAW`, {
-        method: 'POST', headers: gauth, body: JSON.stringify({ values: appendRows }),
-      })
-      if (!res.ok) return json({ ok: false, error: `sheet append: ${await res.text()}` }, 502)
     }
     if (deleteRowIdx.length) {
       // bottom-up so indexes stay valid
