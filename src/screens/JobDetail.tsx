@@ -12,6 +12,7 @@ import { QrModal } from '../components/QrModal'
 import { CreateTaskModal } from '../components/CreateTaskModal'
 import { Notes } from '../components/Notes'
 import { MaterialsTab } from '../components/MaterialsTab'
+import { FilesTab } from '../components/FilesTab'
 import { localized } from '../lib/i18nText'
 import type { JobDetail as JobDetailT, StageWithDept, Task, JobInspection } from '../lib/types'
 
@@ -201,8 +202,13 @@ export default function JobDetail() {
   const { data: job, loading, error } = useAsync(() => getJob(jobId as string), [jobId, reloadKey])
   const { data: directory } = useAsync(getDirectory, [])
   const { data: inspections } = useAsync(() => getJobInspections(jobId as string), [jobId, reloadKey])
-  // A material QR deep link opens the Materials tab with the item highlighted.
-  const [tab, setTab] = useState(searchParams.get('tab') === 'materials' ? 'materials' : 'tasks')
+  // Deep links may open a specific tab (e.g. material QR -> materials, files).
+  const requestedTab = searchParams.get('tab')
+  const [tab, setTab] = useState(
+    requestedTab && ['tasks', 'materials', 'notes', 'files', 'history'].includes(requestedTab)
+      ? requestedTab
+      : 'tasks',
+  )
   const highlightMaterial = searchParams.get('m')
   const [showQr, setShowQr] = useState(false)
   const [showCreateTask, setShowCreateTask] = useState(false)
@@ -317,7 +323,12 @@ export default function JobDetail() {
           ) : (
             <EmptyState text={t('jobDetail.noNotes')} />
           ))}
-        {tab === 'files' && <EmptyState text={t('jobDetail.noFiles')} />}
+        {tab === 'files' &&
+          (job.project ? (
+            <FilesTab projectId={job.project.id} jobId={job.id} />
+          ) : (
+            <EmptyState text={t('jobDetail.noFiles')} />
+          ))}
         {tab === 'history' && (
           <HistoryTab job={job} inspections={inspections ?? []} nameOf={nameOf} />
         )}

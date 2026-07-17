@@ -475,7 +475,7 @@ export async function getInspectionQueue(): Promise<InspectionQueueItem[]> {
     .select(
       `id, submitted_at, submitted_by,
        department:departments ( id, name ),
-       job:jobs!job_stages_job_id_fkey ( id, job_code, name, name_i18n, project:projects ( name, client_name, priority_rank ) ),
+       job:jobs!job_stages_job_id_fkey ( id, job_code, name, name_i18n, project:projects ( id, name, client_name, priority_rank ) ),
        tasks:tasks ( id, name, name_i18n, status, actual_minutes, estimated_hours )`,
     )
     .eq('status', 'pending_inspection')
@@ -509,6 +509,19 @@ export async function submitStage(stageId: string): Promise<ClockResult> {
 export async function approveStage(stageId: string): Promise<ClockResult> {
   const { error } = await client().rpc('approve_stage', { p_job_stage_id: stageId })
   return { error: error ? error.message : null }
+}
+
+/** Id of the newest rejection on a stage (to attach a defect photo just after). */
+export async function getLatestRejectionId(stageId: string): Promise<string | null> {
+  const { data } = await client()
+    .from('inspections')
+    .select('id')
+    .eq('job_stage_id', stageId)
+    .eq('decision', 'rejected')
+    .order('decided_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data?.id ?? null
 }
 
 export async function rejectStage(

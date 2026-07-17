@@ -119,7 +119,8 @@
     "approve": "Aprobar",
     "reject": "Rechazar",
     "confirmReject": "Confirmar rechazo",
-    "rejectNotePlaceholder": "Motivo del rechazo (obligatorio)"
+    "rejectNotePlaceholder": "Motivo del rechazo (obligatorio)",
+    "attachPhoto": "Adjuntar foto"
   },
   "qr": {
     "showQr": "Mostrar QR",
@@ -161,7 +162,8 @@
     "updatePassword": "Actualizar contraseña",
     "passwordUpdated": "Contraseña actualizada.",
     "passwordTooShort": "La contraseña debe tener al menos 8 caracteres.",
-    "profileSaved": "Perfil guardado."
+    "profileSaved": "Perfil guardado.",
+    "changePhoto": "Cambiar foto"
   },
   "projects": {
     "searchPlaceholder": "Buscar proyectos, trabajos, clientes…",
@@ -283,5 +285,14 @@
     "en": "English",
     "ru": "Русский",
     "es": "Español"
+  },
+  "files": {
+    "upload": "Añadir foto o PDF",
+    "uploading": "Subiendo…",
+    "share": "Compartir",
+    "deleteTitle": "¿Eliminar este archivo?",
+    "deleteBody": "El archivo se eliminará permanentemente.",
+    "too_large": "El archivo es demasiado grande (máx. 50 MB).",
+    "bad_type": "Solo se admiten fotos y PDF."
   }
 }

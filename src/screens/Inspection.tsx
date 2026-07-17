@@ -7,7 +7,9 @@ import {
   getDirectory,
   approveStage,
   rejectStage,
+  getLatestRejectionId,
 } from '../lib/data'
+import { uploadFile } from '../lib/files'
 import { formatMinutes } from '../lib/format'
 import { EmptyState, ErrorState, TaskStatusBadge } from '../components/ui'
 import { FullScreenLoader } from '../components/FullScreenLoader'
@@ -129,8 +131,10 @@ function InspectionPanel({
   onDone: () => void
 }) {
   const { t, i18n } = useTranslation()
+  const { profile } = useAuth()
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
+  const [photo, setPhoto] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -148,9 +152,22 @@ function InspectionPanel({
     setBusy(true)
     setError(null)
     const { error } = await rejectStage(item.id, note.trim(), i18n.language as AppLanguage)
+    if (error) {
+      setBusy(false)
+      setError(t([`clockError.${error}`, 'common.error']))
+      return
+    }
+    // Optional defect photo, attached to the inspection record just created.
+    if (photo && profile && item.job?.project) {
+      const inspectionId = await getLatestRejectionId(item.id)
+      await uploadFile({
+        file: photo,
+        scope: { projectId: item.job.project.id, jobId: item.job.id, inspectionId },
+        userId: profile.id,
+      })
+    }
     setBusy(false)
-    if (error) setError(t([`clockError.${error}`, 'common.error']))
-    else onDone()
+    onDone()
   }
 
   return (
@@ -199,6 +216,18 @@ function InspectionPanel({
               rows={3}
               className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
             />
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-400">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
+              />
+              <span className="rounded-lg border border-slate-700 px-3 py-1.5 hover:bg-slate-800">
+                📷 {t('inspection.attachPhoto')}
+              </span>
+              {photo && <span className="min-w-0 truncate text-xs text-slate-500">{photo.name}</span>}
+            </label>
             <div className="flex gap-3">
               <button
                 type="button"

@@ -3,10 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { Avatar } from '../components/Avatar'
 import { LanguageSelect } from '../components/LanguageSelect'
+import { uploadAvatar } from '../lib/files'
 
 export default function Profile() {
   const { t } = useTranslation()
-  const { profile, updateProfile, setLanguage, changePassword, signOut } = useAuth()
+  const { profile, updateProfile, setLanguage, changePassword, signOut, refreshProfile } = useAuth()
+  const [avatarBusy, setAvatarBusy] = useState(false)
+  const [avatarErr, setAvatarErr] = useState<string | null>(null)
 
   const [fullName, setFullName] = useState(profile?.full_name ?? '')
   const [phone, setPhone] = useState(profile?.phone ?? '')
@@ -19,6 +22,17 @@ export default function Profile() {
   const [pwError, setPwError] = useState<string | null>(null)
 
   if (!profile) return null
+
+  async function onAvatarPick(list: FileList | null) {
+    const file = list?.[0]
+    if (!file || !profile) return
+    setAvatarErr(null)
+    setAvatarBusy(true)
+    const { error } = await uploadAvatar(file, profile.id)
+    await refreshProfile()
+    setAvatarBusy(false)
+    if (error) setAvatarErr(t([`files.${error}`, 'common.error']))
+  }
 
   async function onSaveProfile(e: FormEvent) {
     e.preventDefault()
@@ -66,11 +80,23 @@ export default function Profile() {
         </div>
 
         <div className="mb-8 flex items-center gap-4">
-          <Avatar name={profile.full_name} url={profile.avatar_url} size={56} />
+          <label className="group relative cursor-pointer" title={t('profile.changePhoto')}>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => void onAvatarPick(e.target.files)}
+            />
+            <Avatar name={profile.full_name} url={profile.avatar_url} size={56} />
+            <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-xs group-hover:bg-slate-700">
+              {avatarBusy ? '…' : '📷'}
+            </span>
+          </label>
           <div className="min-w-0">
             <h1 className="truncate text-lg font-semibold">{profile.full_name}</h1>
             <p className="truncate text-sm text-slate-400">{profile.email}</p>
             <p className="mt-0.5 text-xs text-slate-500">{t(`roles.${profile.role}`)}</p>
+            {avatarErr && <p className="mt-1 text-xs text-red-400">{avatarErr}</p>}
           </div>
         </div>
 

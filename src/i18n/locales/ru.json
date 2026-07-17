@@ -59,6 +59,15 @@
     "syncDone": "Готово.",
     "syncFailed": "Ошибка синхронизации."
   },
+  "files": {
+    "upload": "Добавить фото или PDF",
+    "uploading": "Загрузка…",
+    "share": "Поделиться",
+    "deleteTitle": "Удалить этот файл?",
+    "deleteBody": "Файл будет удалён безвозвратно.",
+    "too_large": "Файл слишком большой (макс. 50 МБ).",
+    "bad_type": "Поддерживаются только фото и PDF."
+  },
   "materialCategory": {
     "fabric": "Ткань",
     "com": "Ткань клиента",
@@ -119,7 +128,8 @@
     "approve": "Одобрить",
     "reject": "Отклонить",
     "confirmReject": "Подтвердить отклонение",
-    "rejectNotePlaceholder": "Причина отклонения (обязательно)"
+    "rejectNotePlaceholder": "Причина отклонения (обязательно)",
+    "attachPhoto": "Прикрепить фото"
   },
   "qr": {
     "showQr": "Показать QR",
@@ -161,7 +171,8 @@
     "updatePassword": "Обновить пароль",
     "passwordUpdated": "Пароль обновлён.",
     "passwordTooShort": "Пароль должен содержать не менее 8 символов.",
-    "profileSaved": "Профиль сохранён."
+    "profileSaved": "Профиль сохранён.",
+    "changePhoto": "Изменить фото"
   },
   "projects": {
     "searchPlaceholder": "Поиск проектов, работ, клиентов…",

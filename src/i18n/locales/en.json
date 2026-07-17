@@ -59,6 +59,15 @@
     "syncDone": "Synced.",
     "syncFailed": "Sync failed."
   },
+  "files": {
+    "upload": "Add photo or PDF",
+    "uploading": "Uploading…",
+    "share": "Share",
+    "deleteTitle": "Delete this file?",
+    "deleteBody": "This permanently removes the file.",
+    "too_large": "File is too large (50 MB max).",
+    "bad_type": "Only photos and PDFs are supported."
+  },
   "materialCategory": {
     "fabric": "Fabric",
     "com": "COM",
@@ -119,7 +128,8 @@
     "approve": "Approve",
     "reject": "Reject",
     "confirmReject": "Confirm rejection",
-    "rejectNotePlaceholder": "Reason for rejection (required)"
+    "rejectNotePlaceholder": "Reason for rejection (required)",
+    "attachPhoto": "Attach photo"
   },
   "qr": {
     "showQr": "Show QR",
@@ -161,7 +171,8 @@
     "updatePassword": "Update password",
     "passwordUpdated": "Password updated.",
     "passwordTooShort": "Password must be at least 8 characters.",
-    "profileSaved": "Profile saved."
+    "profileSaved": "Profile saved.",
+    "changePhoto": "Change photo"
   },
   "projects": {
     "searchPlaceholder": "Search projects, jobs, clients…",

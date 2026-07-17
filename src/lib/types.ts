@@ -98,7 +98,7 @@ export type InspectionQueueItem = {
         job_code: string
         name: string
         name_i18n: Job['name_i18n']
-        project: { name: string; client_name: string; priority_rank: number | null } | null
+        project: { id: string; name: string; client_name: string; priority_rank: number | null } | null
       }
     | null
   tasks: Pick<Task, 'id' | 'name' | 'name_i18n' | 'status' | 'actual_minutes' | 'estimated_hours'>[]

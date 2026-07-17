@@ -9,6 +9,7 @@ import { StagePipeline } from '../components/StagePipeline'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { QrModal } from '../components/QrModal'
 import { Notes } from '../components/Notes'
+import { FilesTab } from '../components/FilesTab'
 import { localized } from '../lib/i18nText'
 import { getProjectMaterials } from '../lib/data'
 import type { JobWithStages } from '../lib/types'
@@ -142,10 +143,17 @@ export default function ProjectDetail() {
           { key: 'jobs', label: t('projectDetail.tabJobs') },
           { key: 'materials', label: t('jobDetail.tabMaterials') },
           { key: 'notes', label: t('jobDetail.tabNotes') },
+          { key: 'files', label: t('jobDetail.tabFiles') },
         ]}
         active={tab}
         onChange={setTab}
       />
+
+      {tab === 'files' && (
+        <div className="mt-5">
+          <FilesTab projectId={project.id} />
+        </div>
+      )}
 
       {tab === 'materials' && <ProjectMaterials projectId={project.id} />}
 
