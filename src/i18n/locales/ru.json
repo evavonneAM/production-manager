@@ -37,6 +37,16 @@
     "category": "Категория",
     "details": "Детали",
     "detailsPlaceholder": "Узор, цвет, размеры…",
+    "addCategoryTitle": "Добавить: {{category}}",
+    "comCheckbox": "Ткань клиента (COM)",
+    "detailsFabric": "Узор + цвет, напр. Nash / Ash",
+    "detailsInsert": "Размеры, состав, тип (сиденье/спинка/подушка)…",
+    "detailsFoam": "Размеры / толщина…",
+    "detailsHardware": "Артикул, отделка, размер…",
+    "name_fabric": "напр. Pindler Nash",
+    "name_insert": "напр. Вставка сиденья",
+    "name_foam": "напр. Пенопласт HD36",
+    "name_hardware": "напр. Кронштейны для штор",
     "paymentRequired": "Требуется оплата клиента до заказа",
     "paymentRequiredShort": "Ожидает оплаты",
     "markOrdered": "Заказано",
@@ -52,8 +62,19 @@
   "materialCategory": {
     "fabric": "Ткань",
     "com": "Ткань клиента",
-    "insert": "Наполнитель",
+    "insert": "Подушки-вставки",
+    "foam": "Поролон",
+    "hardware": "Фурнитура",
     "other": "Другое"
+  },
+  "ordering": {
+    "title": "Закупки",
+    "needs": "Нужно заказать",
+    "payment": "Ожидает оплаты",
+    "ordered": "Заказано",
+    "arrived": "Получено",
+    "empty": "Пусто — всё в порядке.",
+    "notEligible": "Панель закупок доступна отделу снабжения и администраторам."
   },
   "taskEdit": {
     "title": "Редактирование задачи",

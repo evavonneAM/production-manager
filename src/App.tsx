@@ -11,6 +11,7 @@ import ProjectDetail from './screens/ProjectDetail'
 import JobDetail from './screens/JobDetail'
 import TaskDetail from './screens/TaskDetail'
 import Inspection from './screens/Inspection'
+import Ordering from './screens/Ordering'
 import Profile from './screens/Profile'
 import QrResolve from './screens/QrResolve'
 import Placeholder from './screens/Placeholder'
@@ -70,6 +71,7 @@ export default function App() {
         <Route path="/j/:qr" element={<QrResolve kind="job" />} />
         <Route path="/j/:qr/m/:mqr" element={<QrResolve kind="material" />} />
         <Route path="/inspection" element={<Inspection />} />
+        <Route path="/ordering" element={<Ordering />} />
         <Route path="/calendar" element={<Placeholder titleKey="nav.calendar" />} />
       </Route>
 

@@ -1,6 +1,9 @@
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../auth/AuthProvider'
+import { useAsync } from '../hooks/useAsync'
+import { getDepartments } from '../lib/data'
 
 type Tab = { to: string; key: string; icon: ReactNode }
 
@@ -44,6 +47,14 @@ function TabIcon({ icon }: { icon: ReactNode }) {
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { profile } = useAuth()
+  const { data: departments } = useAsync(getDepartments, [])
+  // Ordering dashboard is for the people who order things (desktop sidebar only).
+  const showOrdering = useMemo(() => {
+    if (profile?.role === 'admin') return true
+    const proc = departments?.find((d) => d.name === 'Procurement')
+    return !!proc && profile?.department_id === proc.id
+  }, [profile, departments])
 
   return (
     <div className="min-h-full bg-slate-900 text-slate-100">
@@ -72,6 +83,21 @@ export function AppLayout({ children }: { children: ReactNode }) {
               {t(tab.key)}
             </NavLink>
           ))}
+          {showOrdering && (
+            <NavLink
+              to="/ordering"
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  isActive
+                    ? 'bg-amber-600/15 text-amber-300'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                }`
+              }
+            >
+              <TabIcon icon={<path d="M6 6h15l-1.5 9h-12L5 3H2m5 18a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm10 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />} />
+              {t('ordering.title')}
+            </NavLink>
+          )}
         </nav>
         <button
           type="button"

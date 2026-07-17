@@ -19,7 +19,7 @@ const HEADER = [
   'ID', 'Store', 'Job Code', 'Client', 'Category', 'Material', 'Details',
   'Qty', 'Unit', 'Supplier', 'Payment req', 'Ordered', 'Arrived', 'Last updated',
 ]
-const CATEGORIES = ['fabric', 'com', 'insert', 'other']
+const CATEGORIES = ['fabric', 'com', 'insert', 'foam', 'hardware', 'other']
 
 type Snap = {
   category: string

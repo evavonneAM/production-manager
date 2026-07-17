@@ -37,6 +37,16 @@
     "category": "Categoría",
     "details": "Detalles",
     "detailsPlaceholder": "Patrón, color, dimensiones…",
+    "addCategoryTitle": "Añadir {{category}}",
+    "comCheckbox": "Tela del cliente (COM)",
+    "detailsFabric": "Patrón + color, p. ej. Nash / Ash",
+    "detailsInsert": "Dimensiones, mezcla, tipo (asiento/respaldo/cojín)…",
+    "detailsFoam": "Dimensiones / grosor…",
+    "detailsHardware": "Número de pieza, acabado, tamaño…",
+    "name_fabric": "p. ej. Pindler Nash",
+    "name_insert": "p. ej. Relleno de asiento",
+    "name_foam": "p. ej. Espuma HD36",
+    "name_hardware": "p. ej. Soportes de cortina",
     "paymentRequired": "Requiere pago del cliente antes de pedir",
     "paymentRequiredShort": "Pago pendiente",
     "markOrdered": "Marcar pedido",
@@ -52,8 +62,19 @@
   "materialCategory": {
     "fabric": "Tela",
     "com": "Tela del cliente",
-    "insert": "Relleno",
+    "insert": "Rellenos de cojín",
+    "foam": "Espuma",
+    "hardware": "Herrajes/Insumos",
     "other": "Otro"
+  },
+  "ordering": {
+    "title": "Pedidos",
+    "needs": "Por pedir",
+    "payment": "Pago pendiente",
+    "ordered": "Pedido",
+    "arrived": "Recibido",
+    "empty": "Nada aquí — todo en orden.",
+    "notEligible": "El panel de pedidos es para Compras y administradores."
   },
   "taskEdit": {
     "title": "Editar tarea",

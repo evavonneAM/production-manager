@@ -183,15 +183,27 @@ approves it, and it becomes available to clock into.
 
 **Goal:** track materials; keep them in sync with the spreadsheet.
 
-- [ ] Materials Tracker (S09): list per job, mark ordered/arrived.
-- [ ] Update status via component QR scan.
-- [ ] Google Sheets two-way sync via Edge Function (service account): poll every 5 min +
-      "Sync Now"; write app changes back; last-write-wins with a visible sync-status column.
-- [ ] Provide the template sheet column layout; plan a one-time migration of the existing sheet.
-- [ ] Materials readiness indicator (gray/red/green) on cards and job rows.
+- [x] Materials Tracker (S09): list per job, mark ordered/arrived. (Enriched per the owner's
+      real workflow: categories, payment-required gate, details; pricing stays in office sheets.)
+- [x] Update status via component QR scan (deep link opens the Materials tab, item highlighted).
+- [x] Google Sheets two-way sync via Edge Function (service account): pg_cron every 5 min +
+      "Sync Now" + sync-on-change; snapshot-based three-way merge, app wins conflicts with a
+      visible note; new sheet rows (keyed by job code) become materials.
+- [x] Template sheet auto-created on first sync (owner chose "start fresh" — no migration;
+      the three legacy processing sheets remain office/accounting tools).
+- [x] Materials readiness indicator (gray/red/green) on cards and job rows.
 
 **Done when:** marking a material "arrived" in the app updates the Google Sheet, and a change
-in the sheet shows up in the app after a sync.
+in the sheet shows up in the app after a sync. ✅ Owner-confirmed round trip 2026-07-16.
+
+### Sprint 9b — materials category buttons + ordering dashboard (owner request)
+
+- [ ] Category-first entry: Fabric (with a COM checkbox) · Pillow Inserts · Foam ·
+      Hardware/Supplies buttons, each opening a short tailored form.
+- [ ] New categories `foam` + `hardware` in the DB enum, sheet Category column, and sync.
+- [ ] Ordering dashboard (Procurement + Admin, desktop-first): all jobs' materials grouped
+      by category with filters — Needs ordering / Payment required / Ordered / Arrived.
+- [ ] Owner sketches may refine layout after first pass.
 
 ---
 
@@ -219,6 +231,12 @@ can open it.
 - [ ] Priority Board (S04): ranked projects, Admin drag-to-reorder; this feeds queue ordering.
 - [ ] Notifications Inbox (S15): per-language, unread badge, links to jobs/tasks; badge on the
       Inspection tab for pending count.
+- [ ] **Google Calendar (owner decision, 2026-07-16):** one-way flows via the existing
+      sheets-sync service account (share a calendar with it, like the sheet): (a) push
+      project/job schedules to a shared Google Calendar; (b) read the shared calendar and
+      attach events whose titles contain a job/work-order code (e.g. "AM1234 — walkthrough")
+      to that job/project — team will follow the code-in-title naming convention. Two-way
+      editing deliberately deferred; these layers stack without rework if wanted later.
 
 **Done when:** I can drag a project up the priority board and see it affect where its jobs
 land in department queues; notifications show in my language.

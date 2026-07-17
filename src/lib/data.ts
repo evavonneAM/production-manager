@@ -345,7 +345,22 @@ export function requestSheetSync(): void {
     .catch(() => {/* cron sweep covers it */})
 }
 
-export type MaterialCategory = 'fabric' | 'com' | 'insert' | 'other'
+export type MaterialCategory = 'fabric' | 'com' | 'insert' | 'foam' | 'hardware' | 'other'
+
+/** All materials across all jobs, for the ordering dashboard (Procurement + Admin). */
+export async function getAllMaterials(): Promise<
+  (Material & {
+    job: { id: string; job_code: string; name: string; name_i18n: unknown; project: { client_name: string } | null } | null
+  })[]
+> {
+  const { data, error } = await client()
+    .from('materials')
+    .select('*, job:jobs ( id, job_code, name, name_i18n, project:projects ( client_name ) )')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? []) as any
+}
 
 export async function createMaterial(fields: {
   jobId: string

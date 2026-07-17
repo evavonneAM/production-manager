@@ -3,28 +3,45 @@ import { useTranslation } from 'react-i18next'
 import { createMaterial, updateMaterial, type MaterialCategory } from '../lib/data'
 import type { Material } from '../lib/types'
 
-const CATEGORIES: MaterialCategory[] = ['fabric', 'com', 'insert', 'other']
+/** Per-category defaults that make each entry form feel purpose-built. */
+const PRESETS: Record<string, { unit: string; detailsKey: string }> = {
+  fabric: { unit: 'yd', detailsKey: 'materials.detailsFabric' },
+  com: { unit: 'yd', detailsKey: 'materials.detailsFabric' },
+  insert: { unit: 'pcs', detailsKey: 'materials.detailsInsert' },
+  foam: { unit: 'pcs', detailsKey: 'materials.detailsFoam' },
+  hardware: { unit: 'pcs', detailsKey: 'materials.detailsHardware' },
+  other: { unit: '', detailsKey: 'materials.detailsPlaceholder' },
+}
 
-/** Add (material == null) or edit a material. Procurement + Admin only (RLS-enforced). */
+/**
+ * Add (material == null) or edit a material. The category comes from the button
+ * the user tapped (Fabric / Inserts / Foam / Hardware); COM is entered via the
+ * Fabric form's "customer's own material" checkbox. Procurement + Admin only.
+ */
 export function MaterialModal({
   jobId,
   material,
+  category: initialCategory,
   onClose,
   onSaved,
 }: {
   jobId: string
   material: Material | null
+  category: MaterialCategory
   onClose: () => void
   onSaved: () => void
 }) {
   const { t } = useTranslation()
+  const editCategory = (material?.category as MaterialCategory) ?? initialCategory
+  // The fabric form covers both 'fabric' and 'com' (checkbox decides which).
+  const formKind: MaterialCategory = editCategory === 'com' ? 'fabric' : editCategory
+  const preset = PRESETS[formKind] ?? PRESETS.other
+
   const [name, setName] = useState(material?.name ?? '')
-  const [category, setCategory] = useState<MaterialCategory>(
-    (material?.category as MaterialCategory) ?? 'other',
-  )
+  const [isCom, setIsCom] = useState(editCategory === 'com')
   const [description, setDescription] = useState(material?.description ?? '')
   const [quantity, setQuantity] = useState(material ? String(material.quantity) : '1')
-  const [unit, setUnit] = useState(material?.unit ?? '')
+  const [unit, setUnit] = useState(material?.unit ?? preset.unit)
   const [supplier, setSupplier] = useState(material?.supplier ?? '')
   const [paymentRequired, setPaymentRequired] = useState(material?.payment_required ?? false)
   const [busy, setBusy] = useState(false)
@@ -35,6 +52,7 @@ export function MaterialModal({
     if (!name.trim() || !quantity) return
     setBusy(true)
     setError(null)
+    const category: MaterialCategory = formKind === 'fabric' ? (isCom ? 'com' : 'fabric') : formKind
     const shared = {
       quantity: Number(quantity),
       unit: unit.trim() || null,
@@ -64,24 +82,27 @@ export function MaterialModal({
         className="flex max-h-[85vh] w-full max-w-md flex-col gap-3 overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-5"
       >
         <h2 className="text-lg font-semibold">
-          {material ? t('materials.editTitle') : t('materials.addTitle')}
+          {material
+            ? t('materials.editTitle')
+            : t('materials.addCategoryTitle', { category: t(`materialCategory.${formKind}`) })}
         </h2>
 
         <label className="text-sm text-slate-300">
           {t('materials.name')}
-          <input value={name} onChange={(e) => setName(e.target.value)} required className={`mt-1 ${field}`} placeholder={t('materials.namePlaceholder')} />
+          <input value={name} onChange={(e) => setName(e.target.value)} required className={`mt-1 ${field}`} placeholder={t(`materials.name_${formKind}`, t('materials.namePlaceholder'))} />
         </label>
 
-        <label className="text-sm text-slate-300">
-          {t('materials.category')}
-          <select value={category} onChange={(e) => setCategory(e.target.value as MaterialCategory)} className={`mt-1 ${field}`}>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {t(`materialCategory.${c}`)}
-              </option>
-            ))}
-          </select>
-        </label>
+        {formKind === 'fabric' && (
+          <label className="flex items-center gap-2 text-sm text-slate-300">
+            <input
+              type="checkbox"
+              checked={isCom}
+              onChange={(e) => setIsCom(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-amber-600"
+            />
+            {t('materials.comCheckbox')}
+          </label>
+        )}
 
         <label className="text-sm text-slate-300">
           {t('materials.details')}
@@ -90,7 +111,7 @@ export function MaterialModal({
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
             className={`mt-1 ${field}`}
-            placeholder={t('materials.detailsPlaceholder')}
+            placeholder={t(preset.detailsKey)}
           />
         </label>
 

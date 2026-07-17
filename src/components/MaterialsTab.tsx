@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getDepartments, setMaterialStatus, deleteMaterial, syncSheetsNow } from '../lib/data'
+import { getDepartments, setMaterialStatus, deleteMaterial, syncSheetsNow, type MaterialCategory } from '../lib/data'
 import { localized } from '../lib/i18nText'
 import { EmptyState } from './ui'
 import { MaterialModal } from './MaterialModal'
@@ -22,7 +22,11 @@ export function MaterialsTab({
   const { t, i18n } = useTranslation()
   const { profile } = useAuth()
   const { data: departments } = useAsync(getDepartments, [])
-  const [modal, setModal] = useState<{ open: boolean; material: Material | null }>({ open: false, material: null })
+  const [modal, setModal] = useState<{ open: boolean; material: Material | null; category: MaterialCategory }>({
+    open: false,
+    material: null,
+    category: 'other',
+  })
   const [qrFor, setQrFor] = useState<Material | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Material | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -63,15 +67,20 @@ export function MaterialsTab({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-start justify-between gap-2">
         {canManage ? (
-          <button
-            type="button"
-            onClick={() => setModal({ open: true, material: null })}
-            className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
-          >
-            + {t('materials.add')}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {(['fabric', 'insert', 'foam', 'hardware'] as MaterialCategory[]).map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setModal({ open: true, material: null, category: cat })}
+                className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+              >
+                + {t(`materialCategory.${cat}`)}
+              </button>
+            ))}
+          </div>
         ) : (
           <span />
         )}
@@ -190,7 +199,7 @@ export function MaterialsTab({
                   <>
                     <button
                       type="button"
-                      onClick={() => setModal({ open: true, material: m })}
+                      onClick={() => setModal({ open: true, material: m, category: (m.category as MaterialCategory) ?? 'other' })}
                       className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-400 hover:bg-slate-800"
                     >
                       {t('materials.edit')}
@@ -214,9 +223,10 @@ export function MaterialsTab({
         <MaterialModal
           jobId={job.id}
           material={modal.material}
-          onClose={() => setModal({ open: false, material: null })}
+          category={modal.category}
+          onClose={() => setModal({ open: false, material: null, category: 'other' })}
           onSaved={() => {
-            setModal({ open: false, material: null })
+            setModal({ open: false, material: null, category: 'other' })
             onChanged()
           }}
         />

@@ -1018,7 +1018,13 @@ export type Database = {
       inspection_decision: "approved" | "rejected"
       job_status: "queued" | "in_production" | "complete" | "cancelled"
       language: "en" | "ru" | "es"
-      material_category: "fabric" | "com" | "insert" | "other"
+      material_category:
+        | "fabric"
+        | "com"
+        | "insert"
+        | "other"
+        | "foam"
+        | "hardware"
       notification_type:
         | "task_assigned"
         | "task_assigned_dept"
@@ -1193,7 +1199,14 @@ export const Constants = {
       inspection_decision: ["approved", "rejected"],
       job_status: ["queued", "in_production", "complete", "cancelled"],
       language: ["en", "ru", "es"],
-      material_category: ["fabric", "com", "insert", "other"],
+      material_category: [
+        "fabric",
+        "com",
+        "insert",
+        "other",
+        "foam",
+        "hardware",
+      ],
       notification_type: [
         "task_assigned",
         "task_assigned_dept",

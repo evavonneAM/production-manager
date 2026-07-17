@@ -37,6 +37,16 @@
     "category": "Category",
     "details": "Details",
     "detailsPlaceholder": "Pattern, color, dimensions…",
+    "addCategoryTitle": "Add {{category}}",
+    "comCheckbox": "Customer's own material (COM)",
+    "detailsFabric": "Pattern + color, e.g. Nash / Ash",
+    "detailsInsert": "Dimensions, blend, type (seat/back/pillow)…",
+    "detailsFoam": "Dimensions / thickness…",
+    "detailsHardware": "Part number, finish, size…",
+    "name_fabric": "e.g. Pindler Nash",
+    "name_insert": "e.g. Seat cushion insert",
+    "name_foam": "e.g. HD36 foam block",
+    "name_hardware": "e.g. Drapery brackets",
     "paymentRequired": "Client payment required before ordering",
     "paymentRequiredShort": "Payment required",
     "markOrdered": "Mark ordered",
@@ -52,8 +62,19 @@
   "materialCategory": {
     "fabric": "Fabric",
     "com": "COM",
-    "insert": "Insert",
+    "insert": "Pillow Inserts",
+    "foam": "Foam",
+    "hardware": "Hardware/Supplies",
     "other": "Other"
+  },
+  "ordering": {
+    "title": "Ordering",
+    "needs": "Needs ordering",
+    "payment": "Payment required",
+    "ordered": "Ordered",
+    "arrived": "Arrived",
+    "empty": "Nothing here — all clear.",
+    "notEligible": "The ordering dashboard is for Procurement and Admins."
   },
   "taskEdit": {
     "title": "Edit task",
