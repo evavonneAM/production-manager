@@ -254,9 +254,19 @@ land in department queues; notifications show in my language.
 - [ ] Update rules: never regress production state from an ER update; notify Admins of new
       work orders.
 - [ ] Manual "Re-sync" button.
+- [ ] **Email tracking-number capture (owner request, 2026-07-17; bundled here to share the
+      Zapier/webhook session):** ingest shipping-confirmation emails via BOTH (a) a Zapier
+      Zap with sender filters on the purchasing inbox and (b) a forwarding-address catch-all
+      for the other stores; a webhook Edge Function (shared secret) regex-extracts tracking
+      numbers + carrier (UPS 1Z…, FedEx 12/15-digit, USPS 20–22-digit) from subject/body;
+      a **Tracking tab on the Ordering dashboard** lists captured numbers (carrier link,
+      sender, date) with a manual **Match** to a material/job — no auto-linking without human
+      confirm (false-positive safety); matched materials show a tracking chip. Later:
+      auto-suggest matches by supplier/invoice-number. Deliberately NOT full-mailbox access.
 
 **Done when:** creating a test work order in Estimate Rocket produces a project (and jobs) in
-the app.
+the app — and a forwarded shipping email surfaces its tracking number in the Tracking tab,
+matchable to a material.
 
 ---
 
