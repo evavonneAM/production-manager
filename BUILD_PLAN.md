@@ -211,11 +211,11 @@ in the sheet shows up in the app after a sync. ✅ Owner-confirmed round trip 20
 
 **Goal:** attach and view photos and PDFs.
 
-- [ ] Upload from camera, library, or file picker via signed upload URLs (direct to Storage).
-- [ ] Thumbnail generation (Sharp Edge Function) for photos.
-- [ ] File Viewer (S10): full-screen photos with zoom; PDF viewer; download/share; delete
+- [x] Upload from camera, library, or file picker via signed upload URLs (direct to Storage).
+- [x] Thumbnail generation (Sharp Edge Function) for photos.
+- [x] File Viewer (S10): full-screen photos with zoom; PDF viewer; download/share; delete
       (own files or Admin).
-- [ ] Attach at project, job, or inspection level.
+- [x] Attach at project, job, or inspection level.
 
 **Done when:** I can photograph a component on my phone, upload it to a job, and a colleague
 can open it.
