@@ -13,6 +13,9 @@ import type {
   Note,
   PendingApproval,
   Material,
+  Project,
+  ProjectStatus,
+  Notification,
 } from './types'
 
 type NoteScope = { projectId: string; jobId?: string | null; taskId?: string | null }
@@ -554,4 +557,137 @@ export async function clockOut(): Promise<ClockResult> {
 export async function completeTask(taskId: string): Promise<ClockResult> {
   const { error } = await client().rpc('complete_task', { p_task_id: taskId })
   return { error: error ? error.message : null }
+}
+
+// ---- Sprint 11: calendar, priority board, inbox -----------------------------
+
+export type CalendarProject = {
+  id: string
+  name: string
+  work_order_number: string | null
+  client_name: string
+  status: ProjectStatus
+  scheduled_start: string | null
+  scheduled_end: string | null
+  priority_rank: number | null
+  jobs: { id: string; job_code: string; name: string; name_i18n: unknown; status: string }[]
+}
+
+export type CalendarEvent = {
+  id: string
+  gcal_event_id: string
+  title: string
+  starts_at: string
+  ends_at: string | null
+  all_day: boolean
+  location: string | null
+  project_id: string | null
+  job_id: string | null
+}
+
+/** Scheduled projects (+ jobs for the job-level toggle) for the calendar. */
+export async function getCalendarProjects(): Promise<CalendarProject[]> {
+  const { data, error } = await client()
+    .from('projects')
+    .select(
+      'id, name, work_order_number, client_name, status, scheduled_start, scheduled_end, priority_rank, jobs:jobs ( id, job_code, name, name_i18n, status )',
+    )
+  if (error) throw error
+  return (data ?? []) as unknown as CalendarProject[]
+}
+
+/** Pulled Google Calendar events in a date window. */
+export async function getCalendarEvents(fromIso: string, toIso: string): Promise<CalendarEvent[]> {
+  const { data, error } = await client()
+    .from('calendar_events')
+    .select('*')
+    .gte('starts_at', fromIso)
+    .lte('starts_at', toIso)
+    .order('starts_at')
+  if (error) throw error
+  return (data ?? []) as CalendarEvent[]
+}
+
+/** Fire-and-forget Google Calendar sync (after schedule edits). */
+export function requestGcalSync(): void {
+  void client().functions.invoke('gcal-sync', { body: {} }).catch(() => {})
+}
+
+/** Admin: set a project's scheduled dates (RLS-enforced) and push to GCal. */
+export async function updateProjectSchedule(
+  id: string,
+  start: string | null,
+  end: string | null,
+): Promise<ClockResult> {
+  const { error } = await client()
+    .from('projects')
+    .update({ scheduled_start: start, scheduled_end: end })
+    .eq('id', id)
+  if (!error) requestGcalSync()
+  return { error: error ? error.message : null }
+}
+
+/** Active projects for the priority board, ranked. */
+export async function getPriorityProjects(): Promise<
+  Pick<Project, 'id' | 'name' | 'client_name' | 'status' | 'scheduled_end' | 'priority_rank'>[]
+> {
+  const { data, error } = await client()
+    .from('projects')
+    .select('id, name, client_name, status, scheduled_end, priority_rank')
+    .not('status', 'in', '(complete,delivered)')
+  if (error) throw error
+  const list = (data ?? []) as Pick<
+    Project,
+    'id' | 'name' | 'client_name' | 'status' | 'scheduled_end' | 'priority_rank'
+  >[]
+  return list.sort((a, b) => (a.priority_rank ?? 9999) - (b.priority_rank ?? 9999))
+}
+
+/** Admin: persist a new priority order (re-sequences department queues). */
+export async function saveProjectPriorities(ids: string[]): Promise<ClockResult> {
+  const { error } = await client().rpc('set_project_priorities', { p_project_ids: ids })
+  return { error: error ? error.message : null }
+}
+
+/** The caller's notifications, newest first (RLS: own only). */
+export async function getNotifications(): Promise<Notification[]> {
+  const { data, error } = await client()
+    .from('notifications')
+    .select('*')
+    .order('sent_at', { ascending: false })
+    .limit(100)
+  if (error) throw error
+  return (data ?? []) as Notification[]
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  await client().from('notifications').update({ is_read: true }).eq('id', id)
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await client().from('notifications').update({ is_read: true }).eq('is_read', false)
+}
+
+/** Badge counts: unread notifications (own) + stages awaiting inspection. */
+export async function getBadgeCounts(): Promise<{ unread: number; pendingInspections: number }> {
+  const [n, s] = await Promise.all([
+    client().from('notifications').select('id', { count: 'exact', head: true }).eq('is_read', false),
+    client().from('job_stages').select('id', { count: 'exact', head: true }).eq('status', 'pending_inspection'),
+  ])
+  return { unread: n.count ?? 0, pendingInspections: s.count ?? 0 }
+}
+
+/** Upcoming pulled appointments for a project or job. */
+export async function getAppointments(scope: { projectId?: string; jobId?: string }): Promise<CalendarEvent[]> {
+  let q = client()
+    .from('calendar_events')
+    .select('*')
+    .gte('starts_at', new Date(Date.now() - 86400e3).toISOString())
+    .order('starts_at')
+    .limit(10)
+  if (scope.jobId) q = q.eq('job_id', scope.jobId)
+  else if (scope.projectId) q = q.eq('project_id', scope.projectId)
+  const { data, error } = await q
+  if (error) throw error
+  return (data ?? []) as CalendarEvent[]
 }

@@ -13,6 +13,7 @@ export type Material = Tables['materials']['Row']
 export type Note = Tables['notes']['Row']
 export type FileRow = Tables['files']['Row']
 export type LaborLog = Tables['labor_logs']['Row']
+export type Notification = Tables['notifications']['Row']
 export type DirectoryUser = Views['user_directory']['Row']
 
 export type ProjectStatus = Enums['project_status']

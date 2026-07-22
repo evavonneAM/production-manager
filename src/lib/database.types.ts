@@ -39,6 +39,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_events: {
+        Row: {
+          all_day: boolean
+          created_at: string
+          ends_at: string | null
+          gcal_event_id: string
+          id: string
+          job_id: string | null
+          location: string | null
+          project_id: string | null
+          starts_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          created_at?: string
+          ends_at?: string | null
+          gcal_event_id: string
+          id?: string
+          job_id?: string | null
+          location?: string | null
+          project_id?: string | null
+          starts_at: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean
+          created_at?: string
+          ends_at?: string | null
+          gcal_event_id?: string
+          id?: string
+          job_id?: string | null
+          location?: string | null
+          project_id?: string | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -696,6 +753,7 @@ export type Database = {
           description: string | null
           description_i18n: Json | null
           estimate_rocket_id: string | null
+          gcal_event_id: string | null
           id: string
           name: string
           priority_rank: number | null
@@ -714,6 +772,7 @@ export type Database = {
           description?: string | null
           description_i18n?: Json | null
           estimate_rocket_id?: string | null
+          gcal_event_id?: string | null
           id?: string
           name: string
           priority_rank?: number | null
@@ -732,6 +791,7 @@ export type Database = {
           description?: string | null
           description_i18n?: Json | null
           estimate_rocket_id?: string | null
+          gcal_event_id?: string | null
           id?: string
           name?: string
           priority_rank?: number | null
@@ -1006,6 +1066,10 @@ export type Database = {
           p_task_id: string
         }
         Returns: string
+      }
+      set_project_priorities: {
+        Args: { p_project_ids: string[] }
+        Returns: undefined
       }
       submit_stage_for_inspection: {
         Args: { p_job_stage_id: string }

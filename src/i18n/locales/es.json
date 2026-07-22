@@ -294,5 +294,27 @@
     "deleteBody": "El archivo se eliminará permanentemente.",
     "too_large": "El archivo es demasiado grande (máx. 50 MB).",
     "bad_type": "Solo se admiten fotos y PDF."
+  },
+  "calendar": {
+    "today": "Hoy",
+    "weekView": "Semana",
+    "monthView": "Mes",
+    "jobLevel": "Trabajos",
+    "scheduleTitle": "Programar proyecto",
+    "adminHint": "Toca una barra para fijar sus fechas. Lo atrasado lleva un punto rojo.",
+    "viewHint": "Toca una barra para abrir el proyecto. Lo atrasado lleva un punto rojo.",
+    "appointments": "Citas",
+    "unscheduled": "Sin fechas"
+  },
+  "priority": {
+    "title": "Prioridades",
+    "empty": "No hay proyectos activos.",
+    "hintAdmin": "Arrastra (o usa las flechas) para reordenar — las colas se reordenan al instante.",
+    "hintView": "La prioridad la fijan los administradores y decide el orden de las colas del taller."
+  },
+  "inbox": {
+    "title": "Bandeja",
+    "empty": "Aún no hay notificaciones.",
+    "markAllRead": "Marcar todo leído"
   }
 }

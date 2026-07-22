@@ -1,9 +1,19 @@
-import { useMemo, type ReactNode } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getDepartments } from '../lib/data'
+import { getDepartments, getBadgeCounts } from '../lib/data'
+
+/** Small red count bubble for nav items. */
+export function Badge({ count }: { count: number }) {
+  if (count <= 0) return null
+  return (
+    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold text-white">
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
 
 type Tab = { to: string; key: string; icon: ReactNode }
 
@@ -47,8 +57,22 @@ function TabIcon({ icon }: { icon: ReactNode }) {
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
   const { profile } = useAuth()
   const { data: departments } = useAsync(getDepartments, [])
+
+  // Unread notifications + pending inspections, refreshed on navigation + 60s poll.
+  const [counts, setCounts] = useState({ unread: 0, pendingInspections: 0 })
+  useEffect(() => {
+    let active = true
+    const refresh = () => void getBadgeCounts().then((c) => active && setCounts(c)).catch(() => {})
+    refresh()
+    const id = setInterval(refresh, 60_000)
+    return () => {
+      active = false
+      clearInterval(id)
+    }
+  }, [location.pathname])
   // Ordering dashboard is for the people who order things (desktop sidebar only).
   const showOrdering = useMemo(() => {
     if (profile?.role === 'admin') return true
@@ -81,8 +105,32 @@ export function AppLayout({ children }: { children: ReactNode }) {
             >
               <TabIcon icon={tab.icon} />
               {t(tab.key)}
+              {tab.to === '/inspection' && <Badge count={counts.pendingInspections} />}
             </NavLink>
           ))}
+          <NavLink
+            to="/priority"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                isActive ? 'bg-amber-600/15 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+              }`
+            }
+          >
+            <TabIcon icon={<path d="M4 6h16M7 12h13M10 18h10" />} />
+            {t('priority.title')}
+          </NavLink>
+          <NavLink
+            to="/inbox"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                isActive ? 'bg-amber-600/15 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+              }`
+            }
+          >
+            <TabIcon icon={<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9m-4.7 13a2 2 0 0 1-3.4 0" />} />
+            {t('inbox.title')}
+            <Badge count={counts.unread} />
+          </NavLink>
           {showOrdering && (
             <NavLink
               to="/ordering"
@@ -135,7 +183,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
               } ${i === 2 ? 'mr-8' : ''} ${i === 3 ? 'ml-8' : ''}`
             }
           >
-            <TabIcon icon={tab.icon} />
+            <span className="relative">
+              <TabIcon icon={tab.icon} />
+              {tab.to === '/inspection' && counts.pendingInspections > 0 && (
+                <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-0.5 text-[9px] font-semibold text-white">
+                  {counts.pendingInspections > 9 ? '9+' : counts.pendingInspections}
+                </span>
+              )}
+            </span>
             {t(tab.key)}
           </NavLink>
         ))}

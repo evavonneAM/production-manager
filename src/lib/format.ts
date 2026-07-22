@@ -11,12 +11,16 @@ export function formatMinutes(min: number, units: TimeUnits): string {
   return `${h}${units.h} ${m}${units.m}`
 }
 
-/** ISO date → localized short date, or empty string when null. */
+/** ISO date → localized short date, or empty string when null.
+ *  Date-only strings ("2026-08-07") are calendar dates, not instants — format
+ *  them in UTC so they never shift a day in the viewer's timezone. */
 export function formatDate(iso: string | null, locale: string): string {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString(locale, {
+  const dateOnly = !iso.includes('T')
+  return new Date(dateOnly ? iso + 'T00:00:00Z' : iso).toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    ...(dateOnly ? { timeZone: 'UTC' } : {}),
   })
 }

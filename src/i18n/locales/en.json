@@ -294,5 +294,27 @@
     "en": "English",
     "ru": "Русский",
     "es": "Español"
+  },
+  "calendar": {
+    "today": "Today",
+    "weekView": "Week",
+    "monthView": "Month",
+    "jobLevel": "Jobs",
+    "scheduleTitle": "Schedule project",
+    "adminHint": "Tap a bar to set its dates. Overdue items show a red dot.",
+    "viewHint": "Tap a bar to open the project. Overdue items show a red dot.",
+    "appointments": "Appointments",
+    "unscheduled": "Unscheduled"
+  },
+  "priority": {
+    "title": "Priority Board",
+    "empty": "No active projects.",
+    "hintAdmin": "Drag (or use the arrows) to reorder — department queues re-sort immediately.",
+    "hintView": "Company-wide priority, set by admins. It decides queue order on the floor."
+  },
+  "inbox": {
+    "title": "Inbox",
+    "empty": "No notifications yet.",
+    "markAllRead": "Mark all read"
   }
 }

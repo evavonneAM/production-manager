@@ -10,6 +10,7 @@ import { FullScreenLoader } from '../components/FullScreenLoader'
 import { QrModal } from '../components/QrModal'
 import { Notes } from '../components/Notes'
 import { FilesTab } from '../components/FilesTab'
+import { Appointments } from '../components/Appointments'
 import { localized } from '../lib/i18nText'
 import { getProjectMaterials } from '../lib/data'
 import type { JobWithStages } from '../lib/types'
@@ -163,6 +164,11 @@ export default function ProjectDetail() {
         </div>
       )}
 
+      {tab === 'overview' && (
+        <div className="mt-5">
+          <Appointments projectId={project.id} />
+        </div>
+      )}
       {tab === 'overview' && (
         <div className="mt-5 flex flex-col gap-5">
           <dl className="grid grid-cols-2 gap-4 text-sm">

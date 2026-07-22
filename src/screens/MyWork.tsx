@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getMyWork, getActiveSession, clockOut, getPendingApprovals, approveTask } from '../lib/data'
+import { getMyWork, getActiveSession, clockOut, getPendingApprovals, approveTask, getBadgeCounts } from '../lib/data'
 import { Tabs, EmptyState, ErrorState, TaskStatusBadge } from '../components/ui'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { LiveTimer } from '../components/LiveTimer'
@@ -113,6 +113,7 @@ export default function MyWork() {
     [uid, profile?.department_id, reloadKey],
   )
   const { data: active } = useAsync(() => getActiveSession(uid), [uid, reloadKey])
+  const { data: badges } = useAsync(getBadgeCounts, [reloadKey])
   const { data: approvals } = useAsync(
     () => getPendingApprovals(profile?.role ?? '', profile?.department_id ?? null),
     [profile?.role, profile?.department_id, reloadKey],
@@ -145,7 +146,19 @@ export default function MyWork() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6">
-      <h1 className="mb-4 text-2xl font-semibold">{t('nav.myWork')}</h1>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">{t('nav.myWork')}</h1>
+        <Link to="/inbox" aria-label={t('inbox.title')} className="relative rounded-lg border border-slate-700 p-2 text-slate-300 hover:bg-slate-800 md:hidden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9m-4.7 13a2 2 0 0 1-3.4 0" />
+          </svg>
+          {(badges?.unread ?? 0) > 0 && (
+            <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-0.5 text-[9px] font-semibold text-white">
+              {(badges?.unread ?? 0) > 9 ? '9+' : badges?.unread}
+            </span>
+          )}
+        </Link>
+      </div>
 
       <Tabs
         tabs={[

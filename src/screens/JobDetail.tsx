@@ -13,6 +13,7 @@ import { CreateTaskModal } from '../components/CreateTaskModal'
 import { Notes } from '../components/Notes'
 import { MaterialsTab } from '../components/MaterialsTab'
 import { FilesTab } from '../components/FilesTab'
+import { Appointments } from '../components/Appointments'
 import { localized } from '../lib/i18nText'
 import type { JobDetail as JobDetailT, StageWithDept, Task, JobInspection } from '../lib/types'
 
@@ -282,6 +283,10 @@ export default function JobDetail() {
 
       <div className="mb-5">
         <CurrentStageCard job={job} onChanged={() => setReloadKey((k) => k + 1)} />
+      </div>
+
+      <div className="mb-5">
+        <Appointments jobId={job.id} />
       </div>
 
       <div className="mb-5 grid grid-cols-2 gap-3 text-sm">

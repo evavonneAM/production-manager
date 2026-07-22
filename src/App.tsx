@@ -12,9 +12,11 @@ import JobDetail from './screens/JobDetail'
 import TaskDetail from './screens/TaskDetail'
 import Inspection from './screens/Inspection'
 import Ordering from './screens/Ordering'
+import Calendar from './screens/Calendar'
+import Priority from './screens/Priority'
+import Inbox from './screens/Inbox'
 import Profile from './screens/Profile'
 import QrResolve from './screens/QrResolve'
-import Placeholder from './screens/Placeholder'
 
 // Scanner pulls in the camera library — load it only when opened.
 const Scan = lazy(() => import('./screens/Scan'))
@@ -72,7 +74,9 @@ export default function App() {
         <Route path="/j/:qr/m/:mqr" element={<QrResolve kind="material" />} />
         <Route path="/inspection" element={<Inspection />} />
         <Route path="/ordering" element={<Ordering />} />
-        <Route path="/calendar" element={<Placeholder titleKey="nav.calendar" />} />
+        <Route path="/calendar" element={<Calendar />} />
+        <Route path="/priority" element={<Priority />} />
+        <Route path="/inbox" element={<Inbox />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
