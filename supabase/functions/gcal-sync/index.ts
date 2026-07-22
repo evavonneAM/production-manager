@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
     const appUrl = 'https://production-manager-henna.vercel.app'
 
     let pushed = 0, deleted = 0, pulled = 0, pruned = 0
+    let pushError: string | null = null
 
     // ---------------- PUSH: scheduled projects -> events ----------------------
     const { data: projects, error: pErr } = await supa
@@ -90,6 +91,8 @@ Deno.serve(async (req) => {
             const ev = await created.json()
             await supa.from('projects').update({ gcal_event_id: ev.id }).eq('id', p.id)
             pushed++
+          } else if (!pushError) {
+            pushError = `event create ${created.status}: ${(await created.text()).slice(0, 200)}`
           }
         }
       } else if (p.gcal_event_id && !p.scheduled_start) {
@@ -160,7 +163,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ ok: true, pushed, deleted, pulled, pruned })
+    return json({ ok: true, pushed, deleted, pulled, pruned, ...(pushError ? { pushError } : {}) })
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500)
   }
