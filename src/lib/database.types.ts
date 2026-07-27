@@ -917,6 +917,70 @@ export type Database = {
           },
         ]
       }
+      tracking_numbers: {
+        Row: {
+          carrier: string
+          created_at: string
+          email_date: string | null
+          id: string
+          matched_at: string | null
+          matched_by: string | null
+          material_id: string | null
+          sender: string | null
+          status: Database["public"]["Enums"]["tracking_status"]
+          subject: string | null
+          tracking_number: string
+        }
+        Insert: {
+          carrier: string
+          created_at?: string
+          email_date?: string | null
+          id?: string
+          matched_at?: string | null
+          matched_by?: string | null
+          material_id?: string | null
+          sender?: string | null
+          status?: Database["public"]["Enums"]["tracking_status"]
+          subject?: string | null
+          tracking_number: string
+        }
+        Update: {
+          carrier?: string
+          created_at?: string
+          email_date?: string | null
+          id?: string
+          matched_at?: string | null
+          matched_by?: string | null
+          material_id?: string | null
+          sender?: string | null
+          status?: Database["public"]["Enums"]["tracking_status"]
+          subject?: string | null
+          tracking_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_numbers_matched_by_fkey"
+            columns: ["matched_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_numbers_matched_by_fkey"
+            columns: ["matched_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_numbers_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           active_task_id: string | null
@@ -976,6 +1040,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      webhook_events: {
+        Row: {
+          error: string | null
+          id: string
+          payload: Json
+          processed: boolean
+          received_at: string
+          source: string
+        }
+        Insert: {
+          error?: string | null
+          id?: string
+          payload: Json
+          processed?: boolean
+          received_at?: string
+          source: string
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          payload?: Json
+          processed?: boolean
+          received_at?: string
+          source?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -1039,6 +1130,7 @@ export type Database = {
         Args: { p_department_id: string }
         Returns: undefined
       }
+      _tracking_eligible: { Args: { uid: string }; Returns: boolean }
       approve_stage: { Args: { p_job_stage_id: string }; Returns: undefined }
       approve_task: { Args: { p_task_id: string }; Returns: undefined }
       auth_department_id: { Args: never; Returns: string }
@@ -1050,7 +1142,12 @@ export type Database = {
       clock_in: { Args: { p_task_id: string }; Returns: undefined }
       clock_out: { Args: never; Returns: undefined }
       complete_task: { Args: { p_task_id: string }; Returns: undefined }
+      dismiss_tracking: { Args: { p_tracking_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
+      match_tracking: {
+        Args: { p_material_id: string; p_tracking_id: string }
+        Returns: undefined
+      }
       reject_stage: {
         Args: {
           p_job_stage_id: string
@@ -1127,6 +1224,7 @@ export type Database = {
         | "paused"
         | "completed"
         | "cancelled"
+      tracking_status: "captured" | "matched" | "dismissed"
       translation_status: "pending" | "done" | "failed"
       user_role: "admin" | "lead" | "staff"
     }
@@ -1313,6 +1411,7 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      tracking_status: ["captured", "matched", "dismissed"],
       translation_status: ["pending", "done", "failed"],
       user_role: ["admin", "lead", "staff"],
     },

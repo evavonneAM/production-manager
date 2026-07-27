@@ -739,7 +739,8 @@ export async function getTrackingNumbers(): Promise<TrackingNumber[]> {
 
 /** Attach to a material; pass null to detach (back to "captured"). */
 export async function matchTracking(id: string, materialId: string | null): Promise<ClockResult> {
-  const { error } = await client().rpc('match_tracking', { p_tracking_id: id, p_material_id: materialId })
+  // Generated types mark RPC args non-null; the SQL function accepts null (= detach).
+  const { error } = await client().rpc('match_tracking', { p_tracking_id: id, p_material_id: materialId as unknown as string })
   return { error: error ? error.message : null }
 }
 
