@@ -249,14 +249,14 @@ land in department queues; notifications show in my language.
 
 **Goal:** work orders flow in from Estimate Rocket.
 
-- [x] Webhook endpoint (Edge Function) validating the shared secret.
-- [x] **First, inspect the real Zapier payload** to see whether line items are itemized.
-- [x] If itemized: auto-create one job per line item with suffixes. If not: create one job +
+- [ ] Webhook endpoint (Edge Function) validating the shared secret.
+- [ ] **First, inspect the real Zapier payload** to see whether line items are itemized.
+- [ ] If itemized: auto-create one job per line item with suffixes. If not: create one job +
       the manual "Split Job" UI on S05.
-- [x] Update rules: never regress production state from an ER update; notify Admins of new
+- [ ] Update rules: never regress production state from an ER update; notify Admins of new
       work orders.
-- [x] Manual "Re-sync" button.
-- [x] **Email tracking-number capture (owner request, 2026-07-17; bundled here to share the
+- [ ] Manual "Re-sync" button.
+- [ ] **Email tracking-number capture (owner request, 2026-07-17; bundled here to share the
       Zapier/webhook session):** ingest shipping-confirmation emails via BOTH (a) a Zapier
       Zap with sender filters on the purchasing inbox and (b) a forwarding-address catch-all
       for the other stores; a webhook Edge Function (shared secret) regex-extracts tracking
