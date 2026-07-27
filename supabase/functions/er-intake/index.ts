@@ -10,9 +10,14 @@ Deno.serve(async (req) => {
     new Response(JSON.stringify(b), { status, headers: { 'Content-Type': 'application/json' } })
   if (req.method !== 'POST') return json({ ok: false, error: 'POST only' }, 405)
 
+  const params = new URL(req.url).searchParams
   const secret = Deno.env.get('ER_WEBHOOK_SECRET')
-  const given = new URL(req.url).searchParams.get('secret') ?? req.headers.get('x-webhook-secret')
+  const given = params.get('secret') ?? req.headers.get('x-webhook-secret')
   if (!secret || given !== secret) return json({ ok: false, error: 'unauthorized' }, 401)
+
+  // Store prefix for job codes; each store's ER account gets its own Zap URL.
+  const store = params.get('store')?.toUpperCase() ?? null
+  if (store && !['AM', 'HOV', 'RHU'].includes(store)) return json({ ok: false, error: 'unknown store' }, 400)
 
   let payload: unknown
   const raw = await req.text()
@@ -23,7 +28,7 @@ Deno.serve(async (req) => {
   }
 
   const supa = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
-  const { error } = await supa.from('webhook_events').insert({ source: 'estimate_rocket', payload })
+  const { error } = await supa.from('webhook_events').insert({ source: 'estimate_rocket', store, payload })
   if (error) return json({ ok: false, error: error.message }, 500)
   return json({ ok: true, captured: true })
 })
