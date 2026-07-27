@@ -68,7 +68,12 @@ Deno.serve(async (req) => {
       const active = p.status !== 'complete' && p.status !== 'delivered'
       if (p.scheduled_start && active) {
         const body = {
-          summary: [p.work_order_number, p.client_name, p.name].filter(Boolean).join(' — '),
+          // Skip the client when the project name already leads with it.
+          summary: [
+            p.work_order_number,
+            p.name.startsWith(p.client_name) ? null : p.client_name,
+            p.name,
+          ].filter(Boolean).join(' — '),
           description: `Production Manager: ${appUrl}/projects/${p.id}`,
           start: { date: p.scheduled_start },
           // Google all-day "end" is exclusive.
