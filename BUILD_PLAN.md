@@ -226,12 +226,12 @@ can open it.
 
 **Goal:** the management overview surfaces.
 
-- [ ] Calendar (S03): monthly/weekly, project bars by status, job-level toggle, drag to
+- [x] Calendar (S03): monthly/weekly, project bars by status, job-level toggle, drag to
       reschedule (Admin), overdue indicators.
-- [ ] Priority Board (S04): ranked projects, Admin drag-to-reorder; this feeds queue ordering.
-- [ ] Notifications Inbox (S15): per-language, unread badge, links to jobs/tasks; badge on the
+- [x] Priority Board (S04): ranked projects, Admin drag-to-reorder; this feeds queue ordering.
+- [x] Notifications Inbox (S15): per-language, unread badge, links to jobs/tasks; badge on the
       Inspection tab for pending count.
-- [ ] **Google Calendar (owner decision, 2026-07-16):** one-way flows via the existing
+- [x] **Google Calendar (owner decision, 2026-07-16):** one-way flows via the existing
       sheets-sync service account (share a calendar with it, like the sheet): (a) push
       project/job schedules to a shared Google Calendar; (b) read the shared calendar and
       attach events whose titles contain a job/work-order code (e.g. "AM1234 — walkthrough")
@@ -241,20 +241,22 @@ can open it.
 **Done when:** I can drag a project up the priority board and see it affect where its jobs
 land in department queues; notifications show in my language.
 
+**Status: complete (owner confirmed 2026-07-27).** Calendar/Priority/Inbox verified in-browser; GCal push+pull verified end-to-end (8/8 automated checks: push with correct dates, title dedupe, code-tagged pull onto AM1234-A, no self-import, idempotent, prune). Cron syncs every 15 min. Drag-to-reschedule shipped as tap-to-edit dialog (mobile-first); drag deferred.
+
 ---
 
 ## Sprint 12 — Estimate Rocket intake
 
 **Goal:** work orders flow in from Estimate Rocket.
 
-- [ ] Webhook endpoint (Edge Function) validating the shared secret.
-- [ ] **First, inspect the real Zapier payload** to see whether line items are itemized.
-- [ ] If itemized: auto-create one job per line item with suffixes. If not: create one job +
+- [x] Webhook endpoint (Edge Function) validating the shared secret.
+- [x] **First, inspect the real Zapier payload** to see whether line items are itemized.
+- [x] If itemized: auto-create one job per line item with suffixes. If not: create one job +
       the manual "Split Job" UI on S05.
-- [ ] Update rules: never regress production state from an ER update; notify Admins of new
+- [x] Update rules: never regress production state from an ER update; notify Admins of new
       work orders.
-- [ ] Manual "Re-sync" button.
-- [ ] **Email tracking-number capture (owner request, 2026-07-17; bundled here to share the
+- [x] Manual "Re-sync" button.
+- [x] **Email tracking-number capture (owner request, 2026-07-17; bundled here to share the
       Zapier/webhook session):** ingest shipping-confirmation emails via BOTH (a) a Zapier
       Zap with sender filters on the purchasing inbox and (b) a forwarding-address catch-all
       for the other stores; a webhook Edge Function (shared secret) regex-extracts tracking
