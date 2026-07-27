@@ -34,6 +34,85 @@ function portalUrl(store: string, token: unknown, number: unknown): string | nul
   if (!slug || !token || !number) return null
   return `https://customerportal.estimaterocket.com/${slug}/${token}/${number}`
 }
+
+// ---- Line-item extraction from the portal proposal document -----------------
+// The client-facing proposal page is public (tokenized) and server-rendered
+// with semantic classes (.line-item-name/-description/-unit-price/…), so the
+// same document the client signs is the line-item source. Best-effort: if the
+// page shape ever changes, imports continue and only suggestions are skipped.
+
+type LineItem = { name: string; description: string | null; quantity: number | null; unit_price: number | null; total: number | null }
+
+const htmlToText = (s: string): string =>
+  s
+    .replace(/<li[^>]*>/gi, '\n• ')
+    .replace(/<\/(p|ul|div)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{2,}/g, '\n')
+    .trim()
+
+const num = (s: string | null): number | null => {
+  if (!s) return null
+  const n = parseFloat(s.replace(/[^0-9.-]/g, ''))
+  return Number.isFinite(n) ? n : null
+}
+
+const grab = (row: string, cls: string): string | null => {
+  const m = row.match(new RegExp(`<div class="${cls}"[^>]*>([\\s\\S]*?)</div>`))
+  return m ? m[1] : null
+}
+
+function parseLineItems(html: string): LineItem[] {
+  const items: LineItem[] = []
+  for (const row of html.match(/<tr class="line-item [\s\S]*?<\/tr>/g) ?? []) {
+    const name = htmlToText(grab(row, 'line-item-name') ?? '')
+    if (!name) continue
+    // The description div nests markup; capture up to the cell boundary.
+    const descM = row.match(/<div class="line-item-description"[^>]*>([\s\S]*?)<\/td>/)
+    const description = descM ? htmlToText(descM[1]) : ''
+    items.push({
+      name,
+      description: description || null,
+      quantity: num(grab(row, 'line-item-quantity')),
+      unit_price: num(grab(row, 'line-item-unit-price')),
+      total: num(grab(row, 'line-item-total')),
+    })
+  }
+  return items
+}
+
+/** Fetch + parse the proposal document once per proposal; store suggestions. */
+async function ingestLineItems(
+  supa: SupabaseClient,
+  projectId: string,
+  store: string,
+  token: unknown,
+  proposalId: unknown,
+): Promise<string> {
+  const slug = PORTAL_SLUGS[store]
+  if (!slug || !token || !proposalId) return 'no portal data'
+  const { data: seen } = await supa.from('er_line_items').select('id').eq('proposal_id', String(proposalId)).limit(1)
+  if (seen && seen.length > 0) return 'already ingested'
+
+  try {
+    const res = await fetch(
+      `https://customerportal.estimaterocket.com/${slug}/${token}/proposals/${proposalId}`,
+      { signal: AbortSignal.timeout(10000) },
+    )
+    if (!res.ok) return `portal fetch ${res.status}`
+    const items = parseLineItems(await res.text())
+    if (items.length === 0) return 'no line items found'
+    const { error } = await supa.from('er_line_items').insert(
+      items.map((it, i) => ({ ...it, project_id: projectId, proposal_id: String(proposalId), position: i })),
+    )
+    return error ? `line items insert: ${error.message}` : `${items.length} line items`
+  } catch (e) {
+    return `portal fetch failed: ${String(e).slice(0, 100)}`
+  }
+}
 // Every new job gets the full pipeline (per-job routing editor is deferred).
 const ROUTING = ['Design', 'Procurement', 'Stripping', 'Carpentry', 'Foam', 'Sewing', 'Upholstering', 'Installation']
 
@@ -68,15 +147,17 @@ async function processEvent(supa: SupabaseClient, ev: Ev): Promise<Outcome> {
 
   if (existing) {
     // Refresh identity fields only; production state is never touched from ER.
+    // A change order (new accepted proposal) still adds its line-item suggestions.
+    const liNote = await ingestLineItems(supa, existing.id, ev.store, client.customer_portal_token, (ev.payload as any).id)
     const nextPortal = portal ?? existing.er_portal_url
     if (existing.name !== projName || existing.client_name !== clientName || existing.er_portal_url !== nextPortal) {
       await supa
         .from('projects')
         .update({ name: projName, client_name: clientName, er_portal_url: nextPortal })
         .eq('id', existing.id)
-      return { result: 'updated', note: `${wo}: name/client/portal refreshed` }
+      return { result: 'updated', note: `${wo}: name/client/portal refreshed; items: ${liNote}` }
     }
-    return { result: 'skipped', note: `${wo}: already imported, nothing changed` }
+    return { result: 'skipped', note: `${wo}: already imported (items: ${liNote})` }
   }
 
   // Last-4 collision (two estimates sharing final digits): surface, don't guess.
@@ -128,6 +209,8 @@ async function processEvent(supa: SupabaseClient, ev: Ev): Promise<Outcome> {
   supa.functions.invoke('translate', { body: { table: 'projects', id: proj.id } }).catch(() => {})
   supa.functions.invoke('translate', { body: { table: 'jobs', id: job.id } }).catch(() => {})
 
+  const liNote = await ingestLineItems(supa, proj.id, ev.store, client.customer_portal_token, (ev.payload as any).id)
+
   const { data: admins } = await supa.from('users').select('id').eq('role', 'admin')
   for (const a of admins ?? []) {
     await supa.rpc('_notify', {
@@ -142,7 +225,7 @@ async function processEvent(supa: SupabaseClient, ev: Ev): Promise<Outcome> {
       p_job_id: job.id,
     })
   }
-  return { result: 'created', note: `${wo}: project + job created` }
+  return { result: 'created', note: `${wo}: project + job created; items: ${liNote}` }
 }
 
 async function finishEvent(supa: SupabaseClient, evId: string, o: Outcome) {

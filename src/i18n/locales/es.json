@@ -77,6 +77,14 @@
     "empty": "Nada aquí — todo en orden.",
     "notEligible": "El panel de pedidos es para Compras y administradores."
   },
+  "erItems": {
+    "title": "Del presupuesto",
+    "specs": "Especificaciones",
+    "makeTask": "Crear tarea",
+    "dismiss": "Descartar",
+    "taskCreated": "tarea creada",
+    "placeTitle": "Crear tarea desde el artículo"
+  },
   "splitJob": {
     "button": "Dividir trabajo",
     "title": "Dividir este trabajo",

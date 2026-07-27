@@ -86,6 +86,14 @@
     "empty": "Nothing here — all clear.",
     "notEligible": "The ordering dashboard is for Procurement and Admins."
   },
+  "erItems": {
+    "title": "From the estimate",
+    "specs": "Specifications",
+    "makeTask": "Create task",
+    "dismiss": "Dismiss",
+    "taskCreated": "task created",
+    "placeTitle": "Create task from item"
+  },
   "splitJob": {
     "button": "Split job",
     "title": "Split this job",

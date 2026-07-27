@@ -141,6 +141,66 @@ export type Database = {
           },
         ]
       }
+      er_line_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          position: number
+          project_id: string
+          proposal_id: string
+          quantity: number | null
+          status: string
+          task_id: string | null
+          total: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          position?: number
+          project_id: string
+          proposal_id: string
+          quantity?: number | null
+          status?: string
+          task_id?: string | null
+          total?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          position?: number
+          project_id?: string
+          proposal_id?: string
+          quantity?: number | null
+          status?: string
+          task_id?: string | null
+          total?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "er_line_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "er_line_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       files: {
         Row: {
           created_at: string
@@ -1169,6 +1229,10 @@ export type Database = {
           p_task_id: string
         }
         Returns: string
+      }
+      set_line_item_status: {
+        Args: { p_line_item_id: string; p_status: string; p_task_id?: string }
+        Returns: undefined
       }
       set_project_priorities: {
         Args: { p_project_ids: string[] }

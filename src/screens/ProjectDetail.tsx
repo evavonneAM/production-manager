@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getProject } from '../lib/data'
+import { createTask, getErLineItems, getProject, setLineItemStatus, type ErLineItem } from '../lib/data'
 import { formatMinutes, formatDate } from '../lib/format'
 import { StatusBadge, EmptyState, ErrorState, Tabs } from '../components/ui'
 import { StagePipeline } from '../components/StagePipeline'
@@ -14,6 +15,178 @@ import { Appointments } from '../components/Appointments'
 import { localized } from '../lib/i18nText'
 import { getProjectMaterials } from '../lib/data'
 import type { JobWithStages } from '../lib/types'
+
+/** Admin review of line items parsed from the ER proposal (S12): each
+ *  suggestion becomes a task on a chosen job + stage, or gets dismissed. */
+function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
+  const { t, i18n } = useTranslation()
+  const { profile } = useAuth()
+  const { projectId } = useParams()
+  const [reloadKey, setReloadKey] = useState(0)
+  const { data: items } = useAsync(() => getErLineItems(projectId as string), [projectId, reloadKey])
+  const [placing, setPlacing] = useState<ErLineItem | null>(null)
+  const [jobId, setJobId] = useState('')
+  const [stageId, setStageId] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  if (profile?.role !== 'admin') return null
+  const open = (items ?? []).filter((it) => it.status === 'suggested')
+  const accepted = (items ?? []).filter((it) => it.status === 'accepted')
+  if (open.length === 0 && accepted.length === 0) return null
+
+  const money = (n: number | null) =>
+    n === null ? '' : n.toLocaleString(i18n.language, { style: 'currency', currency: 'USD' })
+
+  function startPlacing(it: ErLineItem) {
+    const first = jobs[0]
+    setJobId(first?.id ?? '')
+    setStageId(first ? currentStageOf(first) : '')
+    setPlacing(it)
+  }
+  const currentStageOf = (j: JobWithStages) =>
+    j.stages.find((s) => s.id === j.current_stage_id)?.id ?? j.stages[0]?.id ?? ''
+
+  async function place() {
+    if (!placing || !jobId || !stageId || !profile) return
+    setBusy(true)
+    const res = await createTask({
+      jobId,
+      jobStageId: stageId,
+      name: placing.name,
+      instructions: placing.description ?? null,
+      createdBy: profile.id,
+    })
+    if (!res.error && res.id) await setLineItemStatus(placing.id, 'accepted', res.id)
+    setBusy(false)
+    setPlacing(null)
+    setReloadKey((k) => k + 1)
+  }
+
+  async function dismiss(it: ErLineItem) {
+    await setLineItemStatus(it.id, 'dismissed')
+    setReloadKey((k) => k + 1)
+  }
+
+  const selectedJob = jobs.find((j) => j.id === jobId)
+
+  return (
+    <div className="mt-5 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-amber-300/80">
+        {t('erItems.title')}
+      </p>
+      <div className="flex flex-col gap-2">
+        {open.map((it) => (
+          <div key={it.id} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm text-slate-100">
+                  {it.name}
+                  {it.quantity !== null && it.quantity > 1 && (
+                    <span className="ml-1.5 text-xs text-slate-400">×{it.quantity}</span>
+                  )}
+                  {it.total !== null && it.total > 0 && (
+                    <span className="ml-2 text-xs text-slate-500">{money(it.total)}</span>
+                  )}
+                </p>
+                {it.description && (
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-xs text-slate-500">{t('erItems.specs')}</summary>
+                    <p className="mt-1 whitespace-pre-line text-xs text-slate-400">{it.description}</p>
+                  </details>
+                )}
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => startPlacing(it)}
+                  className="rounded-lg bg-amber-600/90 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-amber-500"
+                >
+                  {t('erItems.makeTask')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void dismiss(it)}
+                  className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-400 hover:bg-slate-800"
+                >
+                  {t('erItems.dismiss')}
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {accepted.map((it) => (
+          <p key={it.id} className="px-1 text-xs text-green-300/80">
+            ✓ {it.name} — {t('erItems.taskCreated')}
+          </p>
+        ))}
+      </div>
+
+      {placing && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center"
+          onClick={() => setPlacing(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-t-2xl bg-slate-900 p-4 sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="mb-1 text-lg font-semibold">{t('erItems.placeTitle')}</h2>
+            <p className="mb-3 text-sm text-slate-400">{placing.name}</p>
+            <label className="mb-1 block text-xs text-slate-500">{t('createTask.stage')}</label>
+            {jobs.length > 1 && (
+              <select
+                value={jobId}
+                onChange={(e) => {
+                  setJobId(e.target.value)
+                  const j = jobs.find((x) => x.id === e.target.value)
+                  setStageId(j ? currentStageOf(j) : '')
+                }}
+                className="mb-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+              >
+                {jobs.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.job_code} · {localized(j.name, j.name_i18n, i18n.language)}
+                  </option>
+                ))}
+              </select>
+            )}
+            <select
+              value={stageId}
+              onChange={(e) => setStageId(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+            >
+              {(selectedJob?.stages ?? [])
+                .slice()
+                .sort((a, b) => a.sequence - b.sequence)
+                .map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.department?.name}
+                  </option>
+                ))}
+            </select>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPlacing(null)}
+                className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={busy || !stageId}
+                onClick={() => void place()}
+                className="w-full rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
+              >
+                {busy ? t('common.saving') : t('createTask.create')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 /** Read-only materials roll-up grouped by job (S05 Tab 3). */
 function ProjectMaterials({ projectId }: { projectId: string }) {
@@ -164,6 +337,7 @@ export default function ProjectDetail() {
         </div>
       )}
 
+      {tab === 'overview' && <ErLineItemsPanel jobs={project.jobs} />}
       {tab === 'overview' && project.er_portal_url && (
         <a
           href={project.er_portal_url}

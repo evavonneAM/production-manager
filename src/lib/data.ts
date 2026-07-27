@@ -761,3 +761,44 @@ export async function splitJob(jobId: string, newNames: string[]): Promise<Clock
   const { error } = await client().rpc('split_job', { p_job_id: jobId, p_new_names: newNames })
   return { error: error ? error.message : null }
 }
+
+// ---- ER line-item suggestions (S12) -----------------------------------------
+
+export type ErLineItem = {
+  id: string
+  project_id: string
+  proposal_id: string
+  position: number
+  name: string
+  description: string | null
+  quantity: number | null
+  unit_price: number | null
+  total: number | null
+  status: 'suggested' | 'accepted' | 'dismissed'
+  task_id: string | null
+}
+
+/** Line items parsed from the ER proposal, for the admin review panel. */
+export async function getErLineItems(projectId: string): Promise<ErLineItem[]> {
+  const { data, error } = await client()
+    .from('er_line_items')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('position')
+  if (error) throw error
+  return (data ?? []) as ErLineItem[]
+}
+
+/** Admin: mark a suggestion accepted (with its created task) or dismissed. */
+export async function setLineItemStatus(
+  id: string,
+  status: 'suggested' | 'accepted' | 'dismissed',
+  taskId?: string | null,
+): Promise<ClockResult> {
+  const { error } = await client().rpc('set_line_item_status', {
+    p_line_item_id: id,
+    p_status: status,
+    p_task_id: taskId ?? undefined,
+  })
+  return { error: error ? error.message : null }
+}
