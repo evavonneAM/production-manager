@@ -752,6 +752,7 @@ export type Database = {
           created_at: string
           description: string | null
           description_i18n: Json | null
+          er_portal_url: string | null
           estimate_rocket_id: string | null
           gcal_event_id: string | null
           id: string
@@ -771,6 +772,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           description_i18n?: Json | null
+          er_portal_url?: string | null
           estimate_rocket_id?: string | null
           gcal_event_id?: string | null
           id?: string
@@ -790,6 +792,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           description_i18n?: Json | null
+          er_portal_url?: string | null
           estimate_rocket_id?: string | null
           gcal_event_id?: string | null
           id?: string

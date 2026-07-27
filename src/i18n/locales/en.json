@@ -218,7 +218,8 @@
     "scheduledEnd": "End",
     "scope": "Scope",
     "jobs": "Jobs",
-    "noJobs": "No jobs yet."
+    "noJobs": "No jobs yet.",
+    "viewWorkOrder": "View work order (Estimate Rocket)"
   },
   "jobDetail": {
     "currentStage": "Current stage",

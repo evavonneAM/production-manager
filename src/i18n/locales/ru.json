@@ -220,7 +220,8 @@
     "scheduledEnd": "Окончание",
     "scope": "Описание",
     "jobs": "Работы",
-    "noJobs": "Пока нет работ."
+    "noJobs": "Пока нет работ.",
+    "viewWorkOrder": "Открыть заказ-наряд (Estimate Rocket)"
   },
   "jobDetail": {
     "currentStage": "Текущий этап",

@@ -209,7 +209,8 @@
     "scheduledEnd": "Fin",
     "scope": "Alcance",
     "jobs": "Trabajos",
-    "noJobs": "Aún no hay trabajos."
+    "noJobs": "Aún no hay trabajos.",
+    "viewWorkOrder": "Ver orden de trabajo (Estimate Rocket)"
   },
   "jobDetail": {
     "currentStage": "Etapa actual",

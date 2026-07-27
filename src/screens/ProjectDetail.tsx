@@ -164,6 +164,16 @@ export default function ProjectDetail() {
         </div>
       )}
 
+      {tab === 'overview' && project.er_portal_url && (
+        <a
+          href={project.er_portal_url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-5 block rounded-lg border border-slate-700 px-3 py-2.5 text-center text-sm text-amber-300/90 hover:bg-slate-800"
+        >
+          {t('projectDetail.viewWorkOrder')} ↗
+        </a>
+      )}
       {tab === 'overview' && (
         <div className="mt-5">
           <Appointments projectId={project.id} />

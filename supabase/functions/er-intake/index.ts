@@ -20,6 +20,20 @@ const CORS = {
 }
 
 const STORES = ['AM', 'HOV', 'RHU']
+
+// Each store's slug on customerportal.estimaterocket.com (owner-provided).
+// URL shape: /<slug>/<client customer_portal_token>/<estimate number>
+const PORTAL_SLUGS: Record<string, string> = {
+  HOV: 'houseofvonne',
+  AM: 'alexandermatthews',
+  RHU: 'rhupholstery',
+}
+
+function portalUrl(store: string, token: unknown, number: unknown): string | null {
+  const slug = PORTAL_SLUGS[store]
+  if (!slug || !token || !number) return null
+  return `https://customerportal.estimaterocket.com/${slug}/${token}/${number}`
+}
 // Every new job gets the full pipeline (per-job routing editor is deferred).
 const ROUTING = ['Design', 'Procurement', 'Stripping', 'Carpentry', 'Foam', 'Sewing', 'Upholstering', 'Installation']
 
@@ -44,17 +58,23 @@ async function processEvent(supa: SupabaseClient, ev: Ev): Promise<Outcome> {
   const projName: string = (String(p.name ?? '').trim() || clientName) as string
   const notes = String(p.customer_notes ?? '').trim() || null
 
+  const portal = portalUrl(ev.store, client.customer_portal_token, p.number)
+
   const { data: existing } = await supa
     .from('projects')
-    .select('id, name, client_name')
+    .select('id, name, client_name, er_portal_url')
     .eq('estimate_rocket_id', String(p.id))
     .maybeSingle()
 
   if (existing) {
     // Refresh identity fields only; production state is never touched from ER.
-    if (existing.name !== projName || existing.client_name !== clientName) {
-      await supa.from('projects').update({ name: projName, client_name: clientName }).eq('id', existing.id)
-      return { result: 'updated', note: `${wo}: name/client refreshed` }
+    const nextPortal = portal ?? existing.er_portal_url
+    if (existing.name !== projName || existing.client_name !== clientName || existing.er_portal_url !== nextPortal) {
+      await supa
+        .from('projects')
+        .update({ name: projName, client_name: clientName, er_portal_url: nextPortal })
+        .eq('id', existing.id)
+      return { result: 'updated', note: `${wo}: name/client/portal refreshed` }
     }
     return { result: 'skipped', note: `${wo}: already imported, nothing changed` }
   }
@@ -72,6 +92,7 @@ async function processEvent(supa: SupabaseClient, ev: Ev): Promise<Outcome> {
       estimate_rocket_id: String(p.id),
       description: notes,
       status: 'estimate',
+      er_portal_url: portal,
     })
     .select('id')
     .single()
