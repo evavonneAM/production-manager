@@ -691,3 +691,59 @@ export async function getAppointments(scope: { projectId?: string; jobId?: strin
   if (error) throw error
   return (data ?? []) as CalendarEvent[]
 }
+
+// ---- Tracking numbers (S12) --------------------------------------------------
+
+export type TrackingCarrier = 'ups' | 'fedex' | 'usps' | 'other'
+
+export type TrackingNumber = {
+  id: string
+  tracking_number: string
+  carrier: TrackingCarrier
+  sender: string | null
+  subject: string | null
+  email_date: string | null
+  status: 'captured' | 'matched' | 'dismissed'
+  material_id: string | null
+  material: {
+    id: string
+    name: string
+    name_i18n: unknown
+    job: { id: string; job_code: string } | null
+  } | null
+}
+
+const CARRIER_URLS: Record<TrackingCarrier, string> = {
+  ups: 'https://www.ups.com/track?tracknum=',
+  fedex: 'https://www.fedex.com/fedextrack/?trknbr=',
+  usps: 'https://tools.usps.com/go/TrackConfirmAction?tLabels=',
+  other: '',
+}
+
+/** Carrier tracking-page link, or null when we can't build one. */
+export function carrierTrackingUrl(t: { carrier: TrackingCarrier; tracking_number: string }): string | null {
+  return CARRIER_URLS[t.carrier] ? CARRIER_URLS[t.carrier] + encodeURIComponent(t.tracking_number) : null
+}
+
+/** Captured + matched tracking numbers, newest first (Ordering → Tracking tab). */
+export async function getTrackingNumbers(): Promise<TrackingNumber[]> {
+  const { data, error } = await client()
+    .from('tracking_numbers')
+    .select('*, material:materials ( id, name, name_i18n, job:jobs ( id, job_code ) )')
+    .neq('status', 'dismissed')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? []) as any
+}
+
+/** Attach to a material; pass null to detach (back to "captured"). */
+export async function matchTracking(id: string, materialId: string | null): Promise<ClockResult> {
+  const { error } = await client().rpc('match_tracking', { p_tracking_id: id, p_material_id: materialId })
+  return { error: error ? error.message : null }
+}
+
+export async function dismissTracking(id: string): Promise<ClockResult> {
+  const { error } = await client().rpc('dismiss_tracking', { p_tracking_id: id })
+  return { error: error ? error.message : null }
+}

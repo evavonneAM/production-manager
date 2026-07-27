@@ -73,8 +73,18 @@
     "payment": "Pago pendiente",
     "ordered": "Pedido",
     "arrived": "Recibido",
+    "tracking": "Seguimiento",
     "empty": "Nada aquí — todo en orden.",
     "notEligible": "El panel de pedidos es para Compras y administradores."
+  },
+  "tracking": {
+    "empty": "Aún no hay números de seguimiento.",
+    "match": "Vincular",
+    "unmatch": "Desvincular",
+    "dismiss": "Descartar",
+    "matchTitle": "Vincular a un material",
+    "search": "Buscar materiales…",
+    "matchedTo": "Vinculado a"
   },
   "taskEdit": {
     "title": "Editar tarea",

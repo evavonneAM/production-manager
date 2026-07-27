@@ -82,8 +82,18 @@
     "payment": "Payment required",
     "ordered": "Ordered",
     "arrived": "Arrived",
+    "tracking": "Tracking",
     "empty": "Nothing here — all clear.",
     "notEligible": "The ordering dashboard is for Procurement and Admins."
+  },
+  "tracking": {
+    "empty": "No tracking numbers yet.",
+    "match": "Match",
+    "unmatch": "Unmatch",
+    "dismiss": "Dismiss",
+    "matchTitle": "Match to a material",
+    "search": "Search materials…",
+    "matchedTo": "Matched to"
   },
   "taskEdit": {
     "title": "Edit task",
