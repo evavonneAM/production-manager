@@ -187,7 +187,10 @@
     "jobsCount_other": "{{count}} trabajos",
     "inStage": "{{count}} en {{dept}}",
     "noProjects": "Aún no hay proyectos.",
-    "noResults": "No hay coincidencias."
+    "noResults": "No hay coincidencias.",
+    "resyncEr": "Resincronizar pedidos",
+    "resyncDone": "{{created}} nuevos, {{updated}} actualizados.",
+    "resyncFailed": "Falló la resincronización."
   },
   "projectDetail": {
     "tabOverview": "Resumen",

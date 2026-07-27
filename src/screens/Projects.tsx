@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getProjectsOverview } from '../lib/data'
+import { getProjectsOverview, requestErResync } from '../lib/data'
 import { ALL_PROJECT_STATUSES } from '../lib/status'
 import { formatMinutes } from '../lib/format'
 import { StatusBadge, EmptyState, ErrorState } from '../components/ui'
@@ -73,10 +74,27 @@ function ProjectCard({ project }: { project: ProjectOverview }) {
 
 export default function Projects() {
   const { t } = useTranslation()
-  const { data, loading, error } = useAsync(getProjectsOverview, [])
+  const { profile } = useAuth()
+  const [reloadKey, setReloadKey] = useState(0)
+  const { data, loading, error } = useAsync(getProjectsOverview, [reloadKey])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all')
   const [sort, setSort] = useState<SortKey>('date')
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
+
+  async function resync() {
+    setSyncing(true)
+    setSyncMsg(null)
+    const res = await requestErResync()
+    setSyncing(false)
+    setSyncMsg(
+      res.error
+        ? t('projects.resyncFailed')
+        : t('projects.resyncDone', { created: res.created, updated: res.updated }),
+    )
+    if (!res.error && (res.created > 0 || res.updated > 0)) setReloadKey((k) => k + 1)
+  }
 
   const projects = useMemo(() => {
     let list = data ?? []
@@ -117,7 +135,22 @@ export default function Projects() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6">
-      <h1 className="mb-4 text-2xl font-semibold">{t('nav.projects')}</h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">{t('nav.projects')}</h1>
+        {profile?.role === 'admin' && (
+          <div className="flex items-center gap-2">
+            {syncMsg && <span className="text-xs text-slate-400">{syncMsg}</span>}
+            <button
+              type="button"
+              disabled={syncing}
+              onClick={() => void resync()}
+              className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+            >
+              {syncing ? t('materials.syncing') : t('projects.resyncEr')}
+            </button>
+          </div>
+        )}
+      </div>
 
       <input
         type="search"

@@ -748,3 +748,10 @@ export async function dismissTracking(id: string): Promise<ClockResult> {
   const { error } = await client().rpc('dismiss_tracking', { p_tracking_id: id })
   return { error: error ? error.message : null }
 }
+
+/** Admin: re-process any Estimate Rocket webhooks that haven't been imported. */
+export async function requestErResync(): Promise<{ created: number; updated: number; error: string | null }> {
+  const { data, error } = await client().functions.invoke('er-intake', { body: { resync: true } })
+  if (error) return { created: 0, updated: 0, error: error.message }
+  return { created: data?.created ?? 0, updated: data?.updated ?? 0, error: data?.ok ? null : (data?.error ?? 'failed') }
+}

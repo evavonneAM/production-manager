@@ -198,7 +198,10 @@
     "jobsCount_other": "{{count}} работ",
     "inStage": "{{count}} в {{dept}}",
     "noProjects": "Пока нет проектов.",
-    "noResults": "Ничего не найдено."
+    "noResults": "Ничего не найдено.",
+    "resyncEr": "Синхронизировать заказы",
+    "resyncDone": "Новых: {{created}}, обновлено: {{updated}}.",
+    "resyncFailed": "Синхронизация не удалась."
   },
   "projectDetail": {
     "tabOverview": "Обзор",

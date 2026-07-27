@@ -196,7 +196,10 @@
     "jobsCount_other": "{{count}} jobs",
     "inStage": "{{count}} in {{dept}}",
     "noProjects": "No projects yet.",
-    "noResults": "No projects match your search."
+    "noResults": "No projects match your search.",
+    "resyncEr": "Re-sync work orders",
+    "resyncDone": "{{created}} new, {{updated}} updated.",
+    "resyncFailed": "Re-sync failed."
   },
   "projectDetail": {
     "tabOverview": "Overview",
