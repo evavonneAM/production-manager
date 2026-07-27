@@ -249,13 +249,13 @@ land in department queues; notifications show in my language.
 
 **Goal:** work orders flow in from Estimate Rocket.
 
-- [ ] Webhook endpoint (Edge Function) validating the shared secret.
-- [ ] **First, inspect the real Zapier payload** to see whether line items are itemized.
-- [ ] If itemized: auto-create one job per line item with suffixes. If not: create one job +
+- [x] Webhook endpoint (Edge Function) validating the shared secret.
+- [x] **First, inspect the real Zapier payload** to see whether line items are itemized.
+- [x] If itemized: auto-create one job per line item with suffixes. If not: create one job +
       the manual "Split Job" UI on S05.
-- [ ] Update rules: never regress production state from an ER update; notify Admins of new
+- [x] Update rules: never regress production state from an ER update; notify Admins of new
       work orders.
-- [ ] Manual "Re-sync" button.
+- [x] Manual "Re-sync" button.
 - [ ] **Email tracking-number capture (owner request, 2026-07-17; bundled here to share the
       Zapier/webhook session):** ingest shipping-confirmation emails via BOTH (a) a Zapier
       Zap with sender filters on the purchasing inbox and (b) a forwarding-address catch-all
@@ -265,6 +265,11 @@ land in department queues; notifications show in my language.
       sender, date) with a manual **Match** to a material/job — no auto-linking without human
       confirm (false-positive safety); matched materials show a tracking chip. Later:
       auto-suggest matches by supplier/invoice-number. Deliberately NOT full-mailbox access.
+
+**Progress 2026-07-27:** all three stores' ER Zaps live (Proposal Status Updated →
+per-store URLs); payload NOT itemized → Split Job shipped; processor + Re-sync live
+(first imports: HOV8655, RHU5957). Email capture: AM supplies inbox Zap live, Tracking
+tab live; forwarding-address for the other two stores still pending.
 
 **Done when:** creating a test work order in Estimate Rocket produces a project (and jobs) in
 the app — and a forwarded shipping email surfaces its tracking number in the Tracking tab,
