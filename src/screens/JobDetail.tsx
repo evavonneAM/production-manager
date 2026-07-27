@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getJob, getDirectory, getJobInspections, submitStage } from '../lib/data'
+import { getJob, getDirectory, getJobInspections, splitJob, submitStage } from '../lib/data'
 import { formatMinutes, formatDate } from '../lib/format'
 import { EmptyState, ErrorState, Tabs, TaskStatusBadge } from '../components/ui'
 import { StagePipeline } from '../components/StagePipeline'
@@ -16,6 +16,91 @@ import { FilesTab } from '../components/FilesTab'
 import { Appointments } from '../components/Appointments'
 import { localized } from '../lib/i18nText'
 import type { JobDetail as JobDetailT, StageWithDept, Task, JobInspection } from '../lib/types'
+
+/** Admin: split an imported single job into -A/-B/… pieces (S12; ER sends no
+ *  line items). The original keeps all its state and becomes -A. */
+function SplitJobDialog({ job, onClose, onDone }: { job: JobDetailT; onClose: () => void; onDone: () => void }) {
+  const { t } = useTranslation()
+  const [names, setNames] = useState<string[]>([''])
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function doSplit() {
+    setBusy(true)
+    setError(null)
+    const res = await splitJob(job.id, names)
+    setBusy(false)
+    if (res.error) setError(t('common.error'))
+    else onDone()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-t-2xl bg-slate-900 p-4 sm:rounded-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-lg font-semibold">{t('splitJob.title')}</h2>
+        <p className="mt-1 mb-3 text-sm text-slate-400">
+          {t('splitJob.explain', { code: job.job_code })}
+        </p>
+        <div className="flex flex-col gap-2">
+          {names.map((n, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="w-16 shrink-0 font-mono text-xs text-amber-300/90">
+                {job.job_code}-{String.fromCharCode(66 + i)}
+              </span>
+              <input
+                type="text"
+                value={n}
+                onChange={(e) => setNames(names.map((x, j) => (j === i ? e.target.value : x)))}
+                placeholder={t('splitJob.namePlaceholder')}
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+              />
+              {names.length > 1 && (
+                <button
+                  type="button"
+                  aria-label={t('common.cancel')}
+                  onClick={() => setNames(names.filter((_, j) => j !== i))}
+                  className="shrink-0 rounded-lg border border-slate-700 px-2 py-1.5 text-sm text-slate-400 hover:bg-slate-800"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        {names.length < 10 && (
+          <button
+            type="button"
+            onClick={() => setNames([...names, ''])}
+            className="mt-2 text-sm text-amber-300/90 hover:underline"
+          >
+            ＋ {t('splitJob.addPiece')}
+          </button>
+        )}
+        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void doSplit()}
+            className="w-full rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
+          >
+            {busy ? t('common.saving') : t('splitJob.confirm')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function CurrentStageCard({ job, onChanged }: { job: JobDetailT; onChanged: () => void }) {
   const { t } = useTranslation()
@@ -211,8 +296,10 @@ export default function JobDetail() {
       : 'tasks',
   )
   const highlightMaterial = searchParams.get('m')
+  const { profile } = useAuth()
   const [showQr, setShowQr] = useState(false)
   const [showCreateTask, setShowCreateTask] = useState(false)
+  const [showSplit, setShowSplit] = useState(false)
 
   const nameOf = useMemo(() => {
     const map = new Map((directory ?? []).map((u) => [u.id, u.full_name]))
@@ -248,6 +335,15 @@ export default function JobDetail() {
         <div>
           <h1 className="font-mono text-3xl font-bold text-amber-300">{job.job_code}</h1>
           <p className="mt-1 text-slate-300">{localized(job.name, job.name_i18n, i18n.language)}</p>
+          {profile?.role === 'admin' && job.suffix === null && (
+            <button
+              type="button"
+              onClick={() => setShowSplit(true)}
+              className="mt-2 rounded-lg border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-800"
+            >
+              {t('splitJob.button')}
+            </button>
+          )}
         </div>
         <button
           type="button"
@@ -260,6 +356,17 @@ export default function JobDetail() {
           </svg>
         </button>
       </div>
+
+      {showSplit && (
+        <SplitJobDialog
+          job={job}
+          onClose={() => setShowSplit(false)}
+          onDone={() => {
+            setShowSplit(false)
+            setReloadKey((k) => k + 1)
+          }}
+        />
+      )}
 
       {showQr && (
         <QrModal

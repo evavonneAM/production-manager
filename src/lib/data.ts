@@ -755,3 +755,9 @@ export async function requestErResync(): Promise<{ created: number; updated: num
   if (error) return { created: 0, updated: 0, error: error.message }
   return { created: data?.created ?? 0, updated: data?.updated ?? 0, error: data?.ok ? null : (data?.error ?? 'failed') }
 }
+
+/** Admin: split an unsuffixed job into -A (original, state kept) + new pieces. */
+export async function splitJob(jobId: string, newNames: string[]): Promise<ClockResult> {
+  const { error } = await client().rpc('split_job', { p_job_id: jobId, p_new_names: newNames })
+  return { error: error ? error.message : null }
+}

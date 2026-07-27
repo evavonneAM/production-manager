@@ -77,6 +77,14 @@
     "empty": "Nada aquí — todo en orden.",
     "notEligible": "El panel de pedidos es para Compras y administradores."
   },
+  "splitJob": {
+    "button": "Dividir trabajo",
+    "title": "Dividir este trabajo",
+    "explain": "Este trabajo conserva todo su progreso y pasa a ser {{code}}-A. Las piezas nuevas empiezan al inicio del proceso.",
+    "namePlaceholder": "p. ej. Sillas ×6",
+    "addPiece": "Añadir pieza",
+    "confirm": "Dividir"
+  },
   "tracking": {
     "empty": "Aún no hay números de seguimiento.",
     "match": "Vincular",

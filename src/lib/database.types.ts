@@ -1049,6 +1049,7 @@ export type Database = {
           processed: boolean
           received_at: string
           source: string
+          store: string | null
         }
         Insert: {
           error?: string | null
@@ -1057,6 +1058,7 @@ export type Database = {
           processed?: boolean
           received_at?: string
           source: string
+          store?: string | null
         }
         Update: {
           error?: string | null
@@ -1065,6 +1067,7 @@ export type Database = {
           processed?: boolean
           received_at?: string
           source?: string
+          store?: string | null
         }
         Relationships: []
       }
@@ -1167,6 +1170,10 @@ export type Database = {
       set_project_priorities: {
         Args: { p_project_ids: string[] }
         Returns: undefined
+      }
+      split_job: {
+        Args: { p_job_id: string; p_new_names: string[] }
+        Returns: string[]
       }
       submit_stage_for_inspection: {
         Args: { p_job_stage_id: string }

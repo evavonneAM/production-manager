@@ -86,6 +86,14 @@
     "empty": "Nothing here — all clear.",
     "notEligible": "The ordering dashboard is for Procurement and Admins."
   },
+  "splitJob": {
+    "button": "Split job",
+    "title": "Split this job",
+    "explain": "This job keeps all its progress and becomes {{code}}-A. New pieces start at the beginning of the pipeline.",
+    "namePlaceholder": "e.g. Dining chairs ×6",
+    "addPiece": "Add piece",
+    "confirm": "Split"
+  },
   "tracking": {
     "empty": "No tracking numbers yet.",
     "match": "Match",
