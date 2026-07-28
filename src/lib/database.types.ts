@@ -153,8 +153,6 @@ export type Database = {
           quantity: number | null
           status: string
           task_id: string | null
-          total: number | null
-          unit_price: number | null
         }
         Insert: {
           created_at?: string
@@ -167,8 +165,6 @@ export type Database = {
           quantity?: number | null
           status?: string
           task_id?: string | null
-          total?: number | null
-          unit_price?: number | null
         }
         Update: {
           created_at?: string
@@ -181,8 +177,6 @@ export type Database = {
           quantity?: number | null
           status?: string
           task_id?: string | null
-          total?: number | null
-          unit_price?: number | null
         }
         Relationships: [
           {

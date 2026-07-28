@@ -772,8 +772,6 @@ export type ErLineItem = {
   name: string
   description: string | null
   quantity: number | null
-  unit_price: number | null
-  total: number | null
   status: 'suggested' | 'accepted' | 'dismissed'
   task_id: string | null
 }

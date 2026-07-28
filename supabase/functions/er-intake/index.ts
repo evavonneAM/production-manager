@@ -41,7 +41,9 @@ function portalUrl(store: string, token: unknown, number: unknown): string | nul
 // same document the client signs is the line-item source. Best-effort: if the
 // page shape ever changes, imports continue and only suggestions are skipped.
 
-type LineItem = { name: string; description: string | null; quantity: number | null; unit_price: number | null; total: number | null }
+// No prices: the production app must never show money (owner requirement),
+// so unit price / total are deliberately not extracted or stored.
+type LineItem = { name: string; description: string | null; quantity: number | null }
 
 const htmlToText = (s: string): string =>
   s
@@ -77,8 +79,6 @@ function parseLineItems(html: string): LineItem[] {
       name,
       description: description || null,
       quantity: num(grab(row, 'line-item-quantity')),
-      unit_price: num(grab(row, 'line-item-unit-price')),
-      total: num(grab(row, 'line-item-total')),
     })
   }
   return items

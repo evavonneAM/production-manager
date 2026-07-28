@@ -34,9 +34,6 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
   const accepted = (items ?? []).filter((it) => it.status === 'accepted')
   if (open.length === 0 && accepted.length === 0) return null
 
-  const money = (n: number | null) =>
-    n === null ? '' : n.toLocaleString(i18n.language, { style: 'currency', currency: 'USD' })
-
   function startPlacing(it: ErLineItem) {
     const first = jobs[0]
     setJobId(first?.id ?? '')
@@ -83,9 +80,6 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
                   {it.name}
                   {it.quantity !== null && it.quantity > 1 && (
                     <span className="ml-1.5 text-xs text-slate-400">×{it.quantity}</span>
-                  )}
-                  {it.total !== null && it.total > 0 && (
-                    <span className="ml-2 text-xs text-slate-500">{money(it.total)}</span>
                   )}
                 </p>
                 {it.description && (
@@ -249,6 +243,7 @@ function JobRow({ job }: { job: JobWithStages }) {
 export default function ProjectDetail() {
   const { projectId } = useParams()
   const { t, i18n } = useTranslation()
+  const { profile } = useAuth()
   const { data: project, loading, error } = useAsync(
     () => getProject(projectId as string),
     [projectId],
@@ -338,7 +333,8 @@ export default function ProjectDetail() {
       )}
 
       {tab === 'overview' && <ErLineItemsPanel jobs={project.jobs} />}
-      {tab === 'overview' && project.er_portal_url && (
+      {/* The portal document shows prices — admins only (owner requirement). */}
+      {tab === 'overview' && profile?.role === 'admin' && project.er_portal_url && (
         <a
           href={project.er_portal_url}
           target="_blank"
