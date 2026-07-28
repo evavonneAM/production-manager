@@ -53,7 +53,9 @@ const htmlToText = (s: string): string =>
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
     .replace(/[ \t]+/g, ' ')
+    .replace(/ ?\n ?/g, '\n')
     .replace(/\n{2,}/g, '\n')
+    .replace(/•\n/g, '• ') // bullet marker must stay glued to its text
     .trim()
 
 const num = (s: string | null): number | null => {
@@ -108,10 +110,32 @@ async function ingestLineItems(
     const { error } = await supa.from('er_line_items').insert(
       items.map((it, i) => ({ ...it, project_id: projectId, proposal_id: String(proposalId), position: i })),
     )
-    return error ? `line items insert: ${error.message}` : `${items.length} line items`
+    if (error) return `line items insert: ${error.message}`
+    await rebuildScope(supa, projectId)
+    return `${items.length} line items`
   } catch (e) {
     return `portal fetch failed: ${String(e).slice(0, 100)}`
   }
+}
+
+/** The spec bullets describe the piece, not a task (owner, 2026-07-27) — the
+ *  project's Scope is rebuilt from every non-dismissed line item on ingest. */
+async function rebuildScope(supa: SupabaseClient, projectId: string) {
+  const { data: items } = await supa
+    .from('er_line_items')
+    .select('name, description, quantity, status')
+    .eq('project_id', projectId)
+    .neq('status', 'dismissed')
+    .order('position')
+  const text = (items ?? [])
+    .map((it) => {
+      const qty = it.quantity !== null && it.quantity > 1 ? ` ×${it.quantity}` : ''
+      return `${it.name}${qty}${it.description ? `\n${it.description}` : ''}`
+    })
+    .join('\n\n')
+  if (!text) return
+  await supa.from('projects').update({ description: text }).eq('id', projectId)
+  supa.functions.invoke('translate', { body: { table: 'projects', id: projectId } }).catch(() => {})
 }
 // Every new job gets the full pipeline (per-job routing editor is deferred).
 const ROUTING = ['Design', 'Procurement', 'Stripping', 'Carpentry', 'Foam', 'Sewing', 'Upholstering', 'Installation']

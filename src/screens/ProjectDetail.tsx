@@ -46,11 +46,11 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
   async function place() {
     if (!placing || !jobId || !stageId || !profile) return
     setBusy(true)
+    // Specs live on the project Scope, not the task (owner, 2026-07-27).
     const res = await createTask({
       jobId,
       jobStageId: stageId,
       name: placing.name,
-      instructions: placing.description ?? null,
       createdBy: profile.id,
     })
     if (!res.error && res.id) await setLineItemStatus(placing.id, 'accepted', res.id)
@@ -377,7 +377,7 @@ export default function ProjectDetail() {
           {project.description && (
             <div className="text-sm">
               <p className="mb-1 text-slate-500">{t('projectDetail.scope')}</p>
-              <p className="text-slate-300">{localized(project.description ?? '', project.description_i18n, i18n.language)}</p>
+              <p className="whitespace-pre-line text-slate-300">{localized(project.description ?? '', project.description_i18n, i18n.language)}</p>
             </div>
           )}
 
