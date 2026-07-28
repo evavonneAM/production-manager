@@ -81,9 +81,12 @@
     "title": "Del presupuesto",
     "specs": "Especificaciones",
     "makeTask": "Crear tarea",
+    "makeMaterial": "Añadir como material",
     "dismiss": "Descartar",
     "taskCreated": "tarea creada",
-    "placeTitle": "Crear tarea desde el artículo"
+    "materialAdded": "material añadido",
+    "placeTitle": "Crear tarea desde el artículo",
+    "placeMaterialTitle": "Añadir material desde el artículo"
   },
   "splitJob": {
     "button": "Dividir trabajo",

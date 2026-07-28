@@ -90,9 +90,12 @@
     "title": "Из сметы",
     "specs": "Характеристики",
     "makeTask": "Создать задачу",
+    "makeMaterial": "Добавить как материал",
     "dismiss": "Скрыть",
     "taskCreated": "задача создана",
-    "placeTitle": "Создать задачу из позиции"
+    "materialAdded": "материал добавлен",
+    "placeTitle": "Создать задачу из позиции",
+    "placeMaterialTitle": "Добавить материал из позиции"
   },
   "splitJob": {
     "button": "Разделить работу",

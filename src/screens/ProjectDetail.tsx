@@ -3,7 +3,15 @@ import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { createTask, getErLineItems, getProject, setLineItemStatus, type ErLineItem } from '../lib/data'
+import {
+  createMaterial,
+  createTask,
+  getErLineItems,
+  getProject,
+  setLineItemStatus,
+  type ErLineItem,
+  type MaterialCategory,
+} from '../lib/data'
 import { formatMinutes, formatDate } from '../lib/format'
 import { StatusBadge, EmptyState, ErrorState, Tabs } from '../components/ui'
 import { StagePipeline } from '../components/StagePipeline'
@@ -25,8 +33,11 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
   const [reloadKey, setReloadKey] = useState(0)
   const { data: items } = useAsync(() => getErLineItems(projectId as string), [projectId, reloadKey])
   const [placing, setPlacing] = useState<ErLineItem | null>(null)
+  const [mode, setMode] = useState<'task' | 'material'>('task')
   const [jobId, setJobId] = useState('')
   const [stageId, setStageId] = useState('')
+  const [category, setCategory] = useState<MaterialCategory>('other')
+  const [qty, setQty] = useState(1)
   const [busy, setBusy] = useState(false)
 
   if (profile?.role !== 'admin') return null
@@ -34,26 +45,40 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
   const accepted = (items ?? []).filter((it) => it.status === 'accepted')
   if (open.length === 0 && accepted.length === 0) return null
 
-  function startPlacing(it: ErLineItem) {
+  function startPlacing(it: ErLineItem, asMode: 'task' | 'material') {
     const first = jobs[0]
     setJobId(first?.id ?? '')
     setStageId(first ? currentStageOf(first) : '')
+    setCategory('other')
+    setQty(it.quantity && it.quantity > 0 ? it.quantity : 1)
+    setMode(asMode)
     setPlacing(it)
   }
   const currentStageOf = (j: JobWithStages) =>
     j.stages.find((s) => s.id === j.current_stage_id)?.id ?? j.stages[0]?.id ?? ''
 
   async function place() {
-    if (!placing || !jobId || !stageId || !profile) return
+    if (!placing || !jobId || !profile) return
     setBusy(true)
-    // Specs live on the project Scope, not the task (owner, 2026-07-27).
-    const res = await createTask({
-      jobId,
-      jobStageId: stageId,
-      name: placing.name,
-      createdBy: profile.id,
-    })
-    if (!res.error && res.id) await setLineItemStatus(placing.id, 'accepted', res.id)
+    if (mode === 'task') {
+      if (!stageId) return
+      // Specs live on the project Scope, not the task (owner, 2026-07-27).
+      const res = await createTask({
+        jobId,
+        jobStageId: stageId,
+        name: placing.name,
+        createdBy: profile.id,
+      })
+      if (!res.error && res.id) await setLineItemStatus(placing.id, 'accepted', { taskId: res.id })
+    } else {
+      const res = await createMaterial({
+        jobId,
+        name: placing.name,
+        quantity: qty,
+        category,
+      })
+      if (!res.error && res.id) await setLineItemStatus(placing.id, 'accepted', { materialId: res.id })
+    }
     setBusy(false)
     setPlacing(null)
     setReloadKey((k) => k + 1)
@@ -92,10 +117,17 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
               <div className="flex shrink-0 flex-col items-end gap-1.5">
                 <button
                   type="button"
-                  onClick={() => startPlacing(it)}
+                  onClick={() => startPlacing(it, 'task')}
                   className="rounded-lg bg-amber-600/90 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-amber-500"
                 >
                   {t('erItems.makeTask')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startPlacing(it, 'material')}
+                  className="rounded-lg bg-blue-600/80 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-500"
+                >
+                  {t('erItems.makeMaterial')}
                 </button>
                 <button
                   type="button"
@@ -110,7 +142,7 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
         ))}
         {accepted.map((it) => (
           <p key={it.id} className="px-1 text-xs text-green-300/80">
-            ✓ {it.name} — {t('erItems.taskCreated')}
+            ✓ {it.name} — {t(it.material_id ? 'erItems.materialAdded' : 'erItems.taskCreated')}
           </p>
         ))}
       </div>
@@ -124,9 +156,10 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
             className="w-full max-w-md rounded-t-2xl bg-slate-900 p-4 sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="mb-1 text-lg font-semibold">{t('erItems.placeTitle')}</h2>
+            <h2 className="mb-1 text-lg font-semibold">
+              {t(mode === 'task' ? 'erItems.placeTitle' : 'erItems.placeMaterialTitle')}
+            </h2>
             <p className="mb-3 text-sm text-slate-400">{placing.name}</p>
-            <label className="mb-1 block text-xs text-slate-500">{t('createTask.stage')}</label>
             {jobs.length > 1 && (
               <select
                 value={jobId}
@@ -144,20 +177,53 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
                 ))}
               </select>
             )}
-            <select
-              value={stageId}
-              onChange={(e) => setStageId(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-            >
-              {(selectedJob?.stages ?? [])
-                .slice()
-                .sort((a, b) => a.sequence - b.sequence)
-                .map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.department?.name}
-                  </option>
-                ))}
-            </select>
+            {mode === 'task' ? (
+              <>
+                <label className="mb-1 block text-xs text-slate-500">{t('createTask.stage')}</label>
+                <select
+                  value={stageId}
+                  onChange={(e) => setStageId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+                >
+                  {(selectedJob?.stages ?? [])
+                    .slice()
+                    .sort((a, b) => a.sequence - b.sequence)
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.department?.name}
+                      </option>
+                    ))}
+                </select>
+              </>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-xs text-slate-500">{t('materials.category')}</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as MaterialCategory)}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+                  >
+                    {(['fabric', 'com', 'insert', 'foam', 'hardware', 'other'] as const).map((c) => (
+                      <option key={c} value={c}>
+                        {t(`materialCategory.${c}`)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-slate-500">{t('materials.qty')}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={qty}
+                    onChange={(e) => setQty(Number(e.target.value))}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+                  />
+                </div>
+              </div>
+            )}
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
@@ -168,11 +234,11 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
               </button>
               <button
                 type="button"
-                disabled={busy || !stageId}
+                disabled={busy || (mode === 'task' ? !stageId : !jobId)}
                 onClick={() => void place()}
                 className="w-full rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
               >
-                {busy ? t('common.saving') : t('createTask.create')}
+                {busy ? t('common.saving') : t(mode === 'task' ? 'createTask.create' : 'materials.add')}
               </button>
             </div>
           </div>

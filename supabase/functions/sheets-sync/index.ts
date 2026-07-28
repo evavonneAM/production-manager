@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
     const supa = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 
     // --- sheet metadata (first tab) ------------------------------------------
-    const metaRes = await fetch(`${base}?fields=sheets(properties(sheetId,title))`, { headers: gauth })
+    const metaRes = await fetch(`${base}?fields=sheets(properties(sheetId,title,gridProperties(rowCount)))`, { headers: gauth })
     if (!metaRes.ok) return json({ ok: false, error: `sheet meta: ${await metaRes.text()}` }, 502)
     const meta = await metaRes.json()
     const tab = meta.sheets[0].properties
@@ -300,6 +300,20 @@ Deno.serve(async (req) => {
     }
 
     // --- write everything back ---------------------------------------------------
+    // Explicit-row writes don't auto-grow the grid: add physical rows first if
+    // new materials land past the sheet's current row count.
+    const rowCount: number = tab.gridProperties?.rowCount ?? 0
+    if (rowCount && nextRow - 1 > rowCount) {
+      const res = await fetch(`${base}:batchUpdate`, {
+        method: 'POST', headers: gauth,
+        body: JSON.stringify({
+          requests: [{
+            appendDimension: { sheetId: tab.sheetId, dimension: 'ROWS', length: nextRow - 1 - rowCount + 50 },
+          }],
+        }),
+      })
+      if (!res.ok) return json({ ok: false, error: `sheet grow: ${await res.text()}` }, 502)
+    }
     if (updates.length) {
       const res = await fetch(`${base}/values:batchUpdate`, {
         method: 'POST', headers: gauth,

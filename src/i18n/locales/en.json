@@ -90,9 +90,12 @@
     "title": "From the estimate",
     "specs": "Specifications",
     "makeTask": "Create task",
+    "makeMaterial": "Add as material",
     "dismiss": "Dismiss",
     "taskCreated": "task created",
-    "placeTitle": "Create task from item"
+    "materialAdded": "material added",
+    "placeTitle": "Create task from item",
+    "placeMaterialTitle": "Add material from item"
   },
   "splitJob": {
     "button": "Split job",

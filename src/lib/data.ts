@@ -374,7 +374,7 @@ export async function createMaterial(fields: {
   description?: string | null
   category?: MaterialCategory
   payment_required?: boolean
-}): Promise<ClockResult> {
+}): Promise<{ error: string | null; id?: string }> {
   const { data, error } = await client()
     .from('materials')
     .insert({
@@ -393,7 +393,7 @@ export async function createMaterial(fields: {
   if (error) return { error: error.message }
   await requestTranslation('materials', data.id)
   requestSheetSync()
-  return { error: null }
+  return { error: null, id: data.id }
 }
 
 export async function updateMaterial(
@@ -774,6 +774,7 @@ export type ErLineItem = {
   quantity: number | null
   status: 'suggested' | 'accepted' | 'dismissed'
   task_id: string | null
+  material_id: string | null
 }
 
 /** Line items parsed from the ER proposal, for the admin review panel. */
@@ -787,16 +788,17 @@ export async function getErLineItems(projectId: string): Promise<ErLineItem[]> {
   return (data ?? []) as ErLineItem[]
 }
 
-/** Admin: mark a suggestion accepted (with its created task) or dismissed. */
+/** Admin: mark a suggestion accepted (as a task OR a material) or dismissed. */
 export async function setLineItemStatus(
   id: string,
   status: 'suggested' | 'accepted' | 'dismissed',
-  taskId?: string | null,
+  refs?: { taskId?: string | null; materialId?: string | null },
 ): Promise<ClockResult> {
   const { error } = await client().rpc('set_line_item_status', {
     p_line_item_id: id,
     p_status: status,
-    p_task_id: taskId ?? undefined,
+    p_task_id: refs?.taskId ?? undefined,
+    p_material_id: refs?.materialId ?? undefined,
   })
   return { error: error ? error.message : null }
 }

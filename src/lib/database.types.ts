@@ -146,6 +146,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          material_id: string | null
           name: string
           position: number
           project_id: string
@@ -158,6 +159,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          material_id?: string | null
           name: string
           position?: number
           project_id: string
@@ -170,6 +172,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          material_id?: string | null
           name?: string
           position?: number
           project_id?: string
@@ -179,6 +182,13 @@ export type Database = {
           task_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "er_line_items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "er_line_items_project_id_fkey"
             columns: ["project_id"]
@@ -1225,7 +1235,12 @@ export type Database = {
         Returns: string
       }
       set_line_item_status: {
-        Args: { p_line_item_id: string; p_status: string; p_task_id?: string }
+        Args: {
+          p_line_item_id: string
+          p_material_id?: string
+          p_status: string
+          p_task_id?: string
+        }
         Returns: undefined
       }
       set_project_priorities: {
