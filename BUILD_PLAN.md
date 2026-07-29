@@ -290,14 +290,18 @@ matchable to a material.
 
 **Goal:** get the labor data out.
 
-- [ ] Reports screen (S18): filter by date/project/job/department/user.
-- [ ] Grouped summaries; estimated vs actual with variance flagging.
-- [ ] CSV export (UTF-8 with BOM so Cyrillic opens correctly in Excel), columns per SPEC.md
+- [x] Reports screen (S18): filter by date/project/job/department/user.
+- [x] Grouped summaries; estimated vs actual with variance flagging.
+- [x] CSV export (UTF-8 with BOM so Cyrillic opens correctly in Excel), columns per SPEC.md
       Section 15, respecting active filters.
-- [ ] Access scoping: Admin all, Lead own department, Staff own history only.
+- [x] Access scoping: Admin all, Lead own department, Staff own history only.
 
 **Done when:** I can filter to last month's Fabrication labor and download a clean CSV that
 opens correctly in Excel.
+
+**Status: complete (owner confirmed 2026-07-28).** 6/6 CSV checks (BOM/Cyrillic/escaping),
+7/7 scoping tests, in-browser walkthrough incl. Spanish staff view (own-only, no export).
+Note: no real labor logged yet — clock-in rollout is the adoption step after Sprint 14.
 
 ---
 
