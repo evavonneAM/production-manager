@@ -50,8 +50,10 @@ export default function Ordering() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [matching, setMatching] = useState<TrackingNumber | null>(null)
   const [search, setSearch] = useState('')
-  // Procurement batches orders per vendor — grouping is switchable (owner request).
+  // Procurement batches orders per vendor — grouping is switchable and a
+  // single vendor can be filtered in (owner requests).
   const [groupMode, setGroupMode] = useState<'category' | 'vendor'>('category')
+  const [vendorF, setVendorF] = useState('all')
 
   const { data: departments } = useAsync(getDepartments, [])
   const { data: materials, loading, error } = useAsync(getAllMaterials, [reloadKey])
@@ -64,12 +66,21 @@ export default function Ordering() {
   const eligible =
     profile?.role === 'admin' || (!!procurementId && profile?.department_id === procurementId)
 
+  const vendorOptions = useMemo(
+    () => [...new Set((materials ?? []).map((m) => m.supplier ?? ''))].filter(Boolean).sort((a, b) => a.localeCompare(b)),
+    [materials],
+  )
+  const byVendor = useMemo(
+    () => (materials ?? []).filter((m) => vendorF === 'all' || (m.supplier ?? '') === vendorF),
+    [materials, vendorF],
+  )
+
   const counts = useMemo(() => {
     const c: Record<Filter, number> = { needs: 0, payment: 0, ordered: 0, arrived: 0, tracking: 0 }
-    for (const m of materials ?? []) c[statusOf(m)]++
+    for (const m of byVendor) c[statusOf(m)]++
     c.tracking = (tracking ?? []).filter((tn) => tn.status === 'captured').length
     return c
-  }, [materials, tracking])
+  }, [byVendor, tracking])
 
   // material_id → its matched tracking rows (for chips on material cards).
   const trackingByMaterial = useMemo(() => {
@@ -91,7 +102,7 @@ export default function Ordering() {
   if (loading || !departments) return <FullScreenLoader />
   if (error) return <ErrorState text={t('common.error')} />
 
-  const filtered = (materials ?? []).filter((m) => filter !== 'tracking' && statusOf(m) === filter)
+  const filtered = byVendor.filter((m) => filter !== 'tracking' && statusOf(m) === filter)
 
   async function advance(m: (typeof filtered)[number]) {
     setBusyId(m.id)
@@ -178,12 +189,22 @@ export default function Ordering() {
         </button>
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-6 flex flex-wrap items-center gap-2">
         {chip('needs', 'bg-red-500/20 text-red-300')}
         {chip('payment', 'bg-orange-500/20 text-orange-300')}
         {chip('ordered', 'bg-blue-500/20 text-blue-300')}
         {chip('arrived', 'bg-green-500/20 text-green-300')}
         {chip('tracking', 'bg-purple-500/20 text-purple-300')}
+        <select
+          value={vendorF}
+          onChange={(e) => setVendorF(e.target.value)}
+          className="rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-sm text-slate-200 focus:border-amber-500 focus:outline-none"
+        >
+          <option value="all">{t('ordering.allVendors')}</option>
+          {vendorOptions.map((v) => (
+            <option key={v} value={v}>{v === 'Use Inventory' ? t('materials.useInventory') : v}</option>
+          ))}
+        </select>
       </div>
 
       {filter === 'tracking' ? (

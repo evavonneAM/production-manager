@@ -94,6 +94,7 @@
     "group_category": "Por categoría",
     "group_vendor": "Por proveedor",
     "noVendor": "Sin proveedor",
+    "allVendors": "Todos los proveedores",
     "empty": "Nada aquí — todo en orden.",
     "notEligible": "El panel de pedidos es para Compras y administradores."
   },

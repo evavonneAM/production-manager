@@ -103,6 +103,7 @@
     "group_category": "By category",
     "group_vendor": "By vendor",
     "noVendor": "No vendor",
+    "allVendors": "All vendors",
     "empty": "Nothing here — all clear.",
     "notEligible": "The ordering dashboard is for Procurement and Admins."
   },
