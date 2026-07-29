@@ -256,7 +256,7 @@ land in department queues; notifications show in my language.
 - [x] Update rules: never regress production state from an ER update; notify Admins of new
       work orders.
 - [x] Manual "Re-sync" button.
-- [ ] **Email tracking-number capture (owner request, 2026-07-17; bundled here to share the
+- [x] **Email tracking-number capture (owner request, 2026-07-17; bundled here to share the
       Zapier/webhook session):** ingest shipping-confirmation emails via BOTH (a) a Zapier
       Zap with sender filters on the purchasing inbox and (b) a forwarding-address catch-all
       for the other stores; a webhook Edge Function (shared secret) regex-extracts tracking
@@ -265,6 +265,15 @@ land in department queues; notifications show in my language.
       sender, date) with a manual **Match** to a material/job — no auto-linking without human
       confirm (false-positive safety); matched materials show a tracking chip. Later:
       auto-suggest matches by supplier/invoice-number. Deliberately NOT full-mailbox access.
+
+**Status 2026-07-28: build complete; owner moved on to S13.** All app-side pieces
+verified end-to-end (Zapier POST tests land correctly; email capture proven on real
+shipping mail; line-item suggestions → task/material; Split Job; Re-sync; no-prices rule).
+Sole open item is vendor-side: Estimate Rocket must enable live webhook events for all
+three accounts (support ticket open with ER; Zap History shows the instant trigger never
+fires despite API login + connection refresh + Zap re-toggle). When ER flips it on, work
+orders flow in with no further changes. Also added post-plan: ER portal work-order link
+(admin-only), line items → project Scope, "Add as material", sheets-sync grid growth fix.
 
 **Progress 2026-07-27:** all three stores' ER Zaps live (Proposal Status Updated →
 per-store URLs); payload NOT itemized → Split Job shipped; processor + Re-sync live
