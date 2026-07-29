@@ -18,7 +18,8 @@
     "calendar": "Calendar",
     "inspection": "Inspection",
     "profile": "Profile",
-    "scan": "Scan"
+    "scan": "Scan",
+    "more": "More"
   },
   "placeholder": {
     "comingSoon": "This screen arrives in a later sprint."

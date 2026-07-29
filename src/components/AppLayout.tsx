@@ -63,6 +63,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   // Unread notifications + pending inspections, refreshed on navigation + 60s poll.
   const [counts, setCounts] = useState({ unread: 0, pendingInspections: 0 })
+  const [moreOpen, setMoreOpen] = useState(false)
   useEffect(() => {
     let active = true
     const refresh = () => void getBadgeCounts().then((c) => active && setCounts(c)).catch(() => {})
@@ -182,12 +183,49 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </svg>
       </button>
 
-      {/* Mobile bottom tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-slate-800 bg-slate-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        {TABS.map((tab, i) => (
+      {/* Mobile "More" sheet: everything that doesn't fit the 5-tab bar. */}
+      {moreOpen && (
+        <div className="fixed inset-0 z-30 bg-black/60 md:hidden" onClick={() => setMoreOpen(false)}>
+          <div
+            className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-slate-800 bg-slate-950 p-3 pb-[calc(env(safe-area-inset-bottom)+5rem)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {[
+              { to: '/priority', label: t('priority.title'), icon: <path d="M4 6h16M7 12h13M10 18h10" />, badge: 0 },
+              { to: '/inbox', label: t('inbox.title'), icon: <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9m-4.7 13a2 2 0 0 1-3.4 0" />, badge: counts.unread },
+              { to: '/reports', label: t('reports.title'), icon: <path d="M4 20V10m6 10V4m6 16v-7m4 7H2" />, badge: 0 },
+              ...(showOrdering
+                ? [{ to: '/ordering', label: t('ordering.title'), icon: <path d="M6 6h15l-1.5 9h-12L5 3H2m5 18a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm10 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />, badge: 0 }]
+                : []),
+              { to: '/profile', label: t('nav.profile'), icon: I.profile, badge: 0 },
+            ].map((item) => (
+              <button
+                key={item.to}
+                type="button"
+                onClick={() => {
+                  setMoreOpen(false)
+                  navigate(item.to)
+                }}
+                className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium ${
+                  location.pathname.startsWith(item.to) ? 'bg-amber-600/15 text-amber-300' : 'text-slate-300'
+                }`}
+              >
+                <TabIcon icon={item.icon} />
+                {item.label}
+                <Badge count={item.badge} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile bottom tab bar: 4 core tabs + More (the rest live in the sheet). */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-800 bg-slate-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        {TABS.filter((tab) => tab.to !== '/profile').map((tab, i) => (
           <NavLink
             key={tab.to}
             to={tab.to}
+            onClick={() => setMoreOpen(false)}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium ${
                 isActive ? 'text-amber-400' : 'text-slate-500'
@@ -205,6 +243,25 @@ export function AppLayout({ children }: { children: ReactNode }) {
             {t(tab.key)}
           </NavLink>
         ))}
+        <button
+          type="button"
+          onClick={() => setMoreOpen((v) => !v)}
+          className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium ${
+            moreOpen || ['/priority', '/inbox', '/reports', '/ordering', '/profile'].some((p) => location.pathname.startsWith(p))
+              ? 'text-amber-400'
+              : 'text-slate-500'
+          }`}
+        >
+          <span className="relative">
+            <TabIcon icon={<path d="M5 12h.01M12 12h.01M19 12h.01" />} />
+            {counts.unread > 0 && (
+              <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-0.5 text-[9px] font-semibold text-white">
+                {counts.unread > 9 ? '9+' : counts.unread}
+              </span>
+            )}
+          </span>
+          {t('nav.more')}
+        </button>
       </nav>
     </div>
   )

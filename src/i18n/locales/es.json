@@ -18,7 +18,8 @@
     "calendar": "Calendario",
     "inspection": "Inspección",
     "profile": "Perfil",
-    "scan": "Escanear"
+    "scan": "Escanear",
+    "more": "Más"
   },
   "placeholder": {
     "comingSoon": "Esta pantalla llegará en un sprint posterior."

@@ -18,7 +18,8 @@
     "calendar": "Календарь",
     "inspection": "Приёмка",
     "profile": "Профиль",
-    "scan": "Скан"
+    "scan": "Скан",
+    "more": "Ещё"
   },
   "placeholder": {
     "comingSoon": "Этот экран появится в следующих спринтах."
