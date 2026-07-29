@@ -15,6 +15,7 @@ import Ordering from './screens/Ordering'
 import Calendar from './screens/Calendar'
 import Priority from './screens/Priority'
 import Inbox from './screens/Inbox'
+import Reports from './screens/Reports'
 import Profile from './screens/Profile'
 import QrResolve from './screens/QrResolve'
 
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/priority" element={<Priority />} />
         <Route path="/inbox" element={<Inbox />} />
+        <Route path="/reports" element={<Reports />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

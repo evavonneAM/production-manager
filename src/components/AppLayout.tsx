@@ -131,6 +131,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
             {t('inbox.title')}
             <Badge count={counts.unread} />
           </NavLink>
+          <NavLink
+            to="/reports"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                isActive ? 'bg-amber-600/15 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+              }`
+            }
+          >
+            <TabIcon icon={<path d="M4 20V10m6 10V4m6 16v-7m4 7H2" />} />
+            {t('reports.title')}
+          </NavLink>
           {showOrdering && (
             <NavLink
               to="/ordering"

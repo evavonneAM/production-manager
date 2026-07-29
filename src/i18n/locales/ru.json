@@ -351,5 +351,28 @@
     "title": "Уведомления",
     "empty": "Пока нет уведомлений.",
     "markAllRead": "Прочитать все"
+  },
+  "reports": {
+    "title": "Отчёты",
+    "export": "Скачать CSV",
+    "thisWeek": "Эта неделя",
+    "lastWeek": "Прошлая неделя",
+    "thisMonth": "Этот месяц",
+    "lastMonth": "Прошлый месяц",
+    "custom": "Свои даты",
+    "allProjects": "Все проекты",
+    "allJobs": "Все работы",
+    "allDepartments": "Все отделы",
+    "allPeople": "Все сотрудники",
+    "allStatuses": "Все статусы задач",
+    "by_user": "По сотрудникам",
+    "by_department": "По отделам",
+    "by_project": "По проектам",
+    "by_job": "По работам",
+    "total": "Итого",
+    "estVsActual": "план {{est}} / факт {{actual}}",
+    "entries": "Записи",
+    "flagged": "автозакрытие",
+    "empty": "Нет учтённого времени за этот период."
   }
 }

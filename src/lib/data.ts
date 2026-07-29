@@ -802,3 +802,48 @@ export async function setLineItemStatus(
   })
   return { error: error ? error.message : null }
 }
+
+// ---- Labor reports (S13 / SPEC §15) -----------------------------------------
+
+export type LaborReportRow = {
+  id: string
+  user_id: string
+  clocked_in_at: string
+  clocked_out_at: string | null
+  duration_minutes: number | null
+  admin_override: boolean
+  task: {
+    id: string
+    name: string
+    name_i18n: unknown
+    status: string
+    estimated_hours: number | null
+    actual_minutes: number
+    stage: { department: { id: string; name: string } | null } | null
+  } | null
+  job: { id: string; job_code: string; name: string; name_i18n: unknown } | null
+  project: { id: string; name: string; work_order_number: string | null } | null
+}
+
+/** Completed clock sessions in [from, to] (inclusive dates, local time).
+ *  RLS does the scoping: staff = own, lead = own department's people, admin = all. */
+export async function getLaborReport(fromDate: string, toDate: string): Promise<LaborReportRow[]> {
+  const from = new Date(fromDate + 'T00:00:00').toISOString()
+  const to = new Date(new Date(toDate + 'T00:00:00').getTime() + 86400e3).toISOString()
+  const { data, error } = await client()
+    .from('labor_logs')
+    .select(
+      `id, user_id, clocked_in_at, clocked_out_at, duration_minutes, admin_override,
+       task:tasks ( id, name, name_i18n, status, estimated_hours, actual_minutes,
+         stage:job_stages!tasks_job_stage_id_fkey ( department:departments ( id, name ) ) ),
+       job:jobs ( id, job_code, name, name_i18n ),
+       project:projects ( id, name, work_order_number )`,
+    )
+    .gte('clocked_in_at', from)
+    .lt('clocked_in_at', to)
+    .not('duration_minutes', 'is', null)
+    .order('clocked_in_at', { ascending: false })
+  if (error) throw error
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? []) as any
+}

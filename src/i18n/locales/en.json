@@ -349,5 +349,28 @@
     "title": "Inbox",
     "empty": "No notifications yet.",
     "markAllRead": "Mark all read"
+  },
+  "reports": {
+    "title": "Reports",
+    "export": "Download CSV",
+    "thisWeek": "This week",
+    "lastWeek": "Last week",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "custom": "Custom dates",
+    "allProjects": "All projects",
+    "allJobs": "All jobs",
+    "allDepartments": "All departments",
+    "allPeople": "All people",
+    "allStatuses": "All task statuses",
+    "by_user": "By person",
+    "by_department": "By department",
+    "by_project": "By project",
+    "by_job": "By job",
+    "total": "Total",
+    "estVsActual": "est {{est}} / actual {{actual}}",
+    "entries": "Entries",
+    "flagged": "auto-closed",
+    "empty": "No labor in this period."
   }
 }

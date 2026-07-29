@@ -349,5 +349,28 @@
     "title": "Bandeja",
     "empty": "Aún no hay notificaciones.",
     "markAllRead": "Marcar todo leído"
+  },
+  "reports": {
+    "title": "Informes",
+    "export": "Descargar CSV",
+    "thisWeek": "Esta semana",
+    "lastWeek": "Semana pasada",
+    "thisMonth": "Este mes",
+    "lastMonth": "Mes pasado",
+    "custom": "Fechas personalizadas",
+    "allProjects": "Todos los proyectos",
+    "allJobs": "Todos los trabajos",
+    "allDepartments": "Todos los departamentos",
+    "allPeople": "Todas las personas",
+    "allStatuses": "Todos los estados",
+    "by_user": "Por persona",
+    "by_department": "Por departamento",
+    "by_project": "Por proyecto",
+    "by_job": "Por trabajo",
+    "total": "Total",
+    "estVsActual": "est. {{est}} / real {{actual}}",
+    "entries": "Registros",
+    "flagged": "cierre automático",
+    "empty": "Sin horas registradas en este período."
   }
 }
