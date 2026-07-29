@@ -5,10 +5,10 @@ import type { Material } from '../lib/types'
 
 // Vendor/option catalogs straight from the owner's sketches (2026-07-28).
 // Catalog values are canonical English (product terms), like job codes.
-const FABRIC_DIRECTIONS = ['Railroaded', 'Up the roll', 'Any']
+const FABRIC_DIRECTIONS = ['Railroaded', 'Up the roll', 'Any', 'Other']
 const FABRIC_UNITS = ['yd', 'sqft']
-const INSERT_VENDORS = ['Nom de Plume', 'Ronco', 'Rex Pegg', 'Miami Corp', 'Perfect Fit', 'Keystone', 'Flexco', 'Amazon']
-const INSERT_TYPES = ['Seat', 'Back', 'Pillow Insert', 'Ottoman']
+const INSERT_VENDORS = ['Nom de Plume', 'Ronco', 'Rex Pegg', 'Miami Corp', 'Perfect Fit', 'Keystone', 'Flexco', 'Amazon', 'Other']
+const INSERT_TYPES = ['Seat', 'Back', 'Pillow Insert', 'Ottoman', 'Other']
 const INSERT_BLENDS = [
   'Solid - Celeste Fiber',
   'Solid - 25/75 WG Down/Feather Blend',
@@ -22,16 +22,17 @@ const INSERT_BLENDS = [
   '1818 HDR Foam', '2521 HDR Foam', '2528 HDR Foam', '2535 HDR Foam',
   '2550 HDR Foam', '2570 HDR Foam', '2740 HDR Foam',
   'Spring Core Unit',
+  'Other',
 ]
-const FOAM_VENDORS = ['Use Inventory', 'Rex Pegg', 'Perfect Fit']
+const FOAM_VENDORS = ['Use Inventory', 'Rex Pegg', 'Perfect Fit', 'Other']
 const FOAM_TYPES = [
   'Soft HDR Foam', 'Medium HDR Foam', 'Medium Firm HDR Foam', 'Firm HDR Foam', 'Xtra Firm HDR Foam',
-  '1818 HDR Foam', '2521 HDR Foam', '2528 HDR Foam', '2535 HDR Foam', '2550 HDR Foam', '2570 HDR Foam', '2740 HDR Foam',
+  '1818 HDR Foam', '2521 HDR Foam', '2528 HDR Foam', '2535 HDR Foam', '2550 HDR Foam', '2570 HDR Foam', '2740 HDR Foam', 'Other',
 ]
 const HARDWARE_VENDORS = [
   'Use Inventory', 'COM', 'Rex Pegg', 'Perfect Fit', 'Forest Drapery Hardware', 'Iron Art by Orion',
   'Rejuvenation', 'Ronco', 'Miami Corp', 'Keystone', 'Flexco', 'Amazon', 'Trivantage',
-  'Rowely Drapery Hardware', 'Alan Richard Textiles',
+  'Rowely Drapery Hardware', 'Alan Richard Textiles', 'Other',
 ]
 
 type Specs = {
@@ -86,16 +87,19 @@ export function MaterialModal({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Owner refinement: inserts/foam get a typed "Item name" (multiple cushion
+  // sizes per project need distinct names); when left blank we derive one.
   const derivedName = (): string => {
+    if (name.trim()) return name.trim()
     if (formKind === 'insert' && insertType)
-      return insertType === 'Pillow Insert' ? 'Pillow insert' : `${insertType} insert`
-    if (formKind === 'foam' && foamType) return foamType
-    return name.trim()
+      return insertType === 'Pillow Insert' ? 'Pillow insert' : insertType === 'Other' ? 'Insert' : `${insertType} insert`
+    if (formKind === 'foam' && foamType) return foamType === 'Other' ? 'Foam' : foamType
+    return ''
   }
 
   const composedDescription = (): string | null => {
     const parts: (string | false | undefined)[] =
-      formKind === 'fabric' ? [direction && `${t('materials.direction')}: ${direction}`]
+      formKind === 'fabric' ? [direction && `${t('materials.direction')}: ${direction}`, notes]
       : formKind === 'insert' ? [blend, dimensions && `${t('materials.dimensions')}: ${dimensions}`, notes]
       : formKind === 'foam' ? [dimensions && `${t('materials.dimensions')}: ${dimensions}`, customOrder && t('materials.wedgeCustom'), notes]
       : formKind === 'hardware' ? [notes, customOrder && t('materials.customOrder')]
@@ -146,15 +150,26 @@ export function MaterialModal({
 
   const field = 'w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none'
 
+  // Catalog values stay canonical English; only the special entries translate.
+  const optLabel = (v: string) =>
+    v === 'Use Inventory' ? t('materials.useInventory') : v === 'Other' ? t('materials.otherOption') : v
+
   const vendorSelect = (options: string[]) => (
     <label className="text-sm text-slate-300">
       {t('materials.vendor')}
       <select value={supplier} onChange={(e) => setSupplier(e.target.value)} required className={`mt-1 ${field}`}>
         <option value="">—</option>
         {options.map((v) => (
-          <option key={v} value={v}>{v === 'Use Inventory' ? t('materials.useInventory') : v}</option>
+          <option key={v} value={v}>{optLabel(v)}</option>
         ))}
       </select>
+    </label>
+  )
+
+  const itemNameField = (
+    <label className="text-sm text-slate-300">
+      {t('materials.itemName')}
+      <input value={name} onChange={(e) => setName(e.target.value)} className={`mt-1 ${field}`} placeholder={t('materials.itemNamePlaceholder')} />
     </label>
   )
 
@@ -208,8 +223,12 @@ export function MaterialModal({
               {t('materials.direction')}
               <select value={direction} onChange={(e) => setDirection(e.target.value)} className={`mt-1 ${field}`}>
                 <option value="">—</option>
-                {FABRIC_DIRECTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+                {FABRIC_DIRECTIONS.map((d) => <option key={d} value={d}>{optLabel(d)}</option>)}
               </select>
+            </label>
+            <label className="text-sm text-slate-300">
+              {t('materials.notes')}
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={`mt-1 ${field}`} placeholder={t('materials.fabricNotesPlaceholder')} />
             </label>
             <div className="flex gap-3">
               {qtyField}
@@ -226,6 +245,7 @@ export function MaterialModal({
         {formKind === 'insert' && (
           <>
             {vendorSelect(INSERT_VENDORS)}
+            {itemNameField}
             <div className="flex gap-3">
               {qtyField}
               {dimensionsField}
@@ -238,14 +258,14 @@ export function MaterialModal({
               {t('materials.type')}
               <select value={insertType} onChange={(e) => setInsertType(e.target.value)} required className={`mt-1 ${field}`}>
                 <option value="">—</option>
-                {INSERT_TYPES.map((v) => <option key={v} value={v}>{v}</option>)}
+                {INSERT_TYPES.map((v) => <option key={v} value={v}>{optLabel(v)}</option>)}
               </select>
             </label>
             <label className="text-sm text-slate-300">
               {t('materials.blend')}
               <select value={blend} onChange={(e) => setBlend(e.target.value)} required className={`mt-1 ${field}`}>
                 <option value="">—</option>
-                {INSERT_BLENDS.map((v) => <option key={v} value={v}>{v}</option>)}
+                {INSERT_BLENDS.map((v) => <option key={v} value={v}>{optLabel(v)}</option>)}
               </select>
             </label>
           </>
@@ -255,6 +275,7 @@ export function MaterialModal({
           <>
             {vendorSelect(FOAM_VENDORS)}
             {checkbox(customOrder, setCustomOrder, t('materials.wedgeCustom'))}
+            {itemNameField}
             <div className="flex gap-3">
               {qtyField}
               {dimensionsField}
@@ -263,7 +284,7 @@ export function MaterialModal({
               {t('materials.type')}
               <select value={foamType} onChange={(e) => setFoamType(e.target.value)} required className={`mt-1 ${field}`}>
                 <option value="">—</option>
-                {FOAM_TYPES.map((v) => <option key={v} value={v}>{v}</option>)}
+                {FOAM_TYPES.map((v) => <option key={v} value={v}>{optLabel(v)}</option>)}
               </select>
             </label>
             <label className="text-sm text-slate-300">
@@ -278,7 +299,7 @@ export function MaterialModal({
             {vendorSelect(HARDWARE_VENDORS)}
             {checkbox(customOrder, setCustomOrder, t('materials.customOrder'))}
             <label className="text-sm text-slate-300">
-              {t('materials.name')}
+              {t('materials.item')}
               <input value={name} onChange={(e) => setName(e.target.value)} required className={`mt-1 ${field}`} placeholder={t('materials.name_hardware')} />
             </label>
             <div className="flex gap-3">
