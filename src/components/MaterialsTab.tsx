@@ -127,6 +127,11 @@ export function MaterialsTab({
                     {m.supplier ? ` · ${m.supplier}` : ''}
                   </p>
                   {m.description && <p className="mt-0.5 text-xs text-slate-500">{m.description}</p>}
+                  {m.product_url && (
+                    <a href={m.product_url} target="_blank" rel="noreferrer" className="mt-0.5 inline-block text-xs text-blue-300/90 hover:underline">
+                      {t('materials.productLink')} ↗
+                    </a>
+                  )}
                 </div>
                 <span
                   className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${

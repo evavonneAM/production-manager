@@ -580,9 +580,11 @@ export type Database = {
           name_i18n: Json | null
           ordered_at: string | null
           payment_required: boolean
+          product_url: string | null
           qr_code_uuid: string | null
           quantity: number
           sheet_row_ref: string | null
+          specs: Json | null
           supplier: string | null
           sync_source: Database["public"]["Enums"]["sync_source"]
           synced_snapshot: Json | null
@@ -602,9 +604,11 @@ export type Database = {
           name_i18n?: Json | null
           ordered_at?: string | null
           payment_required?: boolean
+          product_url?: string | null
           qr_code_uuid?: string | null
           quantity: number
           sheet_row_ref?: string | null
+          specs?: Json | null
           supplier?: string | null
           sync_source?: Database["public"]["Enums"]["sync_source"]
           synced_snapshot?: Json | null
@@ -624,9 +628,11 @@ export type Database = {
           name_i18n?: Json | null
           ordered_at?: string | null
           payment_required?: boolean
+          product_url?: string | null
           qr_code_uuid?: string | null
           quantity?: number
           sheet_row_ref?: string | null
+          specs?: Json | null
           supplier?: string | null
           sync_source?: Database["public"]["Enums"]["sync_source"]
           synced_snapshot?: Json | null

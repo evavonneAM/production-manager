@@ -300,6 +300,11 @@ export default function Ordering() {
                           {m.description && (
                             <p className="mt-0.5 truncate text-xs text-slate-500">{m.description}</p>
                           )}
+                          {m.product_url && (
+                            <a href={m.product_url} target="_blank" rel="noreferrer" className="mt-0.5 inline-block text-xs text-blue-300/90 hover:underline">
+                              {t('materials.productLink')} ↗
+                            </a>
+                          )}
                           {m.job && (
                             <Link
                               to={`/jobs/${m.job.id}?tab=materials&m=${m.id}`}

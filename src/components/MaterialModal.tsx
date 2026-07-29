@@ -3,20 +3,52 @@ import { useTranslation } from 'react-i18next'
 import { createMaterial, updateMaterial, type MaterialCategory } from '../lib/data'
 import type { Material } from '../lib/types'
 
-/** Per-category defaults that make each entry form feel purpose-built. */
-const PRESETS: Record<string, { unit: string; detailsKey: string }> = {
-  fabric: { unit: 'yd', detailsKey: 'materials.detailsFabric' },
-  com: { unit: 'yd', detailsKey: 'materials.detailsFabric' },
-  insert: { unit: 'pcs', detailsKey: 'materials.detailsInsert' },
-  foam: { unit: 'pcs', detailsKey: 'materials.detailsFoam' },
-  hardware: { unit: 'pcs', detailsKey: 'materials.detailsHardware' },
-  other: { unit: '', detailsKey: 'materials.detailsPlaceholder' },
+// Vendor/option catalogs straight from the owner's sketches (2026-07-28).
+// Catalog values are canonical English (product terms), like job codes.
+const FABRIC_DIRECTIONS = ['Railroaded', 'Up the roll', 'Any']
+const FABRIC_UNITS = ['yd', 'sqft']
+const INSERT_VENDORS = ['Nom de Plume', 'Ronco', 'Rex Pegg', 'Miami Corp', 'Perfect Fit', 'Keystone', 'Flexco', 'Amazon']
+const INSERT_TYPES = ['Seat', 'Back', 'Pillow Insert', 'Ottoman']
+const INSERT_BLENDS = [
+  'Solid - Celeste Fiber',
+  'Solid - 25/75 WG Down/Feather Blend',
+  'Solid - 50/50 WG Down/Feather Blend',
+  'Solid - Celeste Fiber with BIO TICK',
+  'Envelope - Celeste Fiber',
+  'Envelope - 25/75 WG Down/Feather Blend',
+  'Envelope - 50/50 WG Down/Feather Blend',
+  'Envelope - Celeste Fiber with BIO TICK',
+  'Solid Blown Fiber',
+  '1818 HDR Foam', '2521 HDR Foam', '2528 HDR Foam', '2535 HDR Foam',
+  '2550 HDR Foam', '2570 HDR Foam', '2740 HDR Foam',
+  'Spring Core Unit',
+]
+const FOAM_VENDORS = ['Use Inventory', 'Rex Pegg', 'Perfect Fit']
+const FOAM_TYPES = [
+  'Soft HDR Foam', 'Medium HDR Foam', 'Medium Firm HDR Foam', 'Firm HDR Foam', 'Xtra Firm HDR Foam',
+  '1818 HDR Foam', '2521 HDR Foam', '2528 HDR Foam', '2535 HDR Foam', '2550 HDR Foam', '2570 HDR Foam', '2740 HDR Foam',
+]
+const HARDWARE_VENDORS = [
+  'Use Inventory', 'COM', 'Rex Pegg', 'Perfect Fit', 'Forest Drapery Hardware', 'Iron Art by Orion',
+  'Rejuvenation', 'Ronco', 'Miami Corp', 'Keystone', 'Flexco', 'Amazon', 'Trivantage',
+  'Rowely Drapery Hardware', 'Alan Richard Textiles',
+]
+
+type Specs = {
+  direction?: string
+  insertType?: string
+  blend?: string
+  foamType?: string
+  dimensions?: string
+  customOrder?: boolean
+  notes?: string
 }
 
 /**
- * Add (material == null) or edit a material. The category comes from the button
- * the user tapped (Fabric / Inserts / Foam / Hardware); COM is entered via the
- * Fabric form's "customer's own material" checkbox. Procurement + Admin only.
+ * Add (material == null) or edit a material. Each category renders the form
+ * from the owner's sketch; structured picks live in `specs` and are also
+ * composed into the description so lists and the Google Sheet stay readable.
+ * "Use Inventory" vendors skip the ordering flow (created already arrived).
  */
 export function MaterialModal({
   jobId,
@@ -35,44 +67,118 @@ export function MaterialModal({
   const editCategory = (material?.category as MaterialCategory) ?? initialCategory
   // The fabric form covers both 'fabric' and 'com' (checkbox decides which).
   const formKind: MaterialCategory = editCategory === 'com' ? 'fabric' : editCategory
-  const preset = PRESETS[formKind] ?? PRESETS.other
+  const prior = (material?.specs ?? {}) as Specs
 
   const [name, setName] = useState(material?.name ?? '')
   const [isCom, setIsCom] = useState(editCategory === 'com')
-  const [description, setDescription] = useState(material?.description ?? '')
   const [quantity, setQuantity] = useState(material ? String(material.quantity) : '1')
-  const [unit, setUnit] = useState(material?.unit ?? preset.unit)
+  const [unit, setUnit] = useState(material?.unit ?? (formKind === 'fabric' ? 'yd' : 'pcs'))
   const [supplier, setSupplier] = useState(material?.supplier ?? '')
   const [paymentRequired, setPaymentRequired] = useState(material?.payment_required ?? false)
+  const [direction, setDirection] = useState(prior.direction ?? '')
+  const [insertType, setInsertType] = useState(prior.insertType ?? '')
+  const [blend, setBlend] = useState(prior.blend ?? '')
+  const [foamType, setFoamType] = useState(prior.foamType ?? '')
+  const [dimensions, setDimensions] = useState(prior.dimensions ?? '')
+  const [customOrder, setCustomOrder] = useState(prior.customOrder ?? false)
+  const [notes, setNotes] = useState(prior.notes ?? (formKind === 'other' ? material?.description ?? '' : ''))
+  const [productUrl, setProductUrl] = useState(material?.product_url ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const derivedName = (): string => {
+    if (formKind === 'insert' && insertType)
+      return insertType === 'Pillow Insert' ? 'Pillow insert' : `${insertType} insert`
+    if (formKind === 'foam' && foamType) return foamType
+    return name.trim()
+  }
+
+  const composedDescription = (): string | null => {
+    const parts: (string | false | undefined)[] =
+      formKind === 'fabric' ? [direction && `${t('materials.direction')}: ${direction}`]
+      : formKind === 'insert' ? [blend, dimensions && `${t('materials.dimensions')}: ${dimensions}`, notes]
+      : formKind === 'foam' ? [dimensions && `${t('materials.dimensions')}: ${dimensions}`, customOrder && t('materials.wedgeCustom'), notes]
+      : formKind === 'hardware' ? [notes, customOrder && t('materials.customOrder')]
+      : [notes]
+    const text = parts.filter(Boolean).join(' · ')
+    return text || null
+  }
+
+  const finalName = derivedName()
+  const canSave = !!finalName && !!quantity
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !quantity) return
+    if (!canSave) return
     setBusy(true)
     setError(null)
     const category: MaterialCategory = formKind === 'fabric' ? (isCom ? 'com' : 'fabric') : formKind
+    const specs: Specs = {
+      ...(direction ? { direction } : {}),
+      ...(insertType ? { insertType } : {}),
+      ...(blend ? { blend } : {}),
+      ...(foamType ? { foamType } : {}),
+      ...(dimensions.trim() ? { dimensions: dimensions.trim() } : {}),
+      ...(customOrder ? { customOrder } : {}),
+      ...(notes.trim() ? { notes: notes.trim() } : {}),
+    }
+    const fromStock = supplier === 'Use Inventory'
     const shared = {
       quantity: Number(quantity),
       unit: unit.trim() || null,
       supplier: supplier.trim() || null,
-      description: description.trim() || null,
+      description: composedDescription(),
       category,
       payment_required: paymentRequired,
+      specs,
+      product_url: productUrl.trim() || null,
     }
     const result = material
       ? await updateMaterial(material.id, {
-          ...(name.trim() !== material.name ? { name: name.trim() } : {}),
+          ...(finalName !== material.name ? { name: finalName } : {}),
           ...shared,
         })
-      : await createMaterial({ jobId, name: name.trim(), ...shared })
+      : await createMaterial({ jobId, name: finalName, ...shared, fromStock })
     setBusy(false)
     if (result.error) setError(t('common.error'))
     else onSaved()
   }
 
   const field = 'w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none'
+
+  const vendorSelect = (options: string[]) => (
+    <label className="text-sm text-slate-300">
+      {t('materials.vendor')}
+      <select value={supplier} onChange={(e) => setSupplier(e.target.value)} required className={`mt-1 ${field}`}>
+        <option value="">—</option>
+        {options.map((v) => (
+          <option key={v} value={v}>{v === 'Use Inventory' ? t('materials.useInventory') : v}</option>
+        ))}
+      </select>
+    </label>
+  )
+
+  const checkbox = (checked: boolean, set: (v: boolean) => void, label: string) => (
+    <label className="flex items-center gap-2 text-sm text-slate-300">
+      <input type="checkbox" checked={checked} onChange={(e) => set(e.target.checked)}
+        className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-amber-600" />
+      {label}
+    </label>
+  )
+
+  const qtyField = (
+    <label className="w-24 shrink-0 text-sm text-slate-300">
+      {t('materials.qty')}
+      <input type="number" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} required className={`mt-1 ${field}`} />
+    </label>
+  )
+
+  const dimensionsField = (
+    <label className="flex-1 text-sm text-slate-300">
+      {t('materials.dimensions')}
+      <input value={dimensions} onChange={(e) => setDimensions(e.target.value)} className={`mt-1 ${field}`} placeholder={t('materials.detailsFoam')} />
+    </label>
+  )
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={onClose}>
@@ -87,59 +193,137 @@ export function MaterialModal({
             : t('materials.addCategoryTitle', { category: t(`materialCategory.${formKind}`) })}
         </h2>
 
-        <label className="text-sm text-slate-300">
-          {t('materials.name')}
-          <input value={name} onChange={(e) => setName(e.target.value)} required className={`mt-1 ${field}`} placeholder={t(`materials.name_${formKind}`, t('materials.namePlaceholder'))} />
-        </label>
-
         {formKind === 'fabric' && (
-          <label className="flex items-center gap-2 text-sm text-slate-300">
-            <input
-              type="checkbox"
-              checked={isCom}
-              onChange={(e) => setIsCom(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-amber-600"
-            />
-            {t('materials.comCheckbox')}
-          </label>
+          <>
+            <label className="text-sm text-slate-300">
+              {t('materials.vendor')}
+              <input value={supplier} onChange={(e) => setSupplier(e.target.value)} className={`mt-1 ${field}`} />
+            </label>
+            {checkbox(isCom, setIsCom, t('materials.comCheckbox'))}
+            <label className="text-sm text-slate-300">
+              {t('materials.patternColor')}
+              <input value={name} onChange={(e) => setName(e.target.value)} required className={`mt-1 ${field}`} placeholder={t('materials.name_fabric')} />
+            </label>
+            <label className="text-sm text-slate-300">
+              {t('materials.direction')}
+              <select value={direction} onChange={(e) => setDirection(e.target.value)} className={`mt-1 ${field}`}>
+                <option value="">—</option>
+                {FABRIC_DIRECTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </label>
+            <div className="flex gap-3">
+              {qtyField}
+              <label className="flex-1 text-sm text-slate-300">
+                {t('materials.unit')}
+                <select value={unit} onChange={(e) => setUnit(e.target.value)} className={`mt-1 ${field}`}>
+                  {FABRIC_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                </select>
+              </label>
+            </div>
+          </>
         )}
 
-        <label className="text-sm text-slate-300">
-          {t('materials.details')}
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-            className={`mt-1 ${field}`}
-            placeholder={t(preset.detailsKey)}
-          />
-        </label>
+        {formKind === 'insert' && (
+          <>
+            {vendorSelect(INSERT_VENDORS)}
+            <div className="flex gap-3">
+              {qtyField}
+              {dimensionsField}
+            </div>
+            <label className="text-sm text-slate-300">
+              {t('materials.notes')}
+              <input value={notes} onChange={(e) => setNotes(e.target.value)} className={`mt-1 ${field}`} />
+            </label>
+            <label className="text-sm text-slate-300">
+              {t('materials.type')}
+              <select value={insertType} onChange={(e) => setInsertType(e.target.value)} required className={`mt-1 ${field}`}>
+                <option value="">—</option>
+                {INSERT_TYPES.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </label>
+            <label className="text-sm text-slate-300">
+              {t('materials.blend')}
+              <select value={blend} onChange={(e) => setBlend(e.target.value)} required className={`mt-1 ${field}`}>
+                <option value="">—</option>
+                {INSERT_BLENDS.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </label>
+          </>
+        )}
 
-        <div className="flex gap-3">
-          <label className="w-28 text-sm text-slate-300">
-            {t('materials.qty')}
-            <input type="number" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} required className={`mt-1 ${field}`} />
-          </label>
-          <label className="flex-1 text-sm text-slate-300">
-            {t('materials.unit')}
-            <input value={unit} onChange={(e) => setUnit(e.target.value)} className={`mt-1 ${field}`} placeholder={t('materials.unitPlaceholder')} />
-          </label>
-        </div>
+        {formKind === 'foam' && (
+          <>
+            {vendorSelect(FOAM_VENDORS)}
+            {checkbox(customOrder, setCustomOrder, t('materials.wedgeCustom'))}
+            <div className="flex gap-3">
+              {qtyField}
+              {dimensionsField}
+            </div>
+            <label className="text-sm text-slate-300">
+              {t('materials.type')}
+              <select value={foamType} onChange={(e) => setFoamType(e.target.value)} required className={`mt-1 ${field}`}>
+                <option value="">—</option>
+                {FOAM_TYPES.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </label>
+            <label className="text-sm text-slate-300">
+              {t('materials.notes')}
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={`mt-1 ${field}`} />
+            </label>
+          </>
+        )}
 
-        <label className="text-sm text-slate-300">
-          {t('materials.supplier')}
-          <input value={supplier} onChange={(e) => setSupplier(e.target.value)} className={`mt-1 ${field}`} />
-        </label>
+        {formKind === 'hardware' && (
+          <>
+            {vendorSelect(HARDWARE_VENDORS)}
+            {checkbox(customOrder, setCustomOrder, t('materials.customOrder'))}
+            <label className="text-sm text-slate-300">
+              {t('materials.name')}
+              <input value={name} onChange={(e) => setName(e.target.value)} required className={`mt-1 ${field}`} placeholder={t('materials.name_hardware')} />
+            </label>
+            <div className="flex gap-3">
+              {qtyField}
+              <label className="flex-1 text-sm text-slate-300">
+                {t('materials.unit')}
+                <input value={unit} onChange={(e) => setUnit(e.target.value)} className={`mt-1 ${field}`} placeholder={t('materials.unitPlaceholder')} />
+              </label>
+            </div>
+            <label className="text-sm text-slate-300">
+              {t('materials.details')}
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={`mt-1 ${field}`} placeholder={t('materials.detailsHardware')} />
+            </label>
+            <label className="text-sm text-slate-300">
+              {t('materials.linkToProduct')}
+              <input type="url" value={productUrl} onChange={(e) => setProductUrl(e.target.value)} className={`mt-1 ${field}`} placeholder="https://…" />
+            </label>
+          </>
+        )}
 
-        <label className="flex items-center gap-2 text-sm text-slate-300">
-          <input
-            type="checkbox"
-            checked={paymentRequired}
-            onChange={(e) => setPaymentRequired(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-amber-600"
-          />
-          {t('materials.paymentRequired')}
-        </label>
+        {formKind === 'other' && (
+          <>
+            <label className="text-sm text-slate-300">
+              {t('materials.name')}
+              <input value={name} onChange={(e) => setName(e.target.value)} required className={`mt-1 ${field}`} placeholder={t('materials.namePlaceholder')} />
+            </label>
+            <label className="text-sm text-slate-300">
+              {t('materials.details')}
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={`mt-1 ${field}`} />
+            </label>
+            <div className="flex gap-3">
+              {qtyField}
+              <label className="flex-1 text-sm text-slate-300">
+                {t('materials.unit')}
+                <input value={unit} onChange={(e) => setUnit(e.target.value)} className={`mt-1 ${field}`} placeholder={t('materials.unitPlaceholder')} />
+              </label>
+            </div>
+            <label className="text-sm text-slate-300">
+              {t('materials.supplier')}
+              <input value={supplier} onChange={(e) => setSupplier(e.target.value)} className={`mt-1 ${field}`} />
+            </label>
+          </>
+        )}
+
+        {checkbox(paymentRequired, setPaymentRequired, t('materials.paymentRequired'))}
 
         {error && <p className="text-sm text-red-400">{error}</p>}
 
@@ -147,7 +331,7 @@ export function MaterialModal({
           <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-slate-600 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800">
             {t('common.cancel')}
           </button>
-          <button type="submit" disabled={busy || !name.trim()} className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-60">
+          <button type="submit" disabled={busy || !canSave} className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-60">
             {busy ? t('common.saving') : t('common.save')}
           </button>
         </div>
