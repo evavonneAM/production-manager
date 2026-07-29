@@ -50,6 +50,8 @@ export default function Ordering() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [matching, setMatching] = useState<TrackingNumber | null>(null)
   const [search, setSearch] = useState('')
+  // Procurement batches orders per vendor — grouping is switchable (owner request).
+  const [groupMode, setGroupMode] = useState<'category' | 'vendor'>('category')
 
   const { data: departments } = useAsync(getDepartments, [])
   const { data: materials, loading, error } = useAsync(getAllMaterials, [reloadKey])
@@ -271,24 +273,52 @@ export default function Ordering() {
       ) : filtered.length === 0 ? (
         <EmptyState text={t('ordering.empty')} />
       ) : (
+        <>
+        <div className="mb-4 flex flex-wrap gap-1 rounded-lg border border-slate-800 p-1 self-start w-fit">
+          {(['category', 'vendor'] as const).map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => setGroupMode(g)}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium ${
+                groupMode === g ? 'bg-amber-600/20 text-amber-300' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {t(`ordering.group_${g}`)}
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
-          {SECTIONS.filter((sec) => filtered.some((m) => sec.cats.includes(m.category))).map((sec) => (
+          {(groupMode === 'category'
+            ? SECTIONS.filter((sec) => filtered.some((m) => sec.cats.includes(m.category))).map((sec) => ({
+                key: sec.key,
+                label: t(`materialCategory.${sec.key}`),
+                items: filtered.filter((m) => sec.cats.includes(m.category)),
+              }))
+            : [...new Set(filtered.map((m) => m.supplier ?? ''))]
+                .sort((a, b) => a.localeCompare(b))
+                .map((v) => ({
+                  key: v || '(none)',
+                  label:
+                    v === 'Use Inventory' ? t('materials.useInventory') : v || t('ordering.noVendor'),
+                  items: filtered.filter((m) => (m.supplier ?? '') === v),
+                }))
+          ).map((sec) => (
             <div key={sec.key} className="rounded-xl border border-slate-800 bg-slate-800/20 p-4">
               <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                {t(`materialCategory.${sec.key}`)}
+                {sec.label} · {sec.items.length}
               </h2>
               <div className="flex flex-col gap-2">
-                {filtered
-                  .filter((m) => sec.cats.includes(m.category))
+                {sec.items
                   .map((m) => (
                     <div key={m.id} className="rounded-lg border border-slate-800 bg-slate-800/40 p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="text-sm text-slate-100">
                             {localized(m.name, m.name_i18n, i18n.language)}
-                            {m.category === 'com' && (
+                            {(m.category === 'com' || groupMode === 'vendor') && (
                               <span className="ml-2 rounded bg-slate-700/60 px-1.5 py-0.5 align-middle text-[10px] uppercase tracking-wide text-slate-400">
-                                {t('materialCategory.com')}
+                                {t(`materialCategory.${m.category}`)}
                               </span>
                             )}
                           </p>
@@ -335,6 +365,7 @@ export default function Ordering() {
             </div>
           ))}
         </div>
+        </>
       )}
 
       {matching && (

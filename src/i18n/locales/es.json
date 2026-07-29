@@ -91,6 +91,9 @@
     "ordered": "Pedido",
     "arrived": "Recibido",
     "tracking": "Seguimiento",
+    "group_category": "Por categoría",
+    "group_vendor": "Por proveedor",
+    "noVendor": "Sin proveedor",
     "empty": "Nada aquí — todo en orden.",
     "notEligible": "El panel de pedidos es para Compras y administradores."
   },
