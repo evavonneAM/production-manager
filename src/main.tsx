@@ -8,8 +8,15 @@ import { AuthProvider } from './auth/AuthProvider'
 import App from './App.tsx'
 
 // Keep the installed PWA current: check for a new version every minute while the
-// app is open. In autoUpdate mode the new service worker activates and the page
-// refreshes automatically, so staff always run the latest build.
+// app is open. When the new service worker takes control, reload so the page
+// actually runs it — without this, updates install but never take effect until
+// a hard refresh (the staleness the owner kept hitting on phone and desktop).
+let swRefreshing = false
+navigator.serviceWorker?.addEventListener('controllerchange', () => {
+  if (swRefreshing) return
+  swRefreshing = true
+  window.location.reload()
+})
 registerSW({
   immediate: true,
   onRegisteredSW(_swUrl, registration) {
