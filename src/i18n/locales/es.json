@@ -102,7 +102,12 @@
   "jobEdit": {
     "button": "Editar trabajo",
     "title": "Editar trabajo",
-    "name": "Nombre del trabajo"
+    "name": "Nombre del trabajo",
+    "delete": "Eliminar trabajo",
+    "deleteTitle": "¿Eliminar este trabajo?",
+    "deleteBody": "Sus tareas, etapas y materiales se eliminan permanentemente (los materiales también salen de la hoja). Los artículos del presupuesto vinculados vuelven a ser sugerencias.",
+    "deleteConfirm": "Eliminar",
+    "hasLabor": "Este trabajo tiene horas registradas y no se puede eliminar."
   },
   "erItems": {
     "title": "Del presupuesto",

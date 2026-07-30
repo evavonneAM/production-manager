@@ -1231,6 +1231,7 @@ export type Database = {
       clock_in: { Args: { p_task_id: string }; Returns: undefined }
       clock_out: { Args: never; Returns: undefined }
       complete_task: { Args: { p_task_id: string }; Returns: undefined }
+      delete_job: { Args: { p_job_id: string }; Returns: undefined }
       dismiss_tracking: { Args: { p_tracking_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       line_item_to_job: { Args: { p_line_item_id: string }; Returns: string }

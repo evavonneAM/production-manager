@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getJob, getDirectory, getJobInspections, splitJob, submitStage, updateJob } from '../lib/data'
+import { deleteJob, getJob, getDirectory, getJobInspections, splitJob, submitStage, updateJob } from '../lib/data'
 import { formatMinutes, formatDate } from '../lib/format'
 import { EmptyState, ErrorState, Tabs, TaskStatusBadge } from '../components/ui'
 import { StagePipeline } from '../components/StagePipeline'
@@ -19,10 +19,21 @@ import type { JobDetail as JobDetailT, StageWithDept, Task, JobInspection } from
 
 /** Admin: rename a job / edit its scope (owner feedback 2026-07-30 — split
  *  jobs kept the project title with no way to say which piece they were). */
-function EditJobDialog({ job, onClose, onSaved }: { job: JobDetailT; onClose: () => void; onSaved: () => void }) {
+function EditJobDialog({
+  job,
+  onClose,
+  onSaved,
+  onDeleted,
+}: {
+  job: JobDetailT
+  onClose: () => void
+  onSaved: () => void
+  onDeleted: () => void
+}) {
   const { t } = useTranslation()
   const [name, setName] = useState(job.name)
   const [scope, setScope] = useState(job.description ?? '')
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,6 +45,17 @@ function EditJobDialog({ job, onClose, onSaved }: { job: JobDetailT; onClose: ()
     setBusy(false)
     if (res.error) setError(t('common.error'))
     else onSaved()
+  }
+
+  async function doDelete() {
+    setBusy(true)
+    setError(null)
+    const res = await deleteJob(job.id)
+    setBusy(false)
+    if (res.error) {
+      setConfirmDelete(false)
+      setError(res.error.includes('has_labor') ? t('jobEdit.hasLabor') : t('common.error'))
+    } else onDeleted()
   }
 
   return (
@@ -57,23 +79,56 @@ function EditJobDialog({ job, onClose, onSaved }: { job: JobDetailT; onClose: ()
           className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-100"
         />
         {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
-        <div className="mt-4 flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            disabled={busy || !name.trim()}
-            onClick={() => void save()}
-            className="w-full rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
-          >
-            {busy ? t('common.saving') : t('common.save')}
-          </button>
-        </div>
+        {confirmDelete ? (
+          <div className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3">
+            <p className="text-sm font-medium text-red-300">{t('jobEdit.deleteTitle')}</p>
+            <p className="mt-1 text-xs text-slate-400">{t('jobEdit.deleteBody')}</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void doDelete()}
+                className="w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+              >
+                {t('jobEdit.deleteConfirm')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={busy || !name.trim()}
+                onClick={() => void save()}
+                className="w-full rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
+              >
+                {busy ? t('common.saving') : t('common.save')}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="mt-2 w-full rounded-lg border border-red-500/40 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
+            >
+              {t('jobEdit.delete')}
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
@@ -358,6 +413,7 @@ export default function JobDetail() {
       : 'tasks',
   )
   const highlightMaterial = searchParams.get('m')
+  const navigate = useNavigate()
   const { profile } = useAuth()
   const [showQr, setShowQr] = useState(false)
   const [showCreateTask, setShowCreateTask] = useState(false)
@@ -450,6 +506,7 @@ export default function JobDetail() {
             setShowEditJob(false)
             setReloadKey((k) => k + 1)
           }}
+          onDeleted={() => navigate(job.project ? `/projects/${job.project.id}` : '/projects', { replace: true })}
         />
       )}
 

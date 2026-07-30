@@ -111,7 +111,12 @@
   "jobEdit": {
     "button": "Edit job",
     "title": "Edit job",
-    "name": "Job name"
+    "name": "Job name",
+    "delete": "Delete job",
+    "deleteTitle": "Delete this job?",
+    "deleteBody": "Its tasks, stages, and materials are permanently removed (the materials also leave the sheet). Estimate items that pointed here become suggestions again.",
+    "deleteConfirm": "Delete",
+    "hasLabor": "This job has logged hours and can't be deleted."
   },
   "erItems": {
     "title": "From the estimate",

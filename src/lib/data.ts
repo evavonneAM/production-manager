@@ -878,3 +878,11 @@ export async function updateJob(
   await requestTranslation('jobs', id)
   return { error: null }
 }
+
+/** Admin: delete a job (blocked when it has logged labor; estimate items
+ *  that pointed at it become suggestions again; sheet re-syncs). */
+export async function deleteJob(id: string): Promise<ClockResult> {
+  const { error } = await client().rpc('delete_job', { p_job_id: id })
+  if (!error) requestSheetSync()
+  return { error: error ? error.message : null }
+}
