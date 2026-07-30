@@ -146,6 +146,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          job_id: string | null
           material_id: string | null
           name: string
           position: number
@@ -159,6 +160,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          job_id?: string | null
           material_id?: string | null
           name: string
           position?: number
@@ -172,6 +174,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          job_id?: string | null
           material_id?: string | null
           name?: string
           position?: number
@@ -182,6 +185,13 @@ export type Database = {
           task_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "er_line_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "er_line_items_material_id_fkey"
             columns: ["material_id"]
@@ -1223,6 +1233,7 @@ export type Database = {
       complete_task: { Args: { p_task_id: string }; Returns: undefined }
       dismiss_tracking: { Args: { p_tracking_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
+      line_item_to_job: { Args: { p_line_item_id: string }; Returns: string }
       match_tracking: {
         Args: { p_material_id: string; p_tracking_id: string }
         Returns: undefined

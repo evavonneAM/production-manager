@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getJob, getDirectory, getJobInspections, splitJob, submitStage } from '../lib/data'
+import { getJob, getDirectory, getJobInspections, splitJob, submitStage, updateJob } from '../lib/data'
 import { formatMinutes, formatDate } from '../lib/format'
 import { EmptyState, ErrorState, Tabs, TaskStatusBadge } from '../components/ui'
 import { StagePipeline } from '../components/StagePipeline'
@@ -16,6 +16,68 @@ import { FilesTab } from '../components/FilesTab'
 import { Appointments } from '../components/Appointments'
 import { localized } from '../lib/i18nText'
 import type { JobDetail as JobDetailT, StageWithDept, Task, JobInspection } from '../lib/types'
+
+/** Admin: rename a job / edit its scope (owner feedback 2026-07-30 — split
+ *  jobs kept the project title with no way to say which piece they were). */
+function EditJobDialog({ job, onClose, onSaved }: { job: JobDetailT; onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation()
+  const [name, setName] = useState(job.name)
+  const [scope, setScope] = useState(job.description ?? '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function save() {
+    if (!name.trim()) return
+    setBusy(true)
+    setError(null)
+    const res = await updateJob(job.id, { name: name.trim(), description: scope.trim() || null })
+    setBusy(false)
+    if (res.error) setError(t('common.error'))
+    else onSaved()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-t-2xl bg-slate-900 p-4 sm:rounded-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="mb-3 text-lg font-semibold">{t('jobEdit.title')}</h2>
+        <label className="mb-1 block text-xs text-slate-500">{t('jobEdit.name')}</label>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="mb-3 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+        />
+        <label className="mb-1 block text-xs text-slate-500">{t('projectDetail.scope')}</label>
+        <textarea
+          value={scope}
+          onChange={(e) => setScope(e.target.value)}
+          rows={8}
+          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-100"
+        />
+        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            type="button"
+            disabled={busy || !name.trim()}
+            onClick={() => void save()}
+            className="w-full rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
+          >
+            {busy ? t('common.saving') : t('common.save')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 /** Admin: split an imported single job into -A/-B/… pieces (S12; ER sends no
  *  line items). The original keeps all its state and becomes -A. */
@@ -300,6 +362,7 @@ export default function JobDetail() {
   const [showQr, setShowQr] = useState(false)
   const [showCreateTask, setShowCreateTask] = useState(false)
   const [showSplit, setShowSplit] = useState(false)
+  const [showEditJob, setShowEditJob] = useState(false)
 
   const nameOf = useMemo(() => {
     const map = new Map((directory ?? []).map((u) => [u.id, u.full_name]))
@@ -335,14 +398,25 @@ export default function JobDetail() {
         <div>
           <h1 className="font-mono text-3xl font-bold text-amber-300">{job.job_code}</h1>
           <p className="mt-1 text-slate-300">{localized(job.name, job.name_i18n, i18n.language)}</p>
-          {profile?.role === 'admin' && job.suffix === null && (
-            <button
-              type="button"
-              onClick={() => setShowSplit(true)}
-              className="mt-2 rounded-lg border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-800"
-            >
-              {t('splitJob.button')}
-            </button>
+          {profile?.role === 'admin' && (
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowEditJob(true)}
+                className="rounded-lg border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              >
+                {t('jobEdit.button')}
+              </button>
+              {job.suffix === null && (
+                <button
+                  type="button"
+                  onClick={() => setShowSplit(true)}
+                  className="rounded-lg border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-800"
+                >
+                  {t('splitJob.button')}
+                </button>
+              )}
+            </div>
           )}
         </div>
         <button
@@ -356,6 +430,28 @@ export default function JobDetail() {
           </svg>
         </button>
       </div>
+
+      {job.description && (
+        <div className="mb-5 rounded-xl border border-slate-800 bg-slate-800/20 p-4">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {t('projectDetail.scope')}
+          </p>
+          <p className="whitespace-pre-line text-sm text-slate-300">
+            {localized(job.description, job.description_i18n, i18n.language)}
+          </p>
+        </div>
+      )}
+
+      {showEditJob && (
+        <EditJobDialog
+          job={job}
+          onClose={() => setShowEditJob(false)}
+          onSaved={() => {
+            setShowEditJob(false)
+            setReloadKey((k) => k + 1)
+          }}
+        />
+      )}
 
       {showSplit && (
         <SplitJobDialog

@@ -8,6 +8,7 @@ import {
   createTask,
   getErLineItems,
   getProject,
+  lineItemToJob,
   setLineItemStatus,
   type ErLineItem,
   type MaterialCategory,
@@ -26,7 +27,7 @@ import type { JobWithStages } from '../lib/types'
 
 /** Admin review of line items parsed from the ER proposal (S12): each
  *  suggestion becomes a task on a chosen job + stage, or gets dismissed. */
-function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
+function ErLineItemsPanel({ jobs, onJobsChanged }: { jobs: JobWithStages[]; onJobsChanged: () => void }) {
   const { t, i18n } = useTranslation()
   const { profile } = useAuth()
   const { projectId } = useParams()
@@ -89,6 +90,18 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
     setReloadKey((k) => k + 1)
   }
 
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  async function makeJob(it: ErLineItem) {
+    setBusy(true)
+    setActionError(null)
+    const res = await lineItemToJob(it.id)
+    setBusy(false)
+    setReloadKey((k) => k + 1)
+    if (res.error) setActionError(t('common.error'))
+    else onJobsChanged()
+  }
+
   const selectedJob = jobs.find((j) => j.id === jobId)
 
   return (
@@ -96,6 +109,7 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
       <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-amber-300/80">
         {t('erItems.title')}
       </p>
+      {actionError && <p className="mb-2 text-sm text-red-400">{actionError}</p>}
       <div className="flex flex-col gap-2">
         {open.map((it) => (
           <div key={it.id} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
@@ -115,6 +129,14 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
                 )}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void makeJob(it)}
+                  className="rounded-lg bg-green-600/80 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-green-500 disabled:opacity-50"
+                >
+                  {t('erItems.makeJob')}
+                </button>
                 <button
                   type="button"
                   onClick={() => startPlacing(it, 'task')}
@@ -142,7 +164,14 @@ function ErLineItemsPanel({ jobs }: { jobs: JobWithStages[] }) {
         ))}
         {accepted.map((it) => (
           <p key={it.id} className="px-1 text-xs text-green-300/80">
-            ✓ {it.name} — {t(it.material_id ? 'erItems.materialAdded' : 'erItems.taskCreated')}
+            ✓ {it.name} —{' '}
+            {it.job_id ? (
+              <Link to={`/jobs/${it.job_id}`} className="hover:underline">
+                {t('erItems.jobCreated')}
+              </Link>
+            ) : (
+              t(it.material_id ? 'erItems.materialAdded' : 'erItems.taskCreated')
+            )}
           </p>
         ))}
       </div>
@@ -310,9 +339,10 @@ export default function ProjectDetail() {
   const { projectId } = useParams()
   const { t, i18n } = useTranslation()
   const { profile } = useAuth()
+  const [reloadKey, setReloadKey] = useState(0)
   const { data: project, loading, error } = useAsync(
     () => getProject(projectId as string),
-    [projectId],
+    [projectId, reloadKey],
   )
   const [tab, setTab] = useState('overview')
   const [showQr, setShowQr] = useState(false)
@@ -398,7 +428,9 @@ export default function ProjectDetail() {
         </div>
       )}
 
-      {tab === 'overview' && <ErLineItemsPanel jobs={project.jobs} />}
+      {tab === 'overview' && (
+        <ErLineItemsPanel jobs={project.jobs} onJobsChanged={() => setReloadKey((k) => k + 1)} />
+      )}
       {/* The portal document shows prices — admins only (owner requirement). */}
       {tab === 'overview' && profile?.role === 'admin' && project.er_portal_url && (
         <a

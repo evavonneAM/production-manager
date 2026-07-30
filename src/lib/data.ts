@@ -786,6 +786,7 @@ export type ErLineItem = {
   status: 'suggested' | 'accepted' | 'dismissed'
   task_id: string | null
   material_id: string | null
+  job_id: string | null
 }
 
 /** Line items parsed from the ER proposal, for the admin review panel. */
@@ -857,4 +858,23 @@ export async function getLaborReport(fromDate: string, toDate: string): Promise<
   if (error) throw error
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data ?? []) as any
+}
+
+/** Admin: turn a suggested estimate line item into its own job. */
+export async function lineItemToJob(id: string): Promise<{ error: string | null; jobId?: string }> {
+  const { data, error } = await client().rpc('line_item_to_job', { p_line_item_id: id })
+  if (error) return { error: error.message }
+  await requestTranslation('jobs', data as string)
+  return { error: null, jobId: data as string }
+}
+
+/** Admin: rename a job / edit its scope (translations refresh). */
+export async function updateJob(
+  id: string,
+  patch: { name?: string; description?: string | null },
+): Promise<ClockResult> {
+  const { error } = await client().from('jobs').update(patch).eq('id', id)
+  if (error) return { error: error.message }
+  await requestTranslation('jobs', id)
+  return { error: null }
 }

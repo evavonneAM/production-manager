@@ -108,9 +108,16 @@
     "empty": "Nothing here — all clear.",
     "notEligible": "The ordering dashboard is for Procurement and Admins."
   },
+  "jobEdit": {
+    "button": "Edit job",
+    "title": "Edit job",
+    "name": "Job name"
+  },
   "erItems": {
     "title": "From the estimate",
     "specs": "Specifications",
+    "makeJob": "Create job",
+    "jobCreated": "job created",
     "makeTask": "Create task",
     "makeMaterial": "Add as material",
     "dismiss": "Dismiss",

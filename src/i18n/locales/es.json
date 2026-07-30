@@ -99,9 +99,16 @@
     "empty": "Nada aquí — todo en orden.",
     "notEligible": "El panel de pedidos es para Compras y administradores."
   },
+  "jobEdit": {
+    "button": "Editar trabajo",
+    "title": "Editar trabajo",
+    "name": "Nombre del trabajo"
+  },
   "erItems": {
     "title": "Del presupuesto",
     "specs": "Especificaciones",
+    "makeJob": "Crear trabajo",
+    "jobCreated": "trabajo creado",
     "makeTask": "Crear tarea",
     "makeMaterial": "Añadir como material",
     "dismiss": "Descartar",
