@@ -40,6 +40,7 @@ function ErLineItemsPanel({ jobs, onJobsChanged }: { jobs: JobWithStages[]; onJo
   const [category, setCategory] = useState<MaterialCategory>('other')
   const [qty, setQty] = useState(1)
   const [busy, setBusy] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   if (profile?.role !== 'admin') return null
   const open = (items ?? []).filter((it) => it.status === 'suggested')
@@ -89,8 +90,6 @@ function ErLineItemsPanel({ jobs, onJobsChanged }: { jobs: JobWithStages[]; onJo
     await setLineItemStatus(it.id, 'dismissed')
     setReloadKey((k) => k + 1)
   }
-
-  const [actionError, setActionError] = useState<string | null>(null)
 
   async function makeJob(it: ErLineItem) {
     setBusy(true)
