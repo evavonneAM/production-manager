@@ -161,6 +161,7 @@ async function attachProposalPdf(
       file_type: 'pdf',
       storage_path: path,
       file_size_bytes: bytes.length,
+      admin_only: true, // priced client document — no-prices rule
     })
     return error ? `files row: ${error.message}` : 'pdf attached'
   } catch (e) {

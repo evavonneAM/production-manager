@@ -207,6 +207,7 @@ export type Database = {
       }
       files: {
         Row: {
+          admin_only: boolean
           created_at: string
           file_name: string
           file_size_bytes: number
@@ -221,6 +222,7 @@ export type Database = {
           uploaded_by: string
         }
         Insert: {
+          admin_only?: boolean
           created_at?: string
           file_name: string
           file_size_bytes: number
@@ -235,6 +237,7 @@ export type Database = {
           uploaded_by: string
         }
         Update: {
+          admin_only?: boolean
           created_at?: string
           file_name?: string
           file_size_bytes?: number
