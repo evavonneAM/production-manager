@@ -148,8 +148,17 @@ async function processEvent(supa: SupabaseClient, ev: Ev): Promise<Outcome> {
   const p = (ev.payload as any)?.project
   if (!ev.store) return { result: 'skipped', note: 'no store tag on webhook URL' }
   if (!p?.id) return { result: 'skipped', note: 'no project in payload' }
-  if (p.project_state_type !== 'Work Order')
-    return { result: 'skipped', note: `state is "${p.project_state_type}", not an accepted work order` }
+  // Accepted = the project already reads "Work Order", OR this very event is a
+  // client approval through the portal (the instant trigger fires at that
+  // moment, while the project state is still mid-transition as "Pending").
+  const proposalStatus = String((ev.payload as any).status ?? '')
+  const clientAccepted =
+    proposalStatus === 'Approved' || !!String((ev.payload as any).client_accepted_at ?? '').trim()
+  if (p.project_state_type !== 'Work Order' && !clientAccepted)
+    return {
+      result: 'skipped',
+      note: `state "${p.project_state_type}", proposal "${proposalStatus || 'n/a'}" — not an accepted work order`,
+    }
 
   const last4 = String(p.number ?? '').replace(/\D/g, '').slice(-4)
   if (last4.length < 4) return { result: 'failed', note: `no usable estimate number ("${p.number}")` }
