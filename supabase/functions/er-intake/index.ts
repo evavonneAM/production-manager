@@ -71,16 +71,29 @@ const grab = (row: string, cls: string): string | null => {
 
 function parseLineItems(html: string): LineItem[] {
   const items: LineItem[] = []
-  for (const row of html.match(/<tr class="line-item [\s\S]*?<\/tr>/g) ?? []) {
-    const name = htmlToText(grab(row, 'line-item-name') ?? '')
+  // ER's templates vary and may legally omit closing </td>/</tr>, so split on
+  // row starts instead of matching whole rows, and bound the description by
+  // the next structural marker rather than a closing tag.
+  const segments = html.split(/<tr class="line-item /).slice(1)
+  for (let seg of segments) {
+    const cut = seg.search(/<\/tbody>|<tfoot|<table class="total/)
+    if (cut !== -1) seg = seg.slice(0, cut)
+    const name = htmlToText(grab(seg, 'line-item-name') ?? '')
     if (!name) continue
-    // The description div nests markup; capture up to the cell boundary.
-    const descM = row.match(/<div class="line-item-description"[^>]*>([\s\S]*?)<\/td>/)
-    const description = descM ? htmlToText(descM[1]) : ''
+    const descM = seg.match(
+      /<div class="line-item-description"[^>]*>([\s\S]*?)(?=<\/td>|<td[ >]|<div class="line-item-(?:unit-price|quantity|total))/,
+    )
+    let description = descM ? htmlToText(descM[1]) : ''
+    // No-prices rule, defense in depth: drop any line carrying a money amount.
+    description = description
+      .split('\n')
+      .filter((l) => !/\$\s?\d/.test(l))
+      .join('\n')
+      .trim()
     items.push({
       name,
       description: description || null,
-      quantity: num(grab(row, 'line-item-quantity')),
+      quantity: num(grab(seg, 'line-item-quantity')),
     })
   }
   return items
@@ -154,10 +167,21 @@ async function attachProposalPdf(
     if (up.error) return `pdf upload: ${up.error.message}`
     const { data: admin } = await supa.from('users').select('id').eq('role', 'admin').limit(1).maybeSingle()
     if (!admin) return 'no admin user for upload attribution'
+    // First proposal is "the work order"; later ones are change orders.
+    const { data: prior } = await supa
+      .from('files')
+      .select('id')
+      .eq('project_id', projectId)
+      .like('storage_path', 'projects/%/wo-%.pdf')
+      .limit(1)
+    const fileName =
+      prior && prior.length > 0
+        ? `Change order ${wo} (${proposalId.slice(0, 4)}).pdf`
+        : `Work order ${wo}.pdf`
     const { error } = await supa.from('files').insert({
       project_id: projectId,
       uploaded_by: admin.id,
-      file_name: `Work order ${wo}.pdf`,
+      file_name: fileName,
       file_type: 'pdf',
       storage_path: path,
       file_size_bytes: bytes.length,
@@ -169,7 +193,9 @@ async function attachProposalPdf(
   }
 }
 
-/** Fetch + parse the proposal document once per proposal; store suggestions. */
+/** Fetch + parse the proposal document and reconcile with what's stored:
+ *  changed items update, new items appear, vanished *suggested* items go —
+ *  accepted (task/material created) and dismissed items are never touched. */
 async function ingestLineItems(
   supa: SupabaseClient,
   projectId: string,
@@ -179,26 +205,92 @@ async function ingestLineItems(
 ): Promise<string> {
   const slug = PORTAL_SLUGS[store]
   if (!slug || !token || !proposalId) return 'no portal data'
-  const { data: seen } = await supa.from('er_line_items').select('id').eq('proposal_id', String(proposalId)).limit(1)
-  if (seen && seen.length > 0) return 'already ingested'
+  const pid = String(proposalId)
 
   try {
     const res = await fetch(
-      `https://customerportal.estimaterocket.com/${slug}/${token}/proposals/${proposalId}`,
+      `https://customerportal.estimaterocket.com/${slug}/${token}/proposals/${pid}`,
       { signal: AbortSignal.timeout(10000) },
     )
     if (!res.ok) return `portal fetch ${res.status}`
-    const items = parseLineItems(await res.text())
+    const html = await res.text()
+    const items = parseLineItems(html)
     if (items.length === 0) return 'no line items found'
-    const { error } = await supa.from('er_line_items').insert(
-      items.map((it, i) => ({ ...it, project_id: projectId, proposal_id: String(proposalId), position: i })),
-    )
-    if (error) return `line items insert: ${error.message}`
+
+    const photoNote = await attachProposalPhotos(supa, projectId, html)
+
+    const { data: existing } = await supa
+      .from('er_line_items')
+      .select('id, name, status')
+      .eq('proposal_id', pid)
+    const paired = new Set<string>()
+    for (const [i, it] of items.entries()) {
+      const match = (existing ?? []).find((r) => r.name === it.name && !paired.has(r.id))
+      if (match) {
+        paired.add(match.id)
+        await supa
+          .from('er_line_items')
+          .update({ description: it.description, quantity: it.quantity, position: i })
+          .eq('id', match.id)
+      } else {
+        await supa
+          .from('er_line_items')
+          .insert({ ...it, project_id: projectId, proposal_id: pid, position: i })
+      }
+    }
+    for (const r of existing ?? []) {
+      if (!paired.has(r.id) && r.status === 'suggested')
+        await supa.from('er_line_items').delete().eq('id', r.id)
+    }
     await rebuildScope(supa, projectId)
-    return `${items.length} line items`
+    return `${items.length} line items synced${photoNote ? `; ${photoNote}` : ''}`
   } catch (e) {
     return `portal fetch failed: ${String(e).slice(0, 100)}`
   }
+}
+
+/** Photos placed on the client-facing proposal/change-order document are
+ *  public S3 images — harvest them into the project's Files as reference
+ *  photos for the floor (no prices on images, so staff-visible). */
+async function attachProposalPhotos(supa: SupabaseClient, projectId: string, html: string): Promise<string> {
+  const urls = [
+    ...new Set(
+      [...html.matchAll(/https:\/\/s3\.amazonaws\.com\/estimaterocket\/photos\/[^"'\s]+/g)].map((m) => m[0]),
+    ),
+  ]
+  if (urls.length === 0) return ''
+  const { data: admin } = await supa.from('users').select('id').eq('role', 'admin').limit(1).maybeSingle()
+  if (!admin) return 'no admin user for photo attribution'
+  let added = 0
+  for (const url of urls) {
+    const key = url.match(/photos\/([0-9a-f-]{36})/)?.[1]
+    if (!key) continue
+    const path = `projects/${projectId}/er-photo-${key}.jpg`
+    const { data: seen } = await supa.from('files').select('id').eq('storage_path', path).limit(1)
+    if (seen && seen.length > 0) continue
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(20000) })
+      if (!res.ok) continue
+      const bytes = new Uint8Array(await res.arrayBuffer())
+      if (bytes.length < 100) continue
+      const contentType = res.headers.get('content-type') ?? 'image/jpeg'
+      if (!contentType.startsWith('image/')) continue
+      const up = await supa.storage.from('files').upload(path, bytes, { contentType, upsert: true })
+      if (up.error) continue
+      const { error } = await supa.from('files').insert({
+        project_id: projectId,
+        uploaded_by: admin.id,
+        file_name: `Estimate photo ${key.slice(0, 4)}.jpg`,
+        file_type: 'photo',
+        storage_path: path,
+        file_size_bytes: bytes.length,
+      })
+      if (!error) added++
+    } catch {
+      /* best effort — next photo */
+    }
+  }
+  return added > 0 ? `${added} photos attached` : ''
 }
 
 /** The spec bullets describe the piece, not a task (owner, 2026-07-27) — the
@@ -391,7 +483,28 @@ Deno.serve(async (req) => {
       counts[o.result]++
       details.push(`${o.result}: ${o.note}`)
     }
-    return json({ ok: true, ...counts, details })
+
+    // Also refresh every imported project from its portal: edits inside an
+    // existing proposal fire no webhook, so Re-sync is the manual pull.
+    let refreshed = 0
+    const { data: imported } = await supa
+      .from('projects')
+      .select('id, work_order_number, er_portal_url')
+      .not('er_portal_url', 'is', null)
+    for (const pr of imported ?? []) {
+      const m = String(pr.er_portal_url).match(/customerportal\.estimaterocket\.com\/([^/]+)\/([^/]+)\/([^/?]+)/)
+      if (!m) continue
+      const [, slug, token, number] = m
+      const store = Object.entries(PORTAL_SLUGS).find(([, s]) => s === slug)?.[0]
+      if (!store) continue
+      const ids = await discoverProposalIds(slug, token, number)
+      for (const id of ids) {
+        await ingestLineItems(supa, pr.id, store, token, id)
+        await attachProposalPdf(supa, pr.id, slug, token, id, pr.work_order_number ?? '')
+      }
+      if (ids.length > 0) refreshed++
+    }
+    return json({ ok: true, ...counts, refreshed, details })
   }
 
   // ---- Zapier mode: shared secret ------------------------------------------
