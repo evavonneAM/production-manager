@@ -300,10 +300,27 @@ function ProjectMaterials({ projectId }: { projectId: string }) {
                   {localized(m.name, m.name_i18n, i18n.language)}
                   <span className="ml-2 text-xs text-slate-500">
                     {m.quantity}{m.unit ? ` ${m.unit}` : ''}
+                    {m.supplier ? ` · ${m.supplier}` : ''}
                   </span>
                 </span>
-                <span className={`shrink-0 text-xs ${m.is_arrived ? 'text-green-400' : m.is_ordered ? 'text-blue-300' : 'text-slate-500'}`}>
-                  {m.is_arrived ? t('jobDetail.arrived') : m.is_ordered ? t('jobDetail.ordered') : t('jobDetail.notOrdered')}
+                <span
+                  className={`shrink-0 text-xs ${
+                    m.is_arrived
+                      ? 'text-green-400'
+                      : m.category === 'com'
+                        ? 'text-teal-300'
+                        : m.is_ordered
+                          ? 'text-blue-300'
+                          : 'text-slate-500'
+                  }`}
+                >
+                  {m.is_arrived
+                    ? t('jobDetail.arrived')
+                    : m.category === 'com'
+                      ? t('jobDetail.expected')
+                      : m.is_ordered
+                        ? t('jobDetail.ordered')
+                        : t('jobDetail.notOrdered')}
                 </span>
               </div>
             ))}
