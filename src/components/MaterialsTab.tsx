@@ -137,25 +137,29 @@ export function MaterialsTab({
                   className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
                     m.is_arrived
                       ? 'bg-green-500/15 text-green-300'
-                      : m.is_ordered
-                        ? 'bg-blue-500/15 text-blue-300'
-                        : m.payment_required
-                          ? 'bg-orange-500/15 text-orange-300'
-                          : 'bg-slate-500/15 text-slate-300'
+                      : m.category === 'com'
+                        ? 'bg-teal-500/15 text-teal-300'
+                        : m.is_ordered
+                          ? 'bg-blue-500/15 text-blue-300'
+                          : m.payment_required
+                            ? 'bg-orange-500/15 text-orange-300'
+                            : 'bg-slate-500/15 text-slate-300'
                   }`}
                 >
                   {m.is_arrived
                     ? t('jobDetail.arrived')
-                    : m.is_ordered
-                      ? t('jobDetail.ordered')
-                      : m.payment_required
-                        ? t('materials.paymentRequiredShort')
-                        : t('jobDetail.notOrdered')}
+                    : m.category === 'com'
+                      ? t('jobDetail.expected')
+                      : m.is_ordered
+                        ? t('jobDetail.ordered')
+                        : m.payment_required
+                          ? t('materials.paymentRequiredShort')
+                          : t('jobDetail.notOrdered')}
                 </span>
               </div>
 
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                {!m.is_ordered && !m.is_arrived && (
+                {m.category !== 'com' && !m.is_ordered && !m.is_arrived && (
                   <button
                     type="button"
                     disabled={busyId === m.id}

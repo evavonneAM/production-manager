@@ -19,7 +19,7 @@ import { formatDate } from '../lib/format'
 import { EmptyState, ErrorState } from '../components/ui'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 
-type Filter = 'needs' | 'payment' | 'ordered' | 'arrived' | 'tracking'
+type Filter = 'needs' | 'payment' | 'expected' | 'ordered' | 'arrived' | 'tracking'
 
 // Fabric + COM share a section (COM rows get their own little chip).
 const SECTIONS: { key: string; cats: string[] }[] = [
@@ -32,8 +32,11 @@ const SECTIONS: { key: string; cats: string[] }[] = [
 
 const CARRIER_LABEL: Record<string, string> = { ups: 'UPS', fedex: 'FedEx', usps: 'USPS', other: '—' }
 
-function statusOf(m: { is_arrived: boolean; is_ordered: boolean; payment_required: boolean }) {
+function statusOf(m: { is_arrived: boolean; is_ordered: boolean; payment_required: boolean; category: string }) {
   if (m.is_arrived) return 'arrived' as const
+  // COMs are never ordered — the client sends them; they sit in "expected"
+  // until the front desk checks them in.
+  if (m.category === 'com') return 'expected' as const
   if (m.is_ordered) return 'ordered' as const
   if (m.payment_required) return 'payment' as const
   return 'needs' as const
@@ -54,6 +57,7 @@ export default function Ordering() {
   // single vendor can be filtered in (owner requests).
   const [groupMode, setGroupMode] = useState<'category' | 'vendor'>('category')
   const [vendorF, setVendorF] = useState('all')
+  const [q, setQ] = useState('')
 
   const { data: departments } = useAsync(getDepartments, [])
   const { data: materials, loading, error } = useAsync(getAllMaterials, [reloadKey])
@@ -76,7 +80,7 @@ export default function Ordering() {
   )
 
   const counts = useMemo(() => {
-    const c: Record<Filter, number> = { needs: 0, payment: 0, ordered: 0, arrived: 0, tracking: 0 }
+    const c: Record<Filter, number> = { needs: 0, payment: 0, expected: 0, ordered: 0, arrived: 0, tracking: 0 }
     for (const m of byVendor) c[statusOf(m)]++
     c.tracking = (tracking ?? []).filter((tn) => tn.status === 'captured').length
     return c
@@ -102,12 +106,22 @@ export default function Ordering() {
   if (loading || !departments) return <FullScreenLoader />
   if (error) return <ErrorState text={t('common.error')} />
 
-  const filtered = byVendor.filter((m) => filter !== 'tracking' && statusOf(m) === filter)
+  const needle = q.trim().toLowerCase()
+  const filtered = byVendor.filter(
+    (m) =>
+      filter !== 'tracking' &&
+      statusOf(m) === filter &&
+      (!needle ||
+        [m.name, m.supplier ?? '', m.description ?? '', m.job?.job_code ?? '', m.job?.project?.client_name ?? '']
+          .join(' ')
+          .toLowerCase()
+          .includes(needle)),
+  )
 
   async function advance(m: (typeof filtered)[number]) {
     setBusyId(m.id)
-    if (!m.is_ordered) await setMaterialStatus(m.id, { is_ordered: true })
-    else await setMaterialStatus(m.id, { is_arrived: true })
+    if (m.category !== 'com' && !m.is_ordered) await setMaterialStatus(m.id, { is_ordered: true })
+    else await setMaterialStatus(m.id, { is_arrived: true, is_ordered: true })
     setBusyId(null)
     setReloadKey((k) => k + 1)
   }
@@ -192,6 +206,7 @@ export default function Ordering() {
       <div className="mb-6 flex flex-wrap items-center gap-2">
         {chip('needs', 'bg-red-500/20 text-red-300')}
         {chip('payment', 'bg-orange-500/20 text-orange-300')}
+        {chip('expected', 'bg-teal-500/20 text-teal-300')}
         {chip('ordered', 'bg-blue-500/20 text-blue-300')}
         {chip('arrived', 'bg-green-500/20 text-green-300')}
         {chip('tracking', 'bg-purple-500/20 text-purple-300')}
@@ -205,6 +220,13 @@ export default function Ordering() {
             <option key={v} value={v}>{v === 'Use Inventory' ? t('materials.useInventory') : v}</option>
           ))}
         </select>
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t('ordering.search')}
+          className="min-w-40 flex-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none sm:flex-none sm:w-56"
+        />
       </div>
 
       {filter === 'tracking' ? (
@@ -373,10 +395,10 @@ export default function Ordering() {
                             disabled={busyId === m.id}
                             onClick={() => void advance(m)}
                             className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium text-white disabled:opacity-50 ${
-                              !m.is_ordered ? 'bg-blue-600/80 hover:bg-blue-500' : 'bg-green-600/80 hover:bg-green-500'
+                              m.category !== 'com' && !m.is_ordered ? 'bg-blue-600/80 hover:bg-blue-500' : 'bg-green-600/80 hover:bg-green-500'
                             }`}
                           >
-                            {!m.is_ordered ? t('materials.markOrdered') : t('materials.markArrived')}
+                            {m.category !== 'com' && !m.is_ordered ? t('materials.markOrdered') : t('materials.markArrived')}
                           </button>
                         )}
                       </div>
