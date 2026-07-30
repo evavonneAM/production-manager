@@ -352,7 +352,7 @@ export function MaterialModal({
           <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-slate-600 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800">
             {t('common.cancel')}
           </button>
-          <button type="submit" disabled={busy || !canSave} className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-60">
+          <button type="submit" disabled={busy} className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-60">
             {busy ? t('common.saving') : t('common.save')}
           </button>
         </div>
