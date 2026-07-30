@@ -99,7 +99,7 @@ function parseLineItems(html: string): LineItem[] {
   return items
 }
 
-/** Line items + the official proposal PDF, for every proposal we can see.
+/** Line items (and document photos) for every proposal we can see.
  *  Proposal events name their proposal directly; assignment events carry
  *  assignment ids, so the portal landing page is scanned instead. */
 async function enrichFromProposals(
@@ -110,7 +110,6 @@ async function enrichFromProposals(
   p: any,
   // deno-lint-ignore no-explicit-any
   client: any,
-  wo: string,
 ): Promise<string> {
   const slug = PORTAL_SLUGS[ev.store ?? '']
   const token = client?.customer_portal_token
@@ -120,10 +119,11 @@ async function enrichFromProposals(
     ? [String((ev.payload as Record<string, unknown>).id)]
     : await discoverProposalIds(slug, token, p.number)
   if (ids.length === 0) return 'no proposals found'
+  // Owner decision 2026-07-30: do NOT attach the proposal PDFs — they carry
+  // prices, and the Scope already holds the substance. Photos still harvest.
   const notes: string[] = []
   for (const id of ids) {
     notes.push(await ingestLineItems(supa, projectId, ev.store!, token, id))
-    notes.push(await attachProposalPdf(supa, projectId, slug, token, id, wo))
   }
   return notes.join('; ')
 }
@@ -140,56 +140,6 @@ async function discoverProposalIds(slug: string, token: unknown, number: unknown
     return [...new Set([...html.matchAll(/\/proposals\/([0-9a-f-]{36})/g)].map((m) => m[1]))]
   } catch {
     return []
-  }
-}
-
-/** Attach the official proposal document (public portal PDF) to the project's
- *  Files tab — the "actual work order" the owner asked for. Once per proposal. */
-async function attachProposalPdf(
-  supa: SupabaseClient,
-  projectId: string,
-  slug: string,
-  token: unknown,
-  proposalId: string,
-  wo: string,
-): Promise<string> {
-  const path = `projects/${projectId}/wo-${proposalId}.pdf`
-  const { data: seen } = await supa.from('files').select('id').eq('storage_path', path).limit(1)
-  if (seen && seen.length > 0) return 'pdf already attached'
-  try {
-    const res = await fetch(
-      `https://customerportal.estimaterocket.com/${slug}/${token}/proposals/${proposalId}/preview.pdf?download=true`,
-      { signal: AbortSignal.timeout(20000) },
-    )
-    if (!res.ok || !(res.headers.get('content-type') ?? '').includes('pdf')) return `pdf fetch ${res.status}`
-    const bytes = new Uint8Array(await res.arrayBuffer())
-    const up = await supa.storage.from('files').upload(path, bytes, { contentType: 'application/pdf', upsert: true })
-    if (up.error) return `pdf upload: ${up.error.message}`
-    const { data: admin } = await supa.from('users').select('id').eq('role', 'admin').limit(1).maybeSingle()
-    if (!admin) return 'no admin user for upload attribution'
-    // First proposal is "the work order"; later ones are change orders.
-    const { data: prior } = await supa
-      .from('files')
-      .select('id')
-      .eq('project_id', projectId)
-      .like('storage_path', 'projects/%/wo-%.pdf')
-      .limit(1)
-    const fileName =
-      prior && prior.length > 0
-        ? `Change order ${wo} (${proposalId.slice(0, 4)}).pdf`
-        : `Work order ${wo}.pdf`
-    const { error } = await supa.from('files').insert({
-      project_id: projectId,
-      uploaded_by: admin.id,
-      file_name: fileName,
-      file_type: 'pdf',
-      storage_path: path,
-      file_size_bytes: bytes.length,
-      admin_only: true, // priced client document — no-prices rule
-    })
-    return error ? `files row: ${error.message}` : 'pdf attached'
-  } catch (e) {
-    return `pdf fetch failed: ${String(e).slice(0, 80)}`
   }
 }
 
@@ -356,7 +306,7 @@ async function processEvent(supa: SupabaseClient, ev: Ev): Promise<Outcome> {
   if (existing) {
     // Refresh identity fields only; production state is never touched from ER.
     // A change order (new accepted proposal) still adds its line-item suggestions.
-    const liNote = await enrichFromProposals(supa, existing.id, ev, p, client, wo)
+    const liNote = await enrichFromProposals(supa, existing.id, ev, p, client)
     const nextPortal = portal ?? existing.er_portal_url
     if (existing.name !== projName || existing.client_name !== clientName || existing.er_portal_url !== nextPortal) {
       await supa
@@ -417,7 +367,7 @@ async function processEvent(supa: SupabaseClient, ev: Ev): Promise<Outcome> {
   supa.functions.invoke('translate', { body: { table: 'projects', id: proj.id } }).catch(() => {})
   supa.functions.invoke('translate', { body: { table: 'jobs', id: job.id } }).catch(() => {})
 
-  const liNote = await enrichFromProposals(supa, proj.id, ev, p, client, wo)
+  const liNote = await enrichFromProposals(supa, proj.id, ev, p, client)
 
   const { data: admins } = await supa.from('users').select('id').eq('role', 'admin')
   for (const a of admins ?? []) {
@@ -500,7 +450,6 @@ Deno.serve(async (req) => {
       const ids = await discoverProposalIds(slug, token, number)
       for (const id of ids) {
         await ingestLineItems(supa, pr.id, store, token, id)
-        await attachProposalPdf(supa, pr.id, slug, token, id, pr.work_order_number ?? '')
       }
       if (ids.length > 0) refreshed++
     }
