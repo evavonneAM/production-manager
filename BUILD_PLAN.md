@@ -312,7 +312,10 @@ Note: no real labor logged yet — clock-in rollout is the adoption step after S
 - [ ] Offline read cache (service worker) for My Work, department queue, recent jobs.
 - [ ] Clock-out resilience offline (queue the action, sync on reconnect, keep the tap time).
 - [ ] Real-time updates verified across devices (queues, inspection badges, clock events).
-- [ ] Full RLS audit against SPEC.md Section 17.
+- [x] Full RLS audit against SPEC.md Section 17. *(2026-07-30: 38 live checks across
+      anon/staff/lead/admin — matrix matches spec; one finding fixed: internal definer
+      helpers were PUBLIC-executable, incl. forgeable _notify. Note: server-side password
+      minimum is Supabase default 6 vs app-enforced 8 — dashboard setting if wanted.)*
 - [ ] Empty states, loading states, error messages — all in three languages.
 - [ ] Final pass on phone + desktop layouts.
 
