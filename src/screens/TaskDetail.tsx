@@ -50,7 +50,8 @@ export default function TaskDetail() {
 
   const clockable =
     (task.status === 'unstarted' || task.status === 'paused') &&
-    (task.assigned_user_id === profile.id ||
+    (profile.role === 'admin' || // admins may pick up any workable task
+      task.assigned_user_id === profile.id ||
       (task.assigned_user_id === null && stageDept === profile.department_id))
 
   const completable =
