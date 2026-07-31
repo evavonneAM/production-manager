@@ -317,7 +317,8 @@
     "autoClosed": "cierre automático",
     "switchTitle": "¿Cambiar de tarea?",
     "switchBody": "Estás trabajando en otra tarea. ¿Finalizarla e iniciar esta?",
-    "switchConfirm": "Finalizar y cambiar"
+    "switchConfirm": "Finalizar y cambiar",
+    "clockOutQueued": "Sin conexión: tu salida quedó guardada y se sincronizará automáticamente."
   },
   "clockError": {
     "already_clocked_in": "Ya estás trabajando en otra tarea. Finalízala primero.",

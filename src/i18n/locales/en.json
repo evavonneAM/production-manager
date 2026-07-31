@@ -6,7 +6,8 @@
     "saving": "Saving…",
     "cancel": "Cancel",
     "loading": "Loading…",
-    "error": "Something went wrong. Please try again."
+    "error": "Something went wrong. Please try again.",
+    "offlineBanner": "Offline — showing saved data"
   },
   "units": {
     "h": "h",
@@ -326,7 +327,8 @@
     "autoClosed": "auto-closed",
     "switchTitle": "Switch task?",
     "switchBody": "You're clocked into another task. Clock out of it and clock into this one?",
-    "switchConfirm": "Clock out & switch"
+    "switchConfirm": "Clock out & switch",
+    "clockOutQueued": "No connection — your clock-out is saved and will sync automatically."
   },
   "clockError": {
     "already_clocked_in": "You're already clocked into another task. Clock out first.",

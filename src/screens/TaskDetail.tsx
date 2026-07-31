@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
 import { getTask, getDirectory, getActiveSession, clockIn, clockOut, completeTask, approveTask, rejectTask, deleteTask, cancelTask } from '../lib/data'
+import { clockOutResilient } from '../lib/offlineClock'
 import { type AppLanguage } from '../i18n'
 import { formatMinutes } from '../lib/format'
 import { ErrorState, Tabs, TaskStatusBadge } from '../components/ui'
@@ -228,7 +229,13 @@ export default function TaskDetail() {
           {isActive ? (
             <button
               type="button"
-              onClick={() => void run(clockOut)}
+              onClick={() =>
+                void run(async () => {
+                  const res = await clockOutResilient()
+                  if (res.queued) setError(t('taskDetail.clockOutQueued'))
+                  return { error: res.error }
+                })
+              }
               disabled={busy}
               className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 font-medium text-white hover:bg-amber-500 disabled:opacity-60"
             >

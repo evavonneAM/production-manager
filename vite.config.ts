@@ -40,8 +40,22 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Offline read cache (BUILD_PLAN Sprint 14) will be expanded here later.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Offline read cache (S14): recent Supabase reads stay available in
+        // airplane mode — network first, fall back to the last good copy.
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/[a-z]+\.supabase\.co\/rest\/v1\/.*/,
+            method: 'GET',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-reads',
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 300, maxAgeSeconds: 3 * 24 * 3600 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+        ],
       },
     }),
   ],

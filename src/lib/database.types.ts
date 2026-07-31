@@ -1196,7 +1196,10 @@ export type Database = {
       }
     }
     Functions: {
-      _close_open_session: { Args: { p_uid: string }; Returns: undefined }
+      _close_open_session: {
+        Args: { p_at?: string; p_uid: string }
+        Returns: undefined
+      }
       _eligible_inspector: {
         Args: { p_job_stage_id: string; p_uid: string }
         Returns: boolean
@@ -1229,7 +1232,7 @@ export type Database = {
       }
       auto_close_stale_sessions: { Args: never; Returns: undefined }
       clock_in: { Args: { p_task_id: string }; Returns: undefined }
-      clock_out: { Args: never; Returns: undefined }
+      clock_out: { Args: { p_at?: string }; Returns: undefined }
       complete_task: { Args: { p_task_id: string }; Returns: undefined }
       delete_job: { Args: { p_job_id: string }; Returns: undefined }
       dismiss_tracking: { Args: { p_tracking_id: string }; Returns: undefined }

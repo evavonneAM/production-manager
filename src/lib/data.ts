@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { replayPendingClockOut } from './offlineClock'
 import type {
   ProjectOverview,
   ProjectDetail,
@@ -556,12 +557,15 @@ export async function rejectStage(
 export type ClockResult = { error: string | null }
 
 export async function clockIn(taskId: string): Promise<ClockResult> {
+  // A queued offline clock-out must land first, or the one-active-task guard
+  // would reject this clock-in against a session that's really over.
+  await replayPendingClockOut()
   const { error } = await client().rpc('clock_in', { p_task_id: taskId })
   return { error: error ? error.message : null }
 }
 
-export async function clockOut(): Promise<ClockResult> {
-  const { error } = await client().rpc('clock_out')
+export async function clockOut(at?: string): Promise<ClockResult> {
+  const { error } = await client().rpc('clock_out', { p_at: at ?? new Date().toISOString() })
   return { error: error ? error.message : null }
 }
 

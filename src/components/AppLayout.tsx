@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
 import { getDepartments, getBadgeCounts } from '../lib/data'
+import { replayPendingClockOut } from '../lib/offlineClock'
 
 /** Small red count bubble for nav items. */
 export function Badge({ count }: { count: number }) {
@@ -64,6 +65,23 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // Unread notifications + pending inspections, refreshed on navigation + 60s poll.
   const [counts, setCounts] = useState({ unread: 0, pendingInspections: 0 })
   const [moreOpen, setMoreOpen] = useState(false)
+  const [offline, setOffline] = useState(!navigator.onLine)
+
+  // Offline banner + replay of queued clock-outs on start and reconnect (S14).
+  useEffect(() => {
+    void replayPendingClockOut()
+    const goOnline = () => {
+      setOffline(false)
+      void replayPendingClockOut()
+    }
+    const goOffline = () => setOffline(true)
+    window.addEventListener('online', goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEventListener('online', goOnline)
+      window.removeEventListener('offline', goOffline)
+    }
+  }, [])
   useEffect(() => {
     let active = true
     const refresh = () => void getBadgeCounts().then((c) => active && setCounts(c)).catch(() => {})
@@ -83,6 +101,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-full bg-slate-900 text-slate-100">
+      {offline && (
+        <div className="fixed inset-x-0 top-0 z-50 bg-amber-700/95 py-1.5 text-center text-xs font-medium text-white">
+          {t('common.offlineBanner')}
+        </div>
+      )}
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r border-slate-800 bg-slate-950 px-3 py-6 md:flex">
         <div className="mb-8 flex items-center gap-2 px-3">
