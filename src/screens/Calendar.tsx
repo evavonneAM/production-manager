@@ -9,6 +9,7 @@ import {
   updateProjectSchedule,
   type CalendarProject,
   type CalendarEvent,
+  syncGcalNow,
 } from '../lib/data'
 import { PROJECT_STATUS_STYLE } from '../lib/status'
 import { localized } from '../lib/i18nText'
@@ -41,6 +42,7 @@ export default function Calendar() {
   const [mode, setMode] = useState<'month' | 'week'>('month')
   const [jobLevel, setJobLevel] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [gcalSyncing, setGcalSyncing] = useState(false)
   const [editing, setEditing] = useState<CalendarProject | null>(null)
 
   // Visible range: month grid padded to full weeks (weeks start Monday).
@@ -120,9 +122,25 @@ export default function Calendar() {
     <div className="mx-auto w-full max-w-6xl px-4 py-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{t('nav.calendar')}</h1>
-        <Link to="/priority" className="text-sm text-amber-400 hover:underline">
-          {t('priority.title')} →
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled={gcalSyncing}
+            onClick={() => {
+              setGcalSyncing(true)
+              void syncGcalNow().then(() => {
+                setGcalSyncing(false)
+                setReloadKey((k) => k + 1)
+              })
+            }}
+            className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+          >
+            {gcalSyncing ? t('materials.syncing') : t('calendar.syncNow')}
+          </button>
+          <Link to="/priority" className="text-sm text-amber-400 hover:underline">
+            {t('priority.title')} →
+          </Link>
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">

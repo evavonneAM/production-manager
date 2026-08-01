@@ -376,7 +376,8 @@
     "adminHint": "Tap a bar to set its dates. Overdue items show a red dot.",
     "viewHint": "Tap a bar to open the project. Overdue items show a red dot.",
     "appointments": "Appointments",
-    "unscheduled": "Unscheduled"
+    "unscheduled": "Unscheduled",
+    "syncNow": "Sync calendar"
   },
   "priority": {
     "title": "Priority Board",

@@ -628,6 +628,12 @@ export function requestGcalSync(): void {
   void client().functions.invoke('gcal-sync', { body: {} }).catch(() => {})
 }
 
+/** Awaited Google Calendar sync (the Calendar screen's Sync button). */
+export async function syncGcalNow(): Promise<ClockResult> {
+  const { error } = await client().functions.invoke('gcal-sync', { body: {} })
+  return { error: error ? error.message : null }
+}
+
 /** Admin: set a project's scheduled dates (RLS-enforced) and push to GCal. */
 export async function updateProjectSchedule(
   id: string,

@@ -375,7 +375,8 @@
     "adminHint": "Toca una barra para fijar sus fechas. Lo atrasado lleva un punto rojo.",
     "viewHint": "Toca una barra para abrir el proyecto. Lo atrasado lleva un punto rojo.",
     "appointments": "Citas",
-    "unscheduled": "Sin fechas"
+    "unscheduled": "Sin fechas",
+    "syncNow": "Sincronizar calendario"
   },
   "priority": {
     "title": "Prioridades",
