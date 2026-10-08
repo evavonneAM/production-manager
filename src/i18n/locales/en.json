@@ -20,7 +20,8 @@
     "inspection": "Inspection",
     "profile": "Profile",
     "scan": "Scan",
-    "more": "More"
+    "more": "More",
+    "tools": "Tools"
   },
   "placeholder": {
     "comingSoon": "This screen arrives in a later sprint."
@@ -412,5 +413,43 @@
     "entries": "Entries",
     "flagged": "auto-closed",
     "empty": "No labor in this period."
+  },
+  "tools": {
+    "title": "Tools",
+    "subtitle": "Every calculator the workroom uses, in one place. Each one opens in a new tab.",
+    "search": "Find a tool, like “cushion” or “yards”",
+    "noMatch": "No tools match that. Try a shorter word.",
+    "notPublished": "Coming soon",
+    "groups": {
+      "drapery": "Drapery",
+      "cushions": "Cushions",
+      "other": "Upholstery & other"
+    },
+    "items": {
+      "ripplefold": {
+        "name": "Ripplefold Yardage",
+        "desc": "Snaps, tape, cut sizes and yards to order"
+      },
+      "drapery": {
+        "name": "Drapery Pleat",
+        "desc": "Pleat and space widths, with a work-order PDF"
+      },
+      "cushionCut": {
+        "name": "Cushion Cut Dimensions",
+        "desc": "Finished size in; plate, boxing, zipper and cording cuts out"
+      },
+      "cushionPricing": {
+        "name": "Cushion Pricing",
+        "desc": "Cushion and foam prices, plus inch and yard conversions"
+      },
+      "upholstery": {
+        "name": "Upholstery Estimate",
+        "desc": "Labor, cushions, yardage and extras, ready for QuickBooks"
+      },
+      "leafBag": {
+        "name": "Leaf Bag",
+        "desc": "Paste client sizes, get the cut list and labels"
+      }
+    }
   }
 }

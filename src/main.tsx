@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { ConfigProvider, theme } from 'antd'
 import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import './i18n'
@@ -28,10 +29,14 @@ registerSW({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </BrowserRouter>
+    {/* Ant Design is replacing the hand-built Tailwind UI screen by screen. Dark for
+        now to match the existing shell; switches to light with the full restyle. */}
+    <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
+      <BrowserRouter>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </BrowserRouter>
+    </ConfigProvider>
   </StrictMode>,
 )
