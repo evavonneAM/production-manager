@@ -163,16 +163,7 @@ export default function CushionCut() {
           return (
             <Card
               key={r.id}
-              title={
-                <Input
-                  variant="borderless"
-                  value={r.label}
-                  onChange={(e) => update(r.id, { label: e.target.value })}
-                  placeholder={t('cushionCut.cushionN', { n: i + 1 })}
-                  aria-label={t('cushionCut.name')}
-                  style={{ paddingInline: 0, fontWeight: 600, fontSize: 16 }}
-                />
-              }
+              title={r.label.trim() || t('cushionCut.cushionN', { n: i + 1 })}
               extra={
                 rows.length > 1 && (
                   <Button
@@ -188,6 +179,23 @@ export default function CushionCut() {
             >
               <Form layout="vertical" component="div">
                 <Row gutter={12}>
+                  <Col xs={24}>
+                    <Form.Item
+                      label={t('cushionCut.name')}
+                      htmlFor={`name-${r.id}`}
+                      extra={t('cushionCut.nameHelp')}
+                      style={{ marginBottom: 20 }}
+                    >
+                      <Input
+                        id={`name-${r.id}`}
+                        size="large"
+                        allowClear
+                        value={r.label}
+                        onChange={(e) => update(r.id, { label: e.target.value })}
+                        placeholder={t('cushionCut.namePlaceholder')}
+                      />
+                    </Form.Item>
+                  </Col>
                   <Col xs={24} sm={16}>
                     <Form.Item label={t('cushionCut.zipperStyle')} extra={t(`cushionCut.${r.style}Help`)} style={{ marginBottom: 20 }}>
                       <Segmented

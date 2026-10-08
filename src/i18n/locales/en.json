@@ -492,6 +492,8 @@
     "totalPlates": "Plates",
     "totalZippers": "Zippers",
     "clear": "Clear all",
-    "clearConfirm": "Clear every cushion and start over?"
+    "clearConfirm": "Clear every cushion and start over?",
+    "namePlaceholder": "e.g. Sofa seat, Back pillow",
+    "nameHelp": "Optional. Shows on the cut list and printout."
   }
 }

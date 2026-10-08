@@ -491,6 +491,8 @@
     "totalPlates": "Tapas",
     "totalZippers": "Cierres",
     "clear": "Borrar todo",
-    "clearConfirm": "¿Borrar todos los cojines y empezar de nuevo?"
+    "clearConfirm": "¿Borrar todos los cojines y empezar de nuevo?",
+    "namePlaceholder": "p. ej. Asiento del sofá, Cojín de respaldo",
+    "nameHelp": "Opcional. Aparece en la lista de cortes y la impresión."
   }
 }
