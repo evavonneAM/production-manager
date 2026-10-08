@@ -19,7 +19,8 @@
     "inspection": "Inspección",
     "profile": "Perfil",
     "scan": "Escanear",
-    "more": "Más"
+    "more": "Más",
+    "tools": "Herramientas"
   },
   "placeholder": {
     "comingSoon": "Esta pantalla llegará en un sprint posterior."
@@ -411,5 +412,43 @@
     "entries": "Registros",
     "flagged": "cierre automático",
     "empty": "Sin horas registradas en este período."
+  },
+  "tools": {
+    "title": "Herramientas",
+    "subtitle": "Todas las calculadoras del taller en un solo lugar. Cada una se abre en una pestaña nueva.",
+    "search": "Busca una herramienta, como “cojín” o “yardas”",
+    "noMatch": "Ninguna herramienta coincide. Prueba una palabra más corta.",
+    "notPublished": "Próximamente",
+    "groups": {
+      "drapery": "Cortinas",
+      "cushions": "Cojines",
+      "other": "Tapicería y otros"
+    },
+    "items": {
+      "ripplefold": {
+        "name": "Yardaje Ripplefold",
+        "desc": "Broches, cinta, medidas de corte y yardas a pedir"
+      },
+      "drapery": {
+        "name": "Pliegues de cortina",
+        "desc": "Ancho de pliegues y espacios, con PDF de orden de trabajo"
+      },
+      "cushionCut": {
+        "name": "Medidas de corte de cojines",
+        "desc": "Medida terminada; cortes de tapa, boxing, cierre y cordón"
+      },
+      "cushionPricing": {
+        "name": "Precios de cojines",
+        "desc": "Precios de cojines y espuma, y conversión de pulgadas y yardas"
+      },
+      "upholstery": {
+        "name": "Presupuesto de tapicería",
+        "desc": "Mano de obra, cojines, yardaje y extras, listo para QuickBooks"
+      },
+      "leafBag": {
+        "name": "Bolsa de hojas",
+        "desc": "Pega las medidas del cliente y obtén la lista de cortes y etiquetas"
+      }
+    }
   }
 }
