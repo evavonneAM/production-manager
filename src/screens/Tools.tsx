@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Avatar, Card, Col, Divider, Empty, Input, Row, Tag, Typography, theme } from 'antd'
 import { ExportOutlined } from '@ant-design/icons'
@@ -68,7 +69,7 @@ export default function Tools() {
           </Divider>
           <Row gutter={[12, 12]}>
             {tools.map((tool) => {
-              const live = !!tool.url
+              const live = !!(tool.route || tool.url)
               const card = (
                 <Card
                   hoverable={live}
@@ -87,7 +88,7 @@ export default function Tools() {
                     title={
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         {t(`tools.items.${tool.id}.name`)}
-                        {live ? (
+                        {tool.route ? null : live ? (
                           <ExportOutlined style={{ fontSize: 12, color: token.colorTextTertiary }} />
                         ) : (
                           <Tag color="warning" style={{ marginInlineEnd: 0 }}>
@@ -102,7 +103,11 @@ export default function Tools() {
               )
               return (
                 <Col key={tool.id} xs={24} sm={12}>
-                  {live ? (
+                  {tool.route ? (
+                    <Link to={tool.route} style={{ display: 'block', height: '100%' }}>
+                      {card}
+                    </Link>
+                  ) : live ? (
                     <a href={tool.url!} target="_blank" rel="noopener noreferrer" style={{ display: 'block', height: '100%' }}>
                       {card}
                     </a>

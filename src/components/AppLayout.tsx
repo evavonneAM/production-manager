@@ -108,7 +108,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       )}
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r border-slate-800 bg-slate-950 px-3 py-6 md:flex">
+      <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 print:!hidden flex-col border-r border-slate-800 bg-slate-950 px-3 py-6 md:flex">
         <div className="mb-8 flex items-center gap-2 px-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-700 text-sm font-bold">
             PM
@@ -204,14 +204,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Content */}
-      <div className="flex min-h-full flex-col pb-24 md:ml-60 md:pb-0">{children}</div>
+      <div className="flex min-h-full flex-col pb-24 md:ml-60 md:pb-0 print:!ml-0 print:pb-0">{children}</div>
 
       {/* Mobile floating QR button */}
       <button
         type="button"
         onClick={() => navigate('/scan')}
         aria-label={t('nav.scan')}
-        className="fixed bottom-12 left-1/2 z-20 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-amber-600 text-white shadow-lg ring-4 ring-slate-900 md:hidden"
+        className="fixed bottom-12 left-1/2 z-20 flex print:!hidden h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-amber-600 text-white shadow-lg ring-4 ring-slate-900 md:hidden"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-7 w-7">
           <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" />
@@ -256,7 +256,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       )}
 
       {/* Mobile bottom tab bar: 4 core tabs + More (the rest live in the sheet). */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-800 bg-slate-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex print:!hidden border-t border-slate-800 bg-slate-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {TABS.filter((tab) => tab.to !== '/profile').map((tab, i) => (
           <NavLink
             key={tab.to}

@@ -416,7 +416,7 @@
   },
   "tools": {
     "title": "Tools",
-    "subtitle": "Every calculator the workroom uses, in one place. Each one opens in a new tab.",
+    "subtitle": "Every calculator the workroom uses, in one place. Tap one to open it.",
     "search": "Find a tool, like “cushion” or “yards”",
     "noMatch": "No tools match that. Try a shorter word.",
     "notPublished": "Coming soon",
@@ -451,5 +451,47 @@
         "desc": "Paste client sizes, get the cut list and labels"
       }
     }
+  },
+  "calc": {
+    "in": "in",
+    "yd": "yd",
+    "print": "Print",
+    "badInches": "Use a number like 20, 20.5 or 20 1/2"
+  },
+  "cushionCut": {
+    "intro": "Enter the ordered size of each cushion. The cuts update as you type.",
+    "ruleTitle": "Height is adjusted for you",
+    "rule": "Boxing and zipper are cut to the finished height: under 5\" loses 1/2\", 5\" to 8\" loses 1\", over 8\" loses 1 1/2\".",
+    "cushionN": "Cushion {{n}}",
+    "name": "Cushion name",
+    "remove": "Remove cushion",
+    "zipperStyle": "Zipper",
+    "wrap": "Wrap-around",
+    "back": "Back only",
+    "wrapHelp": "Zipper wraps halfway around the sides",
+    "backHelp": "Zipper along the back edge only",
+    "howMany": "How many",
+    "front": "Front width",
+    "frontHelp": "The zipper side",
+    "sides": "Depth",
+    "sidesHelp": "Front to back",
+    "height": "Ordered height",
+    "heightHelp": "Before the deduction",
+    "finishes": "Ordered {{ordered}} → finishes {{finished}} ({{less}} less)",
+    "fillIn": "Fill in the three sizes to see the cuts.",
+    "piece": "Piece",
+    "qty": "Qty",
+    "cutSize": "Cut size",
+    "plate": "Plates (W × D)",
+    "boxing": "Boxing (X × Z)",
+    "zipper": "Zipper (X × Z)",
+    "cording": "Cording",
+    "add": "Add another cushion",
+    "totals": "Totals",
+    "totalCording": "Cording",
+    "totalPlates": "Plates",
+    "totalZippers": "Zippers",
+    "clear": "Clear all",
+    "clearConfirm": "Clear every cushion and start over?"
   }
 }

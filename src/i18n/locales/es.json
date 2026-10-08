@@ -415,7 +415,7 @@
   },
   "tools": {
     "title": "Herramientas",
-    "subtitle": "Todas las calculadoras del taller en un solo lugar. Cada una se abre en una pestaña nueva.",
+    "subtitle": "Todas las calculadoras del taller en un solo lugar. Toca una para abrirla.",
     "search": "Busca una herramienta, como “cojín” o “yardas”",
     "noMatch": "Ninguna herramienta coincide. Prueba una palabra más corta.",
     "notPublished": "Próximamente",
@@ -450,5 +450,47 @@
         "desc": "Pega las medidas del cliente y obtén la lista de cortes y etiquetas"
       }
     }
+  },
+  "calc": {
+    "in": "pulg",
+    "yd": "yd",
+    "print": "Imprimir",
+    "badInches": "Usa un número como 20, 20.5 o 20 1/2"
+  },
+  "cushionCut": {
+    "intro": "Ingresa la medida pedida de cada cojín. Los cortes se actualizan mientras escribes.",
+    "ruleTitle": "La altura se ajusta sola",
+    "rule": "El boxing y el cierre se cortan a la altura terminada: menos de 5\" pierde 1/2\", de 5\" a 8\" pierde 1\", más de 8\" pierde 1 1/2\".",
+    "cushionN": "Cojín {{n}}",
+    "name": "Nombre del cojín",
+    "remove": "Quitar cojín",
+    "zipperStyle": "Cierre",
+    "wrap": "Envolvente",
+    "back": "Solo atrás",
+    "wrapHelp": "El cierre rodea la mitad de los lados",
+    "backHelp": "El cierre va solo en el borde de atrás",
+    "howMany": "Cantidad",
+    "front": "Ancho del frente",
+    "frontHelp": "El lado del cierre",
+    "sides": "Fondo",
+    "sidesHelp": "De adelante hacia atrás",
+    "height": "Altura pedida",
+    "heightHelp": "Antes del descuento",
+    "finishes": "Pedido {{ordered}} → termina en {{finished}} ({{less}} menos)",
+    "fillIn": "Llena las tres medidas para ver los cortes.",
+    "piece": "Pieza",
+    "qty": "Cant.",
+    "cutSize": "Medida de corte",
+    "plate": "Tapas (An × Fo)",
+    "boxing": "Boxing (X × Z)",
+    "zipper": "Cierre (X × Z)",
+    "cording": "Cordón",
+    "add": "Agregar otro cojín",
+    "totals": "Totales",
+    "totalCording": "Cordón",
+    "totalPlates": "Tapas",
+    "totalZippers": "Cierres",
+    "clear": "Borrar todo",
+    "clearConfirm": "¿Borrar todos los cojines y empezar de nuevo?"
   }
 }
