@@ -459,8 +459,8 @@
   },
   "cushionCut": {
     "intro": "Ingresa la medida pedida de cada cojín. Los cortes se actualizan mientras escribes.",
-    "ruleTitle": "La altura se ajusta sola",
-    "rule": "El boxing y el cierre se cortan a la altura terminada: menos de 5\" pierde 1/2\", de 5\" a 8\" pierde 1\", más de 8\" pierde 1 1/2\".",
+    "ruleTitle": "Cómo se calcula la funda terminada",
+    "rule": "La funda se hace 1/4\" más chica que el ancho y fondo pedidos, y la altura se reduce según el descuento que elijas (1/2\" salvo que el trabajo diga otra cosa). La espuma se corta a la medida pedida.",
     "cushionN": "Cojín {{n}}",
     "name": "Nombre del cojín",
     "remove": "Quitar cojín",
@@ -476,7 +476,7 @@
     "sidesHelp": "De adelante hacia atrás",
     "height": "Altura pedida",
     "heightHelp": "Antes del descuento",
-    "finishes": "Pedido {{ordered}} → termina en {{finished}} ({{less}} menos)",
+    "finishes": "Funda terminada: {{size}}",
     "fillIn": "Llena las tres medidas para ver los cortes.",
     "piece": "Pieza",
     "qty": "Cant.",
@@ -517,11 +517,15 @@
     "foam": "Espuma (An × Fo × Al)",
     "foamWrap": "Envoltura de espuma",
     "wrap_none": "Sin envoltura",
-    "wrap_lightDacron": "Dacron ligero",
-    "wrap_heavyDacron": "Dacron pesado",
+    "wrap_lightDacron": "Dacron 1/2 oz",
+    "wrap_heavyDacron": "Dacron 1 oz",
     "wrap_envelope": "Sobre (envelope)",
     "foamNotes": "Notas de espuma",
     "foamNotesPlaceholder": "p. ej. HD36, en capas: 1\" suave sobre 4\" firme",
-    "foamNotesHelp": "Para el gerente del proyecto: tipo de espuma y si va en capas. La espuma se corta a la medida pedida."
+    "foamNotesHelp": "Para el gerente del proyecto: tipo de espuma y si va en capas. La espuma se corta a la medida pedida.",
+    "heightDeduction": "Descuento de altura",
+    "heightDeductionHelp": "Normalmente 1/2\". Cambia solo si el trabajo lo pide.",
+    "hasCording": "Lleva cordón",
+    "cordingHelp": "Desmarca si este cojín no lleva cordón."
   }
 }

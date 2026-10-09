@@ -41,8 +41,8 @@ const HEADER: [number, number, number] = [0, 21, 41]
 const STYLE_TEXT: Record<ZipperStyle, string> = { back: 'Back zipper', wrap: 'Wrap-around zipper' }
 const WRAP_TEXT: Record<FoamWrap, string> = {
   none: 'No wrap',
-  lightDacron: 'Lightweight Dacron',
-  heavyDacron: 'Heavyweight Dacron',
+  lightDacron: '1/2 oz Dacron',
+  heavyDacron: '1 oz Dacron',
   envelope: 'Envelope',
 }
 const DIRECTION_TEXT: Record<FabricDirection, string> = { none: '', railroaded: 'Railroaded', upTheRoll: 'Up the roll' }
@@ -114,7 +114,7 @@ export function buildCushionWorkOrder(doc: JsPDF, job: WorkOrderJob, cushions: W
     listLines.forEach((l, j) => doc.text(l, cols[1] + 6, y + 14 + j * 12.5))
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(12)
-    doc.text(String(f.strips), cols[2] + 6, y + 14)
+    doc.text(f.strips ? String(f.strips) : 'No cording', cols[2] + 6, y + 14)
     y += h
   })
   doc.setDrawColor(...RULE)
@@ -201,7 +201,10 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
     ry += 30
   }
   spec('ORDERED SIZE (W x D x H)', `${formatInches(c.width)} x ${formatInches(c.depth)} x ${formatInches(c.height)}`)
-  spec('FINISHED BOXING HEIGHT', `${formatInches(c.cuts.finishedHeight)}  (${formatInches(c.cuts.deduction)} less than ordered)`)
+  spec(
+    'FINISHED COVER (W x D x H)',
+    `${formatInches(c.cuts.finishedWidth)} x ${formatInches(c.cuts.finishedDepth)} x ${formatInches(c.cuts.finishedHeight)}  (height -${formatInches(c.cuts.deduction)})`,
+  )
 
   // Cut list table.
   ry += 2
@@ -219,7 +222,9 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
     ['Plates (W x D)', String(c.cuts.plate.qty), `${formatInches(c.cuts.plate.width)} x ${formatInches(c.cuts.plate.depth)}`],
     ['Boxing (X x Z)', String(c.cuts.boxing.qty), `${formatInches(c.cuts.boxing.x)} x ${formatInches(c.cuts.boxing.z)}`],
     ['Zipper (X x Z)', String(c.cuts.zipper.qty), `${formatInches(c.cuts.zipper.x)} x ${formatInches(c.cuts.zipper.z)}`],
-    ['Cording', '', `${formatInches(c.cuts.cording)}  (${cordingStrips(c.cuts.cording)} strips)`],
+    ...(c.cuts.cording > 0
+      ? ([['Cording', '', `${formatInches(c.cuts.cording)}  (${cordingStrips(c.cuts.cording)} strips)`]] as [string, string, string][])
+      : []),
     ['Foam (W x D x H)', String(c.cuts.foam.qty), `${formatInches(c.cuts.foam.width)} x ${formatInches(c.cuts.foam.depth)} x ${formatInches(c.cuts.foam.height)}`],
   ]
   rows.forEach(([a, b, s], k) => {
@@ -270,7 +275,7 @@ function drawPlan(doc: JsPDF, c: WorkOrderCushion, x0: number, y0: number, boxW:
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
-  doc.text('PLAN VIEW', x0, y0)
+  doc.text('PLAN VIEW - FINISHED COVER', x0, y0)
 
   doc.setDrawColor(...INK)
   doc.setFillColor(241, 246, 251)
@@ -298,7 +303,7 @@ function drawPlan(doc: JsPDF, c: WorkOrderCushion, x0: number, y0: number, boxW:
   doc.text('FRONT', x + w / 2, y + d + 11, { align: 'center' })
 
   // Width dimension (above), depth dimension (right).
-  dim(doc, x, y - 7, x + w, y - 7, `${formatInches(c.width)} W`)
+  dim(doc, x, y - 7, x + w, y - 7, `${formatInches(c.cuts.finishedWidth)} W`)
   const rx = x + w + 10
   doc.setDrawColor(...INK)
   doc.setLineWidth(0.6)
@@ -308,7 +313,7 @@ function drawPlan(doc: JsPDF, c: WorkOrderCushion, x0: number, y0: number, boxW:
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(...INK)
-  doc.text(clean(`${formatInches(c.depth)} D`), rx + 5, y + d / 2 + 3)
+  doc.text(clean(`${formatInches(c.cuts.finishedDepth)} D`), rx + 5, y + d / 2 + 3)
 }
 
 /** Side view: width across, ordered vs finished boxing height. */
@@ -317,7 +322,7 @@ function drawSide(doc: JsPDF, c: WorkOrderCushion, x0: number, y0: number, boxW:
   doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
   doc.text('SIDE VIEW', x0, y0)
-  const sc = Math.min((boxW - 60) / c.width, (boxH - 10) / c.height)
+  const sc = Math.min((boxW - 100) / c.width, (boxH - 10) / c.height)
   const w = c.width * sc
   const h = c.height * sc
   const fh = c.cuts.finishedHeight * sc

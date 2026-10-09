@@ -1,6 +1,7 @@
 // Cushion cut dimensions — same formulas as the original cushion-cut-dims
-// calculator. Inputs are the ORDERED size; boxing and zipper use the finished
-// height after the workroom deduction.
+// calculator. Inputs are the ORDERED size. The cover is made to the finished
+// size: ¼" off width and depth, and the chosen deduction off the height.
+// Foam is cut to the ordered size.
 
 export type ZipperStyle = 'wrap' | 'back'
 
@@ -15,15 +16,21 @@ export type CushionInput = {
   /** Ordered height, inches. */
   height: number
   style: ZipperStyle
+  /** Inches taken off the ordered height for the finished boxing height. */
+  heightDeduction: number
+  /** False when the cushion has no cording. */
+  cording: boolean
 }
 
 export type CushionCuts = {
+  finishedWidth: number
+  finishedDepth: number
   finishedHeight: number
   deduction: number
   plate: { qty: number; width: number; depth: number }
   boxing: { qty: number; x: number; z: number }
   zipper: { qty: number; x: number; z: number }
-  /** Total cording for this line, inches. */
+  /** Total cording for this line, inches (0 when the cushion has none). */
   cording: number
   /** Foam is cut to the ordered size. */
   foam: { qty: number; width: number; depth: number; height: number }
@@ -48,22 +55,25 @@ export function cordingByFabric(items: { fabric: string; cording: number }[]): {
   return [...map.entries()].map(([fabric, inches]) => ({ fabric, inches, strips: cordingStrips(inches) }))
 }
 
-/** Under 5": −½" · 5" to 8": −1" · over 8": −1½" */
-export function heightDeduction(height: number): number {
-  if (height < 5) return 0.5
-  if (height <= 8) return 1
-  return 1.5
-}
+/** Taken off the ordered width and depth for the finished cover. */
+export const COVER_DEDUCTION = 0.25
 
-export function cushionCuts({ qty, front: c, sides: d, height, style }: CushionInput): CushionCuts {
-  const deduction = heightDeduction(height)
+/** Height deductions the workroom uses; ½" unless the job says otherwise. */
+export const HEIGHT_DEDUCTIONS = [0.25, 0.5, 1, 1.5] as const
+export const DEFAULT_HEIGHT_DEDUCTION = 0.5
+
+export function cushionCuts({ qty, front, sides, height, style, heightDeduction: deduction, cording: hasCording }: CushionInput): CushionCuts {
+  const c = front - COVER_DEDUCTION
+  const d = sides - COVER_DEDUCTION
   const e = height - deduction
   const plate = { qty: qty * 2, width: c + 1, depth: d + 1 }
-  const foam = { qty, width: c, depth: d, height }
-  const cording = (c + d) * 2 * 2 * qty
+  const foam = { qty, width: front, depth: sides, height }
+  const cording = hasCording ? (c + d) * 2 * 2 * qty : 0
   const zipZ = e / 2 + 1.25
   if (style === 'back') {
     return {
+      finishedWidth: c,
+      finishedDepth: d,
       finishedHeight: e,
       deduction,
       plate,
@@ -74,6 +84,8 @@ export function cushionCuts({ qty, front: c, sides: d, height, style }: CushionI
     }
   }
   return {
+    finishedWidth: c,
+    finishedDepth: d,
     finishedHeight: e,
     deduction,
     plate,

@@ -26,6 +26,8 @@ import {
   cordingByFabric,
   cordingStrips,
   cushionCuts,
+  DEFAULT_HEIGHT_DEDUCTION,
+  HEIGHT_DEDUCTIONS,
   formatInches,
   parseInches,
   type CushionCuts,
@@ -51,6 +53,8 @@ type Row = {
   front: string
   sides: string
   height: string
+  heightDeduction: number
+  cording: boolean
 }
 type Draft = { job: WorkOrderJob; rows: Row[] }
 
@@ -68,6 +72,8 @@ const blank = (): Row => ({
   front: '',
   sides: '',
   height: '',
+  heightDeduction: DEFAULT_HEIGHT_DEDUCTION,
+  cording: true,
 })
 const blankJob = (): WorkOrderJob => ({ client: '', workOrder: '', sidemark: '' })
 
@@ -137,12 +143,16 @@ function CutsTable({ cuts }: { cuts: CushionCuts }) {
       qty: cuts.foam.qty,
       size: `${formatInches(cuts.foam.width)} × ${formatInches(cuts.foam.depth)} × ${formatInches(cuts.foam.height)}`,
     },
-    {
-      key: 'cording',
-      piece: t('cushionCut.cording'),
-      qty: '',
-      size: `${formatInches(cuts.cording)} · ${t('cushionCut.strips', { count: cordingStrips(cuts.cording) })}`,
-    },
+    ...(cuts.cording > 0
+      ? [
+          {
+            key: 'cording',
+            piece: t('cushionCut.cording'),
+            qty: '',
+            size: `${formatInches(cuts.cording)} · ${t('cushionCut.strips', { count: cordingStrips(cuts.cording) })}`,
+          },
+        ]
+      : []),
   ]
   return (
     <Table
@@ -189,7 +199,16 @@ export default function CushionCut() {
         const sides = parseInches(r.sides)
         const height = parseInches(r.height)
         if (front === null || sides === null || height === null || height <= 0) return null
-        return cushionCuts({ qty: Math.max(1, r.qty || 1), front, sides, height, style: r.style })
+        if (height <= r.heightDeduction) return null
+        return cushionCuts({
+          qty: Math.max(1, r.qty || 1),
+          front,
+          sides,
+          height,
+          style: r.style,
+          heightDeduction: r.heightDeduction,
+          cording: r.cording,
+        })
       }),
     [rows],
   )
@@ -227,7 +246,7 @@ export default function CushionCut() {
     { cording: 0, plates: 0, zippers: 0 },
   )
   const byFabric = cordingByFabric(
-    rows.flatMap((r, i) => (results[i] ? [{ fabric: r.fabric, cording: results[i]!.cording }] : [])),
+    rows.flatMap((r, i) => (results[i] && results[i]!.cording > 0 ? [{ fabric: r.fabric, cording: results[i]!.cording }] : [])),
   )
   const totalStrips = byFabric.reduce((n, f) => n + f.strips, 0)
 
@@ -372,6 +391,24 @@ export default function CushionCut() {
                   <Col xs={24} sm={8}>
                     <InchField id={`height-${r.id}`} label={t('cushionCut.height')} help={t('cushionCut.heightHelp')} value={r.height} onChange={(v) => update(r.id, { height: v })} />
                   </Col>
+                  <Col xs={24} sm={16}>
+                    <Form.Item label={t('cushionCut.heightDeduction')} extra={t('cushionCut.heightDeductionHelp')} style={{ marginBottom: 20 }}>
+                      <Segmented
+                        block
+                        size="large"
+                        value={r.heightDeduction}
+                        onChange={(v) => update(r.id, { heightDeduction: v as number })}
+                        options={HEIGHT_DEDUCTIONS.map((d) => ({ value: d, label: `−${formatInches(d)}` }))}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item label={t('cushionCut.cording')} extra={t('cushionCut.cordingHelp')} style={{ marginBottom: 20 }}>
+                      <Checkbox checked={r.cording} onChange={(e) => update(r.id, { cording: e.target.checked })}>
+                        {t('cushionCut.hasCording')}
+                      </Checkbox>
+                    </Form.Item>
+                  </Col>
                   <Col xs={24} sm={10}>
                     <Form.Item label={t('cushionCut.foamWrap')} htmlFor={`wrap-${r.id}`} style={{ marginBottom: 20 }}>
                       <Select
@@ -410,9 +447,7 @@ export default function CushionCut() {
                   <div style={{ margin: '4px 0 12px' }}>
                     <Tag color="blue" style={{ fontSize: 13, padding: '2px 8px' }}>
                       {t('cushionCut.finishes', {
-                        ordered: formatInches(cuts.finishedHeight + cuts.deduction),
-                        finished: formatInches(cuts.finishedHeight),
-                        less: formatInches(cuts.deduction),
+                        size: `${formatInches(cuts.finishedWidth)} × ${formatInches(cuts.finishedDepth)} × ${formatInches(cuts.finishedHeight)}`,
                       })}
                     </Tag>
                   </div>
