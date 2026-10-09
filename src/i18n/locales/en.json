@@ -550,5 +550,33 @@
     "wedgeSideSize": "{{h}} tall, {{top}} top, {{bottom}} bottom",
     "wedgeZipper": "Zipper (length)",
     "wedgeFoam": "Foam (L × H × bottom/top)"
+  },
+  "leafBag": {
+    "intro": "Enter each job's finished bag size. The cuts update as you type.",
+    "ruleTitle": "How the cuts are sized",
+    "rule": "Cuts come from the bag size. Both pieces are bag width + 1\". Long bottom is bag depth + 9\" and short top is bag depth + 2 1/2\". Leaf size is for reference only.",
+    "pasteTitle": "Paste rows from the spreadsheet",
+    "pasteHelp": "Copy the rows (Job #, Leaf Width, Leaf Depth, Bag Width, Bag Depth, Qty) from the spreadsheet, paste them here, then press Add rows.",
+    "pasteAdd": "Add rows",
+    "bagN": "Bag {{n}}",
+    "remove": "Remove bag",
+    "job": "Job #",
+    "jobHelp": "Prints on the cut list and labels.",
+    "bagWidth": "Bag width",
+    "bagDepth": "Bag depth",
+    "bagHelp": "Finished bag size",
+    "leafWidth": "Leaf width",
+    "leafDepth": "Leaf depth",
+    "leafHelp": "Optional, for reference",
+    "fillIn": "Fill in the bag width and depth to see the cuts.",
+    "longBottom": "Long bottom",
+    "shortTop": "Short top",
+    "cutSize": "Cut size (W × L)",
+    "add": "Add another bag",
+    "totalJobs": "Jobs",
+    "totalBags": "Bags",
+    "pdf": "Download cut list PDF",
+    "labels": "Download labels PDF",
+    "clearConfirm": "Clear every bag and start over?"
   }
 }
