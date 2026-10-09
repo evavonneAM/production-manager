@@ -21,6 +21,9 @@ import {
 } from 'antd'
 import { ArrowLeftOutlined, DeleteOutlined, FilePdfOutlined, PlusOutlined } from '@ant-design/icons'
 import {
+  BIAS_STRIP_LENGTH,
+  cordingByFabric,
+  cordingStrips,
   cushionCuts,
   formatInches,
   parseInches,
@@ -122,7 +125,12 @@ function CutsTable({ cuts }: { cuts: CushionCuts }) {
     { key: 'plate', piece: t('cushionCut.plate'), qty: cuts.plate.qty, size: `${formatInches(cuts.plate.width)} × ${formatInches(cuts.plate.depth)}` },
     { key: 'boxing', piece: t('cushionCut.boxing'), qty: cuts.boxing.qty, size: `${formatInches(cuts.boxing.x)} × ${formatInches(cuts.boxing.z)}` },
     { key: 'zipper', piece: t('cushionCut.zipper'), qty: cuts.zipper.qty, size: `${formatInches(cuts.zipper.x)} × ${formatInches(cuts.zipper.z)}` },
-    { key: 'cording', piece: t('cushionCut.cording'), qty: '', size: formatInches(cuts.cording) },
+    {
+      key: 'cording',
+      piece: t('cushionCut.cording'),
+      qty: '',
+      size: `${formatInches(cuts.cording)} · ${t('cushionCut.strips', { count: cordingStrips(cuts.cording) })}`,
+    },
   ]
   return (
     <Table
@@ -204,6 +212,10 @@ export default function CushionCut() {
     (a, c) => ({ cording: a.cording + c.cording, plates: a.plates + c.plate.qty, zippers: a.zippers + c.zipper.qty }),
     { cording: 0, plates: 0, zippers: 0 },
   )
+  const byFabric = cordingByFabric(
+    rows.flatMap((r, i) => (results[i] ? [{ fabric: r.fabric, cording: results[i]!.cording }] : [])),
+  )
+  const totalStrips = byFabric.reduce((n, f) => n + f.strips, 0)
 
   return (
     <div style={{ maxWidth: 760, width: '100%', margin: '0 auto', padding: '16px 16px 48px' }}>
@@ -375,16 +387,36 @@ export default function CushionCut() {
 
         <Card title={t('cushionCut.totals')}>
           <Row gutter={[16, 16]}>
-            <Col xs={24} sm={10}>
+            <Col xs={24} sm={12}>
               <Statistic title={t('cushionCut.totalCording')} value={formatInches(totals.cording)} suffix={<Typography.Text type="secondary" style={{ fontSize: 14 }}>({(totals.cording / 36).toFixed(2)} {t('calc.yd')})</Typography.Text>} />
             </Col>
-            <Col xs={12} sm={7}>
+            <Col xs={24} sm={12}>
+              <Statistic title={t('cushionCut.totalStrips', { len: BIAS_STRIP_LENGTH })} value={totalStrips} />
+            </Col>
+            <Col xs={12} sm={12}>
               <Statistic title={t('cushionCut.totalPlates')} value={totals.plates} />
             </Col>
-            <Col xs={12} sm={7}>
+            <Col xs={12} sm={12}>
               <Statistic title={t('cushionCut.totalZippers')} value={totals.zippers} />
             </Col>
           </Row>
+          {byFabric.length > 1 && (
+            <Table
+              size="small"
+              pagination={false}
+              style={{ marginTop: 16 }}
+              rowKey="fabric"
+              dataSource={byFabric}
+              columns={[
+                { title: t('cushionCut.fabric'), dataIndex: 'fabric', render: (f: string) => f || t('cushionCut.noFabric') },
+                { title: t('cushionCut.cording'), dataIndex: 'inches', align: 'right', render: (n: number) => formatInches(n) },
+                { title: t('cushionCut.stripsCol'), dataIndex: 'strips', align: 'right', render: (n: number) => <Typography.Text strong>{n}</Typography.Text> },
+              ]}
+            />
+          )}
+          <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
+            {t('cushionCut.stripsHelp', { len: BIAS_STRIP_LENGTH })}
+          </Typography.Paragraph>
         </Card>
 
         <Space wrap className="no-print">

@@ -1,5 +1,5 @@
 import type { jsPDF as JsPDF } from 'jspdf'
-import { formatInches, type CushionCuts, type ZipperStyle } from './cushionCut'
+import { BIAS_STRIP_LENGTH, cordingByFabric, cordingStrips, formatInches, type CushionCuts, type ZipperStyle } from './cushionCut'
 
 export type FabricDirection = 'none' | 'railroaded' | 'upTheRoll'
 
@@ -69,14 +69,17 @@ export function buildCushionWorkOrder(doc: JsPDF, job: WorkOrderJob, cushions: W
     (a, c) => ({ cording: a.cording + c.cuts.cording, plates: a.plates + c.cuts.plate.qty, zippers: a.zippers + c.cuts.zipper.qty, pieces: a.pieces + c.qty }),
     { cording: 0, plates: 0, zippers: 0, pieces: 0 },
   )
-  const stats: [string, string][] = [
+  const byFabric = cordingByFabric(cushions.map((c) => ({ fabric: c.fabric, cording: c.cuts.cording })))
+  const strips = byFabric.reduce((n, f) => n + f.strips, 0)
+  const stats: [string, string, string?][] = [
     ['CUSHIONS', String(tot.pieces)],
     ['PLATES', String(tot.plates)],
     ['ZIPPERS', String(tot.zippers)],
-    ['CORDING', `${formatInches(tot.cording)}  (${(tot.cording / 36).toFixed(2)} yd)`],
+    ['CORDING', formatInches(tot.cording), `${(tot.cording / 36).toFixed(2)} yd`],
+    [`BIAS STRIPS (${BIAS_STRIP_LENGTH}")`, String(strips)],
   ]
-  const sw = CW / 4
-  stats.forEach(([k, v], i) => {
+  const sw = CW / 5
+  stats.forEach(([k, v, sub], i) => {
     const x = M + i * sw
     doc.setTextColor(...MUTED)
     doc.setFont('helvetica', 'bold')
@@ -85,8 +88,25 @@ export function buildCushionWorkOrder(doc: JsPDF, job: WorkOrderJob, cushions: W
     doc.setTextColor(...INK)
     doc.setFontSize(13)
     doc.text(clean(v), x, y + 17)
+    if (sub) {
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(...MUTED)
+      doc.text(sub, x, y + 29)
+    }
   })
-  y += 28
+  y += 46
+  if (byFabric.length > 1) {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9.5)
+    doc.setTextColor(...INK)
+    const line = 'Cording strips by fabric:  ' + byFabric.map((f) => `${f.fabric || 'No fabric entered'}: ${f.strips}`).join('   |   ')
+    doc.splitTextToSize(clean(line), CW).forEach((l: string) => {
+      doc.text(l, M, y)
+      y += 13
+    })
+    y += 2
+  }
   doc.setDrawColor(...RULE)
   doc.setLineWidth(1)
   doc.line(M, y, M + CW, y)
@@ -186,7 +206,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
     ['Plates (W x D)', String(c.cuts.plate.qty), `${formatInches(c.cuts.plate.width)} x ${formatInches(c.cuts.plate.depth)}`],
     ['Boxing (X x Z)', String(c.cuts.boxing.qty), `${formatInches(c.cuts.boxing.x)} x ${formatInches(c.cuts.boxing.z)}`],
     ['Zipper (X x Z)', String(c.cuts.zipper.qty), `${formatInches(c.cuts.zipper.x)} x ${formatInches(c.cuts.zipper.z)}`],
-    ['Cording', '', `${formatInches(c.cuts.cording)}  (${(c.cuts.cording / 36).toFixed(2)} yd)`],
+    ['Cording', '', `${formatInches(c.cuts.cording)}  (${cordingStrips(c.cuts.cording)} strips)`],
   ]
   rows.forEach(([a, b, s], k) => {
     if (k % 2 === 1) {

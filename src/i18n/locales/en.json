@@ -508,6 +508,12 @@
     "client": "Client",
     "sidemark": "Sidemark",
     "jobHelp": "These print at the top of the work order PDF.",
-    "pdf": "Download work order PDF"
+    "pdf": "Download work order PDF",
+    "strips_one": "{{count}} strip",
+    "strips_other": "{{count}} strips",
+    "totalStrips": "Cording strips ({{len}}\" bias)",
+    "stripsCol": "Strips",
+    "noFabric": "No fabric entered",
+    "stripsHelp": "Strips are {{len}}\" long, cut on the bias from 54\" fabric, counted separately for each fabric."
   }
 }

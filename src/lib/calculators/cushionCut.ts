@@ -25,6 +25,25 @@ export type CushionCuts = {
   cording: number
 }
 
+/** Cording is cut on the bias from 54" fabric: a strip is about 74" long
+ *  (the 54" square's diagonal, rounded down a little). */
+export const BIAS_STRIP_LENGTH = 74
+
+/** Strips to cut for a length of cording, rounded up. */
+export function cordingStrips(inches: number): number {
+  return inches > 0 ? Math.ceil(inches / BIAS_STRIP_LENGTH - 1e-9) : 0
+}
+
+/** Cording per fabric, so strips are counted from each fabric's own total. */
+export function cordingByFabric(items: { fabric: string; cording: number }[]): { fabric: string; inches: number; strips: number }[] {
+  const map = new Map<string, number>()
+  for (const it of items) {
+    const key = it.fabric.trim()
+    map.set(key, (map.get(key) ?? 0) + it.cording)
+  }
+  return [...map.entries()].map(([fabric, inches]) => ({ fabric, inches, strips: cordingStrips(inches) }))
+}
+
 /** Under 5": −½" · 5" to 8": −1" · over 8": −1½" */
 export function heightDeduction(height: number): number {
   if (height < 5) return 0.5

@@ -509,6 +509,14 @@
     "client": "Клиент",
     "sidemark": "Sidemark",
     "jobHelp": "Печатается вверху PDF наряда.",
-    "pdf": "Скачать PDF наряда"
+    "pdf": "Скачать PDF наряда",
+    "strips_one": "{{count}} полоса",
+    "strips_few": "{{count}} полосы",
+    "strips_many": "{{count}} полос",
+    "strips_other": "{{count}} полосы",
+    "totalStrips": "Полосы для канта ({{len}}\" по косой)",
+    "stripsCol": "Полосы",
+    "noFabric": "Ткань не указана",
+    "stripsHelp": "Полосы длиной {{len}}\", кроятся по косой из ткани шириной 54\", считаются отдельно для каждой ткани."
   }
 }

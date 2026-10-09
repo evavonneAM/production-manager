@@ -507,6 +507,12 @@
     "client": "Cliente",
     "sidemark": "Sidemark",
     "jobHelp": "Se imprimen arriba en el PDF de la orden de trabajo.",
-    "pdf": "Descargar PDF de orden de trabajo"
+    "pdf": "Descargar PDF de orden de trabajo",
+    "strips_one": "{{count}} tira",
+    "strips_other": "{{count}} tiras",
+    "totalStrips": "Tiras de cordón ({{len}}\" al bies)",
+    "stripsCol": "Tiras",
+    "noFabric": "Sin tela",
+    "stripsHelp": "Las tiras miden {{len}}\", cortadas al bies de tela de 54\", contadas por separado para cada tela."
   }
 }
