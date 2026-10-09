@@ -19,6 +19,7 @@ import Reports from './screens/Reports'
 import Tools from './screens/Tools'
 import CushionCut from './screens/calculators/CushionCut'
 import LeafBag from './screens/calculators/LeafBag'
+import CushionPricing from './screens/calculators/CushionPricing'
 import Profile from './screens/Profile'
 import QrResolve from './screens/QrResolve'
 
@@ -85,6 +86,7 @@ export default function App() {
         <Route path="/tools" element={<Tools />} />
         <Route path="/tools/cushion-cut" element={<CushionCut />} />
         <Route path="/tools/leaf-bag" element={<LeafBag />} />
+        <Route path="/tools/cushion-pricing" element={<CushionPricing />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

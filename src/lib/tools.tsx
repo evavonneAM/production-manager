@@ -47,6 +47,7 @@ export const TOOLS: Tool[] = [
   {
     id: 'cushionPricing',
     group: 'cushions',
+    route: '/tools/cushion-pricing',
     url: 'https://cushion-pricing.vercel.app',
     keywords: 'cushion pricing price foam inches yards convert',
     icon: (
