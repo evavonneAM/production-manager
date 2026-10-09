@@ -135,8 +135,8 @@ export type WedgeCuts = {
   foam: { qty: number; length: number; height: number; bottom: number; top: number }
 }
 
-/** Cut sizes round up to the next ⅛". */
-const up8 = (x: number) => Math.ceil(x * 8 - 1e-9) / 8
+/** Cut sizes round to the nearest ⅛". */
+const near8 = (x: number) => Math.round(x * 8) / 8
 
 export function wedgeCuts({ qty, length, height: h, bottom: b, top: t, lengthDeduction, cording: hasCording }: WedgeInput): WedgeCuts {
   const l = length - lengthDeduction
@@ -152,8 +152,8 @@ export function wedgeCuts({ qty, length, height: h, bottom: b, top: t, lengthDed
     finishedLength: l,
     deduction: lengthDeduction,
     slope,
-    panel: { qty, width: up8(l + 1), height: up8(perimeter + 1.5) },
-    side: { qty: qty * 2, height: up8(h + 1), top: up8(t + 0.5 + 0.5 * sec - 0.5 * tan), bottom: up8(b + 0.5 + 0.5 * sec + 0.5 * tan) },
+    panel: { qty, width: near8(l + 1), height: near8(perimeter + 1.5) },
+    side: { qty: qty * 2, height: near8(h + 1), top: near8(t + 0.5 + 0.5 * sec - 0.5 * tan), bottom: near8(b + 0.5 + 0.5 * sec + 0.5 * tan) },
     zipper: { qty, length: l },
     cording: hasCording ? perimeter * 2 * qty : 0,
     foam: { qty, length, height: h, bottom: b, top: t },
