@@ -19,7 +19,7 @@ import {
   Tag,
   Typography,
 } from 'antd'
-import { ArrowLeftOutlined, DeleteOutlined, PlusOutlined, PrinterOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, DeleteOutlined, FilePdfOutlined, PlusOutlined } from '@ant-design/icons'
 import {
   cushionCuts,
   formatInches,
@@ -27,23 +27,56 @@ import {
   type CushionCuts,
   type ZipperStyle,
 } from '../../lib/calculators/cushionCut'
+import {
+  downloadCushionWorkOrder,
+  type FabricDirection,
+  type WorkOrderCushion,
+  type WorkOrderJob,
+} from '../../lib/calculators/cushionCutPdf'
 
-type Row = { id: number; label: string; style: ZipperStyle; railroaded: boolean; qty: number; front: string; sides: string; height: string }
+type Row = {
+  id: number
+  label: string
+  fabric: string
+  style: ZipperStyle
+  direction: FabricDirection
+  qty: number
+  front: string
+  sides: string
+  height: string
+}
+type Draft = { job: WorkOrderJob; rows: Row[] }
 
 const DRAFT_KEY = 'pm-calc-cushion-cut'
 let nextId = 1
-const blank = (): Row => ({ id: nextId++, label: '', style: 'wrap', railroaded: false, qty: 1, front: '', sides: '', height: '' })
+const blank = (): Row => ({
+  id: nextId++,
+  label: '',
+  fabric: '',
+  style: 'back',
+  direction: 'none',
+  qty: 1,
+  front: '',
+  sides: '',
+  height: '',
+})
+const blankJob = (): WorkOrderJob => ({ client: '', workOrder: '', sidemark: '' })
 
-function loadDraft(): Row[] {
+function loadDraft(): Draft {
   try {
-    const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') as Row[] | null
-    if (Array.isArray(saved) && saved.length) {
-      return saved.map((r) => ({ ...blank(), ...r, id: nextId++ }))
+    const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') as Draft | Row[] | null
+    // Early drafts were just the row list.
+    const rows = Array.isArray(saved) ? saved : saved?.rows
+    if (rows?.length) {
+      return {
+        job: { ...blankJob(), ...(Array.isArray(saved) ? {} : saved?.job) },
+        rows: rows.map((r) => ({ ...blank(), ...r, id: nextId++ })),
+      }
     }
   } catch {
     // Storage unavailable or corrupt — start fresh.
   }
-  return [blank()]
+  return { job: blankJob(), rows: [blank()] }
 }
 
 /** One measurement field that accepts workroom fractions like 20 1/2. */
@@ -113,15 +146,18 @@ function CutsTable({ cuts }: { cuts: CushionCuts }) {
 /** Cushion cut dimensions: ordered cushion size in, plate/boxing/zipper/cording cuts out. */
 export default function CushionCut() {
   const { t } = useTranslation()
-  const [rows, setRows] = useState<Row[]>(loadDraft)
+  const [initial] = useState(loadDraft)
+  const [rows, setRows] = useState<Row[]>(initial.rows)
+  const [job, setJob] = useState<WorkOrderJob>(initial.job)
+  const [pdfBusy, setPdfBusy] = useState(false)
 
   useEffect(() => {
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(rows))
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ job, rows }))
     } catch {
       // Draft saving is a convenience only.
     }
-  }, [rows])
+  }, [job, rows])
 
   const update = (id: number, patch: Partial<Row>) =>
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)))
@@ -139,6 +175,31 @@ export default function CushionCut() {
   )
 
   const done = results.filter((c): c is CushionCuts => c !== null)
+
+  const downloadPdf = async () => {
+    const cushions: WorkOrderCushion[] = []
+    rows.forEach((r, i) => {
+      const cuts = results[i]
+      if (!cuts) return
+      cushions.push({
+        name: r.label.trim(),
+        qty: Math.max(1, r.qty || 1),
+        fabric: r.fabric.trim(),
+        style: r.style,
+        direction: r.direction,
+        width: parseInches(r.front)!,
+        depth: parseInches(r.sides)!,
+        height: parseInches(r.height)!,
+        cuts,
+      })
+    })
+    setPdfBusy(true)
+    try {
+      await downloadCushionWorkOrder(job, cushions)
+    } finally {
+      setPdfBusy(false)
+    }
+  }
   const totals = done.reduce(
     (a, c) => ({ cording: a.cording + c.cording, plates: a.plates + c.plate.qty, zippers: a.zippers + c.zipper.qty }),
     { cording: 0, plates: 0, zippers: 0 },
@@ -159,6 +220,21 @@ export default function CushionCut() {
       <Alert type="info" showIcon title={t('cushionCut.ruleTitle')} description={t('cushionCut.rule')} style={{ marginBottom: 16 }} />
 
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+        <Card title={t('cushionCut.jobTitle')} extra={<Typography.Text type="secondary">{t('cushionCut.optional')}</Typography.Text>}>
+          <Form layout="vertical" component="div">
+            <Row gutter={12}>
+              {(['workOrder', 'client', 'sidemark'] as const).map((k) => (
+                <Col xs={24} sm={8} key={k}>
+                  <Form.Item label={t(`cushionCut.${k}`)} htmlFor={`job-${k}`} style={{ marginBottom: 8 }}>
+                    <Input id={`job-${k}`} size="large" value={job[k]} onChange={(e) => setJob((j) => ({ ...j, [k]: e.target.value }))} />
+                  </Form.Item>
+                </Col>
+              ))}
+            </Row>
+          </Form>
+          <Typography.Text type="secondary">{t('cushionCut.jobHelp')}</Typography.Text>
+        </Card>
+
         {rows.map((r, i) => {
           const cuts = results[i]
           return (
@@ -167,7 +243,7 @@ export default function CushionCut() {
               title={
                 <Space size={8} wrap>
                   {r.label.trim() || t('cushionCut.cushionN', { n: i + 1 })}
-                  {r.railroaded && <Tag color="purple">{t('cushionCut.railroaded')}</Tag>}
+                  {r.direction !== 'none' && <Tag color="purple">{t(`cushionCut.${r.direction}`)}</Tag>}
                 </Space>
               }
               extra={
@@ -210,8 +286,8 @@ export default function CushionCut() {
                         value={r.style}
                         onChange={(v) => update(r.id, { style: v as ZipperStyle })}
                         options={[
-                          { value: 'wrap', label: t('cushionCut.wrap') },
                           { value: 'back', label: t('cushionCut.back') },
+                          { value: 'wrap', label: t('cushionCut.wrap') },
                         ]}
                       />
                     </Form.Item>
@@ -230,10 +306,35 @@ export default function CushionCut() {
                     </Form.Item>
                   </Col>
                   <Col xs={24}>
-                    <Form.Item extra={t('cushionCut.railroadedHelp')} style={{ marginBottom: 20 }}>
-                      <Checkbox checked={r.railroaded} onChange={(e) => update(r.id, { railroaded: e.target.checked })}>
-                        {t('cushionCut.railroaded')}
-                      </Checkbox>
+                    <Form.Item
+                      label={t('cushionCut.fabric')}
+                      htmlFor={`fabric-${r.id}`}
+                      extra={t('cushionCut.fabricHelp')}
+                      style={{ marginBottom: 20 }}
+                    >
+                      <Input
+                        id={`fabric-${r.id}`}
+                        size="large"
+                        allowClear
+                        value={r.fabric}
+                        onChange={(e) => update(r.id, { fabric: e.target.value })}
+                        placeholder={t('cushionCut.fabricPlaceholder')}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24}>
+                    <Form.Item label={t('cushionCut.direction')} extra={t('cushionCut.directionHelp')} style={{ marginBottom: 20 }}>
+                      <Space size={24} wrap>
+                        {(['railroaded', 'upTheRoll'] as const).map((d) => (
+                          <Checkbox
+                            key={d}
+                            checked={r.direction === d}
+                            onChange={(e) => update(r.id, { direction: e.target.checked ? d : 'none' })}
+                          >
+                            {t(`cushionCut.${d}`)}
+                          </Checkbox>
+                        ))}
+                      </Space>
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
@@ -287,10 +388,18 @@ export default function CushionCut() {
         </Card>
 
         <Space wrap className="no-print">
-          <Button size="large" icon={<PrinterOutlined />} onClick={() => window.print()} disabled={!done.length}>
-            {t('calc.print')}
+          <Button type="primary" size="large" icon={<FilePdfOutlined />} onClick={downloadPdf} loading={pdfBusy} disabled={!done.length}>
+            {t('cushionCut.pdf')}
           </Button>
-          <Popconfirm title={t('cushionCut.clearConfirm')} okText={t('cushionCut.clear')} cancelText={t('common.cancel')} onConfirm={() => setRows([blank()])}>
+          <Popconfirm
+            title={t('cushionCut.clearConfirm')}
+            okText={t('cushionCut.clear')}
+            cancelText={t('common.cancel')}
+            onConfirm={() => {
+              setRows([blank()])
+              setJob(blankJob())
+            }}
+          >
             <Button size="large" danger>
               {t('cushionCut.clear')}
             </Button>

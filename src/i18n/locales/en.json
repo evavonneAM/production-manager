@@ -496,6 +496,18 @@
     "namePlaceholder": "e.g. Sofa seat, Back pillow",
     "nameHelp": "Optional. Shows on the cut list and printout.",
     "railroaded": "Railroaded",
-    "railroadedHelp": "Fabric runs sideways. Decided by the project manager with the client."
+    "upTheRoll": "Up the roll",
+    "direction": "Fabric direction",
+    "directionHelp": "Pick one if it matters. Decided by the project manager with the client.",
+    "fabric": "Fabric",
+    "fabricPlaceholder": "e.g. Kravet Linen Weave, Oat",
+    "fabricHelp": "Optional. Enter it on each cushion if they use different fabrics.",
+    "jobTitle": "Job details",
+    "optional": "Optional",
+    "workOrder": "Work order #",
+    "client": "Client",
+    "sidemark": "Sidemark",
+    "jobHelp": "These print at the top of the work order PDF.",
+    "pdf": "Download work order PDF"
   }
 }
