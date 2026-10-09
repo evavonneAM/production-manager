@@ -4,8 +4,10 @@ import {
   cordingByFabric,
   cordingStrips,
   formatInches,
+  type AnyCuts,
   type CushionCuts,
   type FoamWrap,
+  type WedgeCuts,
   type ZipperStyle,
 } from './cushionCut'
 
@@ -22,9 +24,11 @@ export type WorkOrderCushion = {
   width: number
   depth: number
   height: number
+  /** Wedge only: thin (top) end. For a wedge, width = length and depth = deep (bottom) end. */
+  top: number
   foamWrap: FoamWrap
   foamNotes: string
-  cuts: CushionCuts
+  cuts: AnyCuts
 }
 
 // Letter, points. English only for now: jsPDF's built-in font has no Cyrillic.
@@ -159,7 +163,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
   doc.setFontSize(14)
   const title = `${c.name || `Cushion ${i + 1}`}   x ${c.qty}`
   doc.text(clean(title), M + 12, y + 2)
-  const chips = [STYLE_TEXT[c.style], DIRECTION_TEXT[c.direction]].filter(Boolean)
+  const chips = [c.cuts.kind === 'wedge' ? 'Wedge' : STYLE_TEXT[c.style], DIRECTION_TEXT[c.direction]].filter(Boolean)
   doc.setFontSize(9)
   let cx = PW - M
   chips
@@ -183,8 +187,13 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
 
   // Left: plan view + side view. Right: specs + cut list.
   const drawW = 250
-  drawPlan(doc, c, M + 12, y + 6, drawW, 150)
-  drawSide(doc, c, M + 12, y + 186, drawW, 50)
+  if (c.cuts.kind === 'wedge') {
+    drawWedgeProfile(doc, c, c.cuts, M + 12, y + 6, drawW, 160)
+    drawWedgeFront(doc, c, c.cuts, M + 12, y + 196, drawW, 44)
+  } else {
+    drawPlan(doc, c, c.cuts, M + 12, y + 6, drawW, 150)
+    drawSide(doc, c, c.cuts, M + 12, y + 186, drawW, 50)
+  }
 
   const rx = M + 12 + drawW + 30
   const rw = PW - M - rx
@@ -200,11 +209,17 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
     doc.text(clean(v), rx, ry + 13)
     ry += 30
   }
-  spec('ORDERED SIZE (W x D x H)', `${formatInches(c.width)} x ${formatInches(c.depth)} x ${formatInches(c.height)}`)
-  spec(
-    'FINISHED COVER (W x D x H)',
-    `${formatInches(c.cuts.finishedWidth)} x ${formatInches(c.cuts.finishedDepth)} x ${formatInches(c.cuts.finishedHeight)}  (height -${formatInches(c.cuts.deduction)})`,
-  )
+  const f = formatInches
+  if (c.cuts.kind === 'wedge') {
+    spec('ORDERED SIZE (L x H, BOTTOM / TOP)', `${f(c.width)} x ${f(c.height)},  ${f(c.depth)} / ${f(c.top)}`)
+    spec('FINISHED LENGTH', `${f(c.cuts.finishedLength)}  (length -${f(c.cuts.deduction)})`)
+  } else {
+    spec('ORDERED SIZE (W x D x H)', `${f(c.width)} x ${f(c.depth)} x ${f(c.height)}`)
+    spec(
+      'FINISHED COVER (W x D x H)',
+      `${f(c.cuts.finishedWidth)} x ${f(c.cuts.finishedDepth)} x ${f(c.cuts.finishedHeight)}  (height -${f(c.cuts.deduction)})`,
+    )
+  }
 
   // Cut list table.
   ry += 2
@@ -218,15 +233,25 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
   doc.text('QTY', cols[1] + 5, ry + 1)
   doc.text('CUT SIZE', cols[2] + 5, ry + 1)
   ry += 6
-  const rows: [string, string, string][] = [
-    ['Plates (W x D)', String(c.cuts.plate.qty), `${formatInches(c.cuts.plate.width)} x ${formatInches(c.cuts.plate.depth)}`],
-    ['Boxing (X x Z)', String(c.cuts.boxing.qty), `${formatInches(c.cuts.boxing.x)} x ${formatInches(c.cuts.boxing.z)}`],
-    ['Zipper (X x Z)', String(c.cuts.zipper.qty), `${formatInches(c.cuts.zipper.x)} x ${formatInches(c.cuts.zipper.z)}`],
-    ...(c.cuts.cording > 0
-      ? ([['Cording', '', `${formatInches(c.cuts.cording)}  (${cordingStrips(c.cuts.cording)} strips)`]] as [string, string, string][])
-      : []),
-    ['Foam (W x D x H)', String(c.cuts.foam.qty), `${formatInches(c.cuts.foam.width)} x ${formatInches(c.cuts.foam.depth)} x ${formatInches(c.cuts.foam.height)}`],
-  ]
+  const cordingRow: [string, string, string][] =
+    c.cuts.cording > 0 ? [['Cording', '', `${f(c.cuts.cording)}  (${cordingStrips(c.cuts.cording)} strips)`]] : []
+  const k = c.cuts
+  const rows: [string, string, string][] =
+    k.kind === 'box'
+      ? [
+          ['Plates (W x D)', String(k.plate.qty), `${f(k.plate.width)} x ${f(k.plate.depth)}`],
+          ['Boxing (X x Z)', String(k.boxing.qty), `${f(k.boxing.x)} x ${f(k.boxing.z)}`],
+          ['Zipper (X x Z)', String(k.zipper.qty), `${f(k.zipper.x)} x ${f(k.zipper.z)}`],
+          ...cordingRow,
+          ['Foam (W x D x H)', String(k.foam.qty), `${f(k.foam.width)} x ${f(k.foam.depth)} x ${f(k.foam.height)}`],
+        ]
+      : [
+          ['Main panel (W x H)', String(k.panel.qty), `${f(k.panel.width)} x ${f(k.panel.height)}`],
+          ['Sides (H x top/bot)', String(k.side.qty), `${f(k.side.height)} x ${f(k.side.top)} / ${f(k.side.bottom)}`],
+          ['Zipper (length)', String(k.zipper.qty), f(k.zipper.length)],
+          ...cordingRow,
+          ['Foam (L x H x B/T)', String(k.foam.qty), `${f(k.foam.length)} x ${f(k.foam.height)} x ${f(k.foam.bottom)}/${f(k.foam.top)}`],
+        ]
   rows.forEach(([a, b, s], k) => {
     if (k % 2 === 1) {
       doc.setFillColor(244, 246, 249)
@@ -238,6 +263,9 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
     doc.text(a, cols[0] + 5, ry + 14)
     doc.text(b, cols[1] + 5, ry + 14)
     doc.setFont('helvetica', 'bold')
+    // Shrink long sizes to fit the column.
+    let fs = 10
+    while (fs > 7 && doc.getTextWidth(clean(s)) > rx + rw - cols[2] - 8) doc.setFontSize(--fs)
     doc.text(clean(s), cols[2] + 5, ry + 14)
     ry += 20
   })
@@ -264,7 +292,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
 }
 
 /** Plan (top) view: width across, depth down, zipper on the back edge. */
-function drawPlan(doc: JsPDF, c: WorkOrderCushion, x0: number, y0: number, boxW: number, boxH: number) {
+function drawPlan(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number, y0: number, boxW: number, boxH: number) {
   const pad = 30
   const sc = Math.min((boxW - pad * 2) / c.width, (boxH - pad * 1.6) / c.depth)
   const w = c.width * sc
@@ -303,7 +331,7 @@ function drawPlan(doc: JsPDF, c: WorkOrderCushion, x0: number, y0: number, boxW:
   doc.text('FRONT', x + w / 2, y + d + 11, { align: 'center' })
 
   // Width dimension (above), depth dimension (right).
-  dim(doc, x, y - 7, x + w, y - 7, `${formatInches(c.cuts.finishedWidth)} W`)
+  dim(doc, x, y - 7, x + w, y - 7, `${formatInches(cuts.finishedWidth)} W`)
   const rx = x + w + 10
   doc.setDrawColor(...INK)
   doc.setLineWidth(0.6)
@@ -313,11 +341,11 @@ function drawPlan(doc: JsPDF, c: WorkOrderCushion, x0: number, y0: number, boxW:
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(...INK)
-  doc.text(clean(`${formatInches(c.cuts.finishedDepth)} D`), rx + 5, y + d / 2 + 3)
+  doc.text(clean(`${formatInches(cuts.finishedDepth)} D`), rx + 5, y + d / 2 + 3)
 }
 
 /** Side view: width across, ordered vs finished boxing height. */
-function drawSide(doc: JsPDF, c: WorkOrderCushion, x0: number, y0: number, boxW: number, boxH: number) {
+function drawSide(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number, y0: number, boxW: number, boxH: number) {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
@@ -325,7 +353,7 @@ function drawSide(doc: JsPDF, c: WorkOrderCushion, x0: number, y0: number, boxW:
   const sc = Math.min((boxW - 100) / c.width, (boxH - 10) / c.height)
   const w = c.width * sc
   const h = c.height * sc
-  const fh = c.cuts.finishedHeight * sc
+  const fh = cuts.finishedHeight * sc
   const x = x0 + (boxW - w) / 2
   const y = y0 + 8
   doc.setDrawColor(...INK)
@@ -339,9 +367,72 @@ function drawSide(doc: JsPDF, c: WorkOrderCushion, x0: number, y0: number, boxW:
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8.5)
   doc.setTextColor(...INK)
-  doc.text(clean(`${formatInches(c.cuts.finishedHeight)} finished`), x + w + 6, y + h - fh / 2 + 3)
+  doc.text(clean(`${formatInches(cuts.finishedHeight)} finished`), x + w + 6, y + h - fh / 2 + 3)
   doc.setTextColor(...MUTED)
   doc.text(clean(`${formatInches(c.height)} ordered (dashed)`), x0, y + h + 14)
+}
+
+/** Wedge side profile: plumb front, sloped back rest, zipper on the bottom. */
+function drawWedgeProfile(doc: JsPDF, c: WorkOrderCushion, cuts: WedgeCuts, x0: number, y0: number, boxW: number, boxH: number) {
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7.5)
+  doc.setTextColor(...MUTED)
+  doc.text('SIDE PROFILE', x0, y0)
+  const sc = Math.min((boxW - 120) / c.depth, (boxH - 30) / c.height)
+  const b = c.depth * sc
+  const t = c.top * sc
+  const h = c.height * sc
+  const x = x0 + (boxW - b) / 2 - 10
+  const yB = y0 + 14 + h // bottom edge
+  const yT = y0 + 14
+  doc.setDrawColor(...INK)
+  doc.setFillColor(241, 246, 251)
+  doc.setLineWidth(1.2)
+  // Front edge plumb on the left; back rest slopes from top-right to bottom-right.
+  doc.lines([[t, 0], [b - t, h], [-b, 0], [0, -h]], x, yT, [1, 1], 'FD', true)
+  // Zipper: centered on the bottom.
+  doc.setDrawColor(...ACCENT)
+  doc.setLineWidth(3)
+  doc.line(x + b * 0.2, yB, x + b * 0.8, yB)
+  doc.setLineWidth(1)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7)
+  doc.setTextColor(...ACCENT)
+  doc.text('ZIPPER', x + b / 2, yB + 10, { align: 'center' })
+  // Dimensions.
+  dim(doc, x, yT - 7, x + t, yT - 7, `${formatInches(c.top)}`)
+  dim(doc, x, yB + 22, x + b, yB + 22, `${formatInches(c.depth)}`)
+  doc.setDrawColor(...INK)
+  doc.setLineWidth(0.6)
+  const lx = x - 10
+  doc.line(lx, yT, lx, yB)
+  doc.line(lx - 3, yT, lx + 3, yT)
+  doc.line(lx - 3, yB, lx + 3, yB)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(...INK)
+  doc.text(clean(`${formatInches(c.height)} H`), lx - 4, (yT + yB) / 2 + 3, { align: 'right' })
+  doc.setFontSize(8)
+  doc.setTextColor(...MUTED)
+  doc.text(clean(`BACK REST ${formatInches(cuts.slope)}`), x + (t + b) / 2 + 8, (yT + yB) / 2 + 3)
+}
+
+/** Wedge front view: finished length across, height up. */
+function drawWedgeFront(doc: JsPDF, c: WorkOrderCushion, cuts: WedgeCuts, x0: number, y0: number, boxW: number, boxH: number) {
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7.5)
+  doc.setTextColor(...MUTED)
+  doc.text('FRONT VIEW - FINISHED LENGTH', x0, y0)
+  const sc = Math.min((boxW - 20) / cuts.finishedLength, (boxH - 18) / c.height)
+  const w = cuts.finishedLength * sc
+  const h = c.height * sc
+  const x = x0 + (boxW - w) / 2
+  const y = y0 + 18
+  doc.setDrawColor(...INK)
+  doc.setFillColor(241, 246, 251)
+  doc.setLineWidth(1.2)
+  doc.roundedRect(x, y, w, h, 3, 3, 'FD')
+  dim(doc, x, y - 6, x + w, y - 6, `${formatInches(cuts.finishedLength)} L`)
 }
 
 function dim(doc: JsPDF, x1: number, y1: number, x2: number, y2: number, label: string) {

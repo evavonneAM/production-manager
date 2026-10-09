@@ -23,6 +23,7 @@ export type CushionInput = {
 }
 
 export type CushionCuts = {
+  kind: 'box'
   finishedWidth: number
   finishedDepth: number
   finishedHeight: number
@@ -72,6 +73,7 @@ export function cushionCuts({ qty, front, sides, height, style, heightDeduction:
   const zipZ = e / 2 + 1.25
   if (style === 'back') {
     return {
+      kind: 'box',
       finishedWidth: c,
       finishedDepth: d,
       finishedHeight: e,
@@ -84,6 +86,7 @@ export function cushionCuts({ qty, front, sides, height, style, heightDeduction:
     }
   }
   return {
+    kind: 'box',
     finishedWidth: c,
     finishedDepth: d,
     finishedHeight: e,
@@ -95,6 +98,69 @@ export function cushionCuts({ qty, front, sides, height, style, heightDeduction:
     foam,
   }
 }
+
+// ── Wedge (back) cushion ────────────────────────────────────────────
+// Stands on its deep end: `bottom` is the deep end, `top` the thin end,
+// `height` is bottom to top. The straight side is plumb; the sloped side is
+// the back rest. One main panel wraps the whole profile and closes with a
+// full-length zipper centered on the bottom; two side pieces close the ends.
+
+/** Wedge length deductions; ½" unless the job says otherwise. */
+export const LENGTH_DEDUCTIONS = [0.5, 1] as const
+export const DEFAULT_LENGTH_DEDUCTION = 0.5
+
+export type WedgeInput = {
+  qty: number
+  length: number
+  height: number
+  bottom: number
+  top: number
+  lengthDeduction: number
+  cording: boolean
+}
+
+export type WedgeCuts = {
+  kind: 'wedge'
+  finishedLength: number
+  deduction: number
+  /** Length of the sloped back-rest side. */
+  slope: number
+  /** Wraps the profile; ½" each end, ¾" at each zipper edge. */
+  panel: { qty: number; width: number; height: number }
+  /** Wedge-shaped ends with ½" seam allowance all around. */
+  side: { qty: number; height: number; top: number; bottom: number }
+  zipper: { qty: number; length: number }
+  /** Around both side pieces (0 when the cushion has no cording). */
+  cording: number
+  foam: { qty: number; length: number; height: number; bottom: number; top: number }
+}
+
+/** Cut sizes round up to the next ⅛". */
+const up8 = (x: number) => Math.ceil(x * 8 - 1e-9) / 8
+
+export function wedgeCuts({ qty, length, height: h, bottom: b, top: t, lengthDeduction, cording: hasCording }: WedgeInput): WedgeCuts {
+  const l = length - lengthDeduction
+  const run = b - t
+  const slope = Math.hypot(h, run)
+  const perimeter = h + b + t + slope
+  // A ½" offset of the profile: the sloped edge moves out ½" square to itself,
+  // which widens each end by ½"/cos and shifts it by ½"·tan along the slope.
+  const tan = run / h
+  const sec = slope / h
+  return {
+    kind: 'wedge',
+    finishedLength: l,
+    deduction: lengthDeduction,
+    slope,
+    panel: { qty, width: up8(l + 1), height: up8(perimeter + 1.5) },
+    side: { qty: qty * 2, height: up8(h + 1), top: up8(t + 0.5 + 0.5 * sec - 0.5 * tan), bottom: up8(b + 0.5 + 0.5 * sec + 0.5 * tan) },
+    zipper: { qty, length: l },
+    cording: hasCording ? perimeter * 2 * qty : 0,
+    foam: { qty, length, height: h, bottom: b, top: t },
+  }
+}
+
+export type AnyCuts = CushionCuts | WedgeCuts
 
 /** Parse workroom inches: "20", "20.5", "20 1/2", "20-1/2", "1/2", with or without ". */
 export function parseInches(raw: string): number | null {

@@ -27,10 +27,13 @@ import {
   cordingStrips,
   cushionCuts,
   DEFAULT_HEIGHT_DEDUCTION,
+  DEFAULT_LENGTH_DEDUCTION,
   HEIGHT_DEDUCTIONS,
+  LENGTH_DEDUCTIONS,
   formatInches,
   parseInches,
-  type CushionCuts,
+  wedgeCuts,
+  type AnyCuts,
   type FoamWrap,
   type ZipperStyle,
 } from '../../lib/calculators/cushionCut'
@@ -41,9 +44,12 @@ import {
   type WorkOrderJob,
 } from '../../lib/calculators/cushionCutPdf'
 
+type Shape = 'box' | 'wedge'
+
 type Row = {
   id: number
   label: string
+  shape: Shape
   fabric: string
   style: ZipperStyle
   direction: FabricDirection
@@ -54,6 +60,9 @@ type Row = {
   sides: string
   height: string
   heightDeduction: number
+  /** Wedge only: the thin (top) end. Front = length, sides = deep (bottom) end. */
+  topDepth: string
+  lengthDeduction: number
   cording: boolean
 }
 type Draft = { job: WorkOrderJob; rows: Row[] }
@@ -63,6 +72,7 @@ let nextId = 1
 const blank = (): Row => ({
   id: nextId++,
   label: '',
+  shape: 'box',
   fabric: '',
   style: 'back',
   direction: 'none',
@@ -73,6 +83,8 @@ const blank = (): Row => ({
   sides: '',
   height: '',
   heightDeduction: DEFAULT_HEIGHT_DEDUCTION,
+  topDepth: '',
+  lengthDeduction: DEFAULT_LENGTH_DEDUCTION,
   cording: true,
 })
 const blankJob = (): WorkOrderJob => ({ client: '', workOrder: '', sidemark: '' })
@@ -131,29 +143,46 @@ function InchField({
   )
 }
 
-function CutsTable({ cuts }: { cuts: CushionCuts }) {
+function CutsTable({ cuts }: { cuts: AnyCuts }) {
   const { t } = useTranslation()
-  const rows = [
-    { key: 'plate', piece: t('cushionCut.plate'), qty: cuts.plate.qty, size: `${formatInches(cuts.plate.width)} × ${formatInches(cuts.plate.depth)}` },
-    { key: 'boxing', piece: t('cushionCut.boxing'), qty: cuts.boxing.qty, size: `${formatInches(cuts.boxing.x)} × ${formatInches(cuts.boxing.z)}` },
-    { key: 'zipper', piece: t('cushionCut.zipper'), qty: cuts.zipper.qty, size: `${formatInches(cuts.zipper.x)} × ${formatInches(cuts.zipper.z)}` },
-    {
-      key: 'foam',
-      piece: t('cushionCut.foam'),
-      qty: cuts.foam.qty,
-      size: `${formatInches(cuts.foam.width)} × ${formatInches(cuts.foam.depth)} × ${formatInches(cuts.foam.height)}`,
-    },
-    ...(cuts.cording > 0
+  const f = formatInches
+  const cording =
+    cuts.cording > 0
       ? [
           {
             key: 'cording',
             piece: t('cushionCut.cording'),
-            qty: '',
-            size: `${formatInches(cuts.cording)} · ${t('cushionCut.strips', { count: cordingStrips(cuts.cording) })}`,
+            qty: '' as number | string,
+            size: `${f(cuts.cording)} · ${t('cushionCut.strips', { count: cordingStrips(cuts.cording) })}`,
           },
         ]
-      : []),
-  ]
+      : []
+  const rows =
+    cuts.kind === 'box'
+      ? [
+          { key: 'plate', piece: t('cushionCut.plate'), qty: cuts.plate.qty, size: `${f(cuts.plate.width)} × ${f(cuts.plate.depth)}` },
+          { key: 'boxing', piece: t('cushionCut.boxing'), qty: cuts.boxing.qty, size: `${f(cuts.boxing.x)} × ${f(cuts.boxing.z)}` },
+          { key: 'zipper', piece: t('cushionCut.zipper'), qty: cuts.zipper.qty, size: `${f(cuts.zipper.x)} × ${f(cuts.zipper.z)}` },
+          { key: 'foam', piece: t('cushionCut.foam'), qty: cuts.foam.qty, size: `${f(cuts.foam.width)} × ${f(cuts.foam.depth)} × ${f(cuts.foam.height)}` },
+          ...cording,
+        ]
+      : [
+          { key: 'panel', piece: t('cushionCut.wedgePanel'), qty: cuts.panel.qty, size: `${f(cuts.panel.width)} × ${f(cuts.panel.height)}` },
+          {
+            key: 'side',
+            piece: t('cushionCut.wedgeSide'),
+            qty: cuts.side.qty,
+            size: t('cushionCut.wedgeSideSize', { h: f(cuts.side.height), top: f(cuts.side.top), bottom: f(cuts.side.bottom) }),
+          },
+          { key: 'zipper', piece: t('cushionCut.wedgeZipper'), qty: cuts.zipper.qty, size: f(cuts.zipper.length) },
+          {
+            key: 'foam',
+            piece: t('cushionCut.wedgeFoam'),
+            qty: cuts.foam.qty,
+            size: `${f(cuts.foam.length)} × ${f(cuts.foam.height)} × ${f(cuts.foam.bottom)}/${f(cuts.foam.top)}`,
+          },
+          ...cording,
+        ]
   return (
     <Table
       size="small"
@@ -194,11 +223,24 @@ export default function CushionCut() {
 
   const results = useMemo(
     () =>
-      rows.map((r) => {
+      rows.map((r): AnyCuts | null => {
         const front = parseInches(r.front)
         const sides = parseInches(r.sides)
         const height = parseInches(r.height)
         if (front === null || sides === null || height === null || height <= 0) return null
+        if (r.shape === 'wedge') {
+          const top = parseInches(r.topDepth)
+          if (top === null || top <= 0 || top > sides || front <= r.lengthDeduction) return null
+          return wedgeCuts({
+            qty: Math.max(1, r.qty || 1),
+            length: front,
+            height,
+            bottom: sides,
+            top,
+            lengthDeduction: r.lengthDeduction,
+            cording: r.cording,
+          })
+        }
         if (height <= r.heightDeduction) return null
         return cushionCuts({
           qty: Math.max(1, r.qty || 1),
@@ -213,7 +255,7 @@ export default function CushionCut() {
     [rows],
   )
 
-  const done = results.filter((c): c is CushionCuts => c !== null)
+  const done = results.filter((c): c is AnyCuts => c !== null)
 
   const downloadPdf = async () => {
     const cushions: WorkOrderCushion[] = []
@@ -229,6 +271,7 @@ export default function CushionCut() {
         width: parseInches(r.front)!,
         depth: parseInches(r.sides)!,
         height: parseInches(r.height)!,
+        top: r.shape === 'wedge' ? parseInches(r.topDepth)! : 0,
         foamWrap: r.foamWrap,
         foamNotes: r.foamNotes.trim(),
         cuts,
@@ -242,7 +285,11 @@ export default function CushionCut() {
     }
   }
   const totals = done.reduce(
-    (a, c) => ({ cording: a.cording + c.cording, plates: a.plates + c.plate.qty, zippers: a.zippers + c.zipper.qty }),
+    (a, c) => ({
+      cording: a.cording + c.cording,
+      plates: a.plates + (c.kind === 'box' ? c.plate.qty : 0),
+      zippers: a.zippers + c.zipper.qty,
+    }),
     { cording: 0, plates: 0, zippers: 0 },
   )
   const byFabric = cordingByFabric(
@@ -288,6 +335,7 @@ export default function CushionCut() {
               title={
                 <Space size={8} wrap>
                   {r.label.trim() || t('cushionCut.cushionN', { n: i + 1 })}
+                  {r.shape === 'wedge' && <Tag color="geekblue">{t('cushionCut.shape_wedge')}</Tag>}
                   {r.direction !== 'none' && <Tag color="purple">{t(`cushionCut.${r.direction}`)}</Tag>}
                 </Space>
               }
@@ -323,7 +371,22 @@ export default function CushionCut() {
                       />
                     </Form.Item>
                   </Col>
+                  <Col xs={24}>
+                    <Form.Item label={t('cushionCut.shape')} extra={t(`cushionCut.shape_${r.shape}Help`)} style={{ marginBottom: 20 }}>
+                      <Segmented
+                        block
+                        size="large"
+                        value={r.shape}
+                        onChange={(v) => update(r.id, { shape: v as Shape })}
+                        options={[
+                          { value: 'box', label: t('cushionCut.shape_box') },
+                          { value: 'wedge', label: t('cushionCut.shape_wedge') },
+                        ]}
+                      />
+                    </Form.Item>
+                  </Col>
                   <Col xs={24} sm={16}>
+                    {r.shape === 'box' ? (
                     <Form.Item label={t('cushionCut.zipperStyle')} extra={t(`cushionCut.${r.style}Help`)} style={{ marginBottom: 20 }}>
                       <Segmented
                         block
@@ -336,6 +399,11 @@ export default function CushionCut() {
                         ]}
                       />
                     </Form.Item>
+                    ) : (
+                      <Form.Item label={t('cushionCut.zipperStyle')} style={{ marginBottom: 20 }}>
+                        <Typography.Text>{t('cushionCut.wedgeZipperHelp')}</Typography.Text>
+                      </Form.Item>
+                    )}
                   </Col>
                   <Col xs={24} sm={8}>
                     <Form.Item label={t('cushionCut.howMany')} htmlFor={`qty-${r.id}`} style={{ marginBottom: 20 }}>
@@ -382,26 +450,56 @@ export default function CushionCut() {
                       </Space>
                     </Form.Item>
                   </Col>
-                  <Col xs={24} sm={8}>
-                    <InchField id={`front-${r.id}`} label={t('cushionCut.front')} help={t('cushionCut.frontHelp')} value={r.front} onChange={(v) => update(r.id, { front: v })} />
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <InchField id={`sides-${r.id}`} label={t('cushionCut.sides')} help={t('cushionCut.sidesHelp')} value={r.sides} onChange={(v) => update(r.id, { sides: v })} />
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <InchField id={`height-${r.id}`} label={t('cushionCut.height')} help={t('cushionCut.heightHelp')} value={r.height} onChange={(v) => update(r.id, { height: v })} />
-                  </Col>
-                  <Col xs={24} sm={16}>
-                    <Form.Item label={t('cushionCut.heightDeduction')} extra={t('cushionCut.heightDeductionHelp')} style={{ marginBottom: 20 }}>
-                      <Segmented
-                        block
-                        size="large"
-                        value={r.heightDeduction}
-                        onChange={(v) => update(r.id, { heightDeduction: v as number })}
-                        options={HEIGHT_DEDUCTIONS.map((d) => ({ value: d, label: `−${formatInches(d)}` }))}
-                      />
-                    </Form.Item>
-                  </Col>
+                  {r.shape === 'box' ? (
+                    <>
+                      <Col xs={24} sm={8}>
+                        <InchField id={`front-${r.id}`} label={t('cushionCut.front')} help={t('cushionCut.frontHelp')} value={r.front} onChange={(v) => update(r.id, { front: v })} />
+                      </Col>
+                      <Col xs={24} sm={8}>
+                        <InchField id={`sides-${r.id}`} label={t('cushionCut.sides')} help={t('cushionCut.sidesHelp')} value={r.sides} onChange={(v) => update(r.id, { sides: v })} />
+                      </Col>
+                      <Col xs={24} sm={8}>
+                        <InchField id={`height-${r.id}`} label={t('cushionCut.height')} help={t('cushionCut.heightHelp')} value={r.height} onChange={(v) => update(r.id, { height: v })} />
+                      </Col>
+                      <Col xs={24} sm={16}>
+                        <Form.Item label={t('cushionCut.heightDeduction')} extra={t('cushionCut.heightDeductionHelp')} style={{ marginBottom: 20 }}>
+                          <Segmented
+                            block
+                            size="large"
+                            value={r.heightDeduction}
+                            onChange={(v) => update(r.id, { heightDeduction: v as number })}
+                            options={HEIGHT_DEDUCTIONS.map((d) => ({ value: d, label: `−${formatInches(d)}` }))}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </>
+                  ) : (
+                    <>
+                      <Col xs={24} sm={12}>
+                        <InchField id={`front-${r.id}`} label={t('cushionCut.wedgeLength')} help={t('cushionCut.wedgeLengthHelp')} value={r.front} onChange={(v) => update(r.id, { front: v })} />
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <InchField id={`height-${r.id}`} label={t('cushionCut.wedgeHeight')} help={t('cushionCut.wedgeHeightHelp')} value={r.height} onChange={(v) => update(r.id, { height: v })} />
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <InchField id={`sides-${r.id}`} label={t('cushionCut.wedgeBottom')} help={t('cushionCut.wedgeBottomHelp')} value={r.sides} onChange={(v) => update(r.id, { sides: v })} />
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <InchField id={`top-${r.id}`} label={t('cushionCut.wedgeTop')} help={t('cushionCut.wedgeTopHelp')} value={r.topDepth} onChange={(v) => update(r.id, { topDepth: v })} />
+                      </Col>
+                      <Col xs={24} sm={16}>
+                        <Form.Item label={t('cushionCut.lengthDeduction')} extra={t('cushionCut.lengthDeductionHelp')} style={{ marginBottom: 20 }}>
+                          <Segmented
+                            block
+                            size="large"
+                            value={r.lengthDeduction}
+                            onChange={(v) => update(r.id, { lengthDeduction: v as number })}
+                            options={LENGTH_DEDUCTIONS.map((d) => ({ value: d, label: `−${formatInches(d)}` }))}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </>
+                  )}
                   <Col xs={24} sm={8}>
                     <Form.Item label={t('cushionCut.cording')} extra={t('cushionCut.cordingHelp')} style={{ marginBottom: 20 }}>
                       <Checkbox checked={r.cording} onChange={(e) => update(r.id, { cording: e.target.checked })}>
@@ -446,9 +544,11 @@ export default function CushionCut() {
                 <>
                   <div style={{ margin: '4px 0 12px' }}>
                     <Tag color="blue" style={{ fontSize: 13, padding: '2px 8px' }}>
-                      {t('cushionCut.finishes', {
-                        size: `${formatInches(cuts.finishedWidth)} × ${formatInches(cuts.finishedDepth)} × ${formatInches(cuts.finishedHeight)}`,
-                      })}
+                      {cuts.kind === 'box'
+                        ? t('cushionCut.finishes', {
+                            size: `${formatInches(cuts.finishedWidth)} × ${formatInches(cuts.finishedDepth)} × ${formatInches(cuts.finishedHeight)}`,
+                          })
+                        : t('cushionCut.wedgeFinishes', { len: formatInches(cuts.finishedLength), less: formatInches(cuts.deduction) })}
                     </Tag>
                   </div>
                   <CutsTable cuts={cuts} />
