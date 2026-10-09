@@ -54,13 +54,13 @@ const clean = (s: string) =>
 export async function downloadCushionWorkOrder(job: WorkOrderJob, cushions: WorkOrderCushion[]): Promise<void> {
   const { jsPDF } = await import('jspdf')
   const doc = buildCushionWorkOrder(new jsPDF({ unit: 'pt', format: 'letter' }), job, cushions)
-  const base = [job.workOrder && `WO ${job.workOrder}`, job.sidemark || job.client].filter(Boolean).join(' - ') || 'Cushions'
+  const base = [job.workOrder, job.sidemark || job.client].filter(Boolean).join(' - ') || 'Cushions'
   doc.save(`${base} - cushion work order.pdf`.replace(/[\\/:*?"<>|]/g, '-'))
 }
 
 export function buildCushionWorkOrder(doc: JsPDF, job: WorkOrderJob, cushions: WorkOrderCushion[]): JsPDF {
   const date = new Date().toLocaleDateString('en-US')
-  const jobLine = [job.workOrder && `WO ${job.workOrder}`, job.client, job.sidemark && `Sidemark: ${job.sidemark}`]
+  const jobLine = [job.workOrder, job.client, job.sidemark && `Sidemark: ${job.sidemark}`]
     .filter(Boolean)
     .join('   |   ')
 
@@ -80,49 +80,46 @@ export function buildCushionWorkOrder(doc: JsPDF, job: WorkOrderJob, cushions: W
   }
   header(true)
 
-  // Summary: totals for the whole order.
-  const tot = cushions.reduce(
-    (a, c) => ({ cording: a.cording + c.cuts.cording, plates: a.plates + c.cuts.plate.qty, zippers: a.zippers + c.cuts.zipper.qty, pieces: a.pieces + c.qty }),
-    { cording: 0, plates: 0, zippers: 0, pieces: 0 },
-  )
+  // Summary: cushions and cording strips, grouped by fabric.
   const byFabric = cordingByFabric(cushions.map((c) => ({ fabric: c.fabric, cording: c.cuts.cording })))
-  const strips = byFabric.reduce((n, f) => n + f.strips, 0)
-  const stats: [string, string, string?][] = [
-    ['CUSHIONS', String(tot.pieces)],
-    ['PLATES', String(tot.plates)],
-    ['ZIPPERS', String(tot.zippers)],
-    ['CORDING', formatInches(tot.cording), `${(tot.cording / 36).toFixed(2)} yd`],
-    [`BIAS STRIPS (${BIAS_STRIP_LENGTH}")`, String(strips)],
-  ]
-  const sw = CW / 5
-  stats.forEach(([k, v, sub], i) => {
-    const x = M + i * sw
-    doc.setTextColor(...MUTED)
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(7.5)
-    doc.text(k, x, y)
-    doc.setTextColor(...INK)
-    doc.setFontSize(13)
-    doc.text(clean(v), x, y + 17)
-    if (sub) {
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(9)
-      doc.setTextColor(...MUTED)
-      doc.text(sub, x, y + 29)
-    }
-  })
-  y += 46
-  if (byFabric.length > 1) {
+  const cols = [M, M + CW * 0.34, M + CW * 0.8]
+  doc.setFillColor(...HEADER)
+  doc.rect(M, y - 11, CW, 17, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(8)
+  doc.text('FABRIC', cols[0] + 6, y + 1)
+  doc.text('CUSHIONS', cols[1] + 6, y + 1)
+  doc.text(`CORDING STRIPS (${BIAS_STRIP_LENGTH}")`, cols[2] + 6, y + 1)
+  y += 6
+  byFabric.forEach((f, k) => {
+    const list = cushions
+      .map((c, i) => ({ c, i }))
+      .filter(({ c }) => c.fabric.trim() === f.fabric)
+      .map(({ c, i }) => `${c.qty} x ${c.name || `Cushion ${i + 1}`}`)
+      .join(', ')
     doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9.5)
+    doc.setFontSize(10)
+    const fabricLines = doc.splitTextToSize(clean(f.fabric || 'No fabric entered'), cols[1] - cols[0] - 12) as string[]
+    const listLines = doc.splitTextToSize(clean(list), cols[2] - cols[1] - 12) as string[]
+    const h = Math.max(fabricLines.length, listLines.length) * 12.5 + 9
+    if (k % 2 === 1) {
+      doc.setFillColor(244, 246, 249)
+      doc.rect(M, y, CW, h, 'F')
+    }
     doc.setTextColor(...INK)
-    const line = 'Cording strips by fabric:  ' + byFabric.map((f) => `${f.fabric || 'No fabric entered'}: ${f.strips}`).join('   |   ')
-    doc.splitTextToSize(clean(line), CW).forEach((l: string) => {
-      doc.text(l, M, y)
-      y += 13
-    })
-    y += 2
-  }
+    doc.setFont('helvetica', 'bold')
+    fabricLines.forEach((l, j) => doc.text(l, cols[0] + 6, y + 14 + j * 12.5))
+    doc.setFont('helvetica', 'normal')
+    listLines.forEach((l, j) => doc.text(l, cols[1] + 6, y + 14 + j * 12.5))
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(12)
+    doc.text(String(f.strips), cols[2] + 6, y + 14)
+    y += h
+  })
+  doc.setDrawColor(...RULE)
+  doc.setLineWidth(0.8)
+  y += 16
   doc.setDrawColor(...RULE)
   doc.setLineWidth(1)
   doc.line(M, y, M + CW, y)
