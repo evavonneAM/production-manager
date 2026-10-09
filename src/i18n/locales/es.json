@@ -549,5 +549,33 @@
     "wedgeSideSize": "{{h}} de alto, {{top}} arriba, {{bottom}} abajo",
     "wedgeZipper": "Cierre (largo)",
     "wedgeFoam": "Espuma (L × Al × abajo/arriba)"
+  },
+  "leafBag": {
+    "intro": "Ingresa la medida terminada de la bolsa de cada trabajo. Los cortes se actualizan mientras escribes.",
+    "ruleTitle": "Cómo se calculan los cortes",
+    "rule": "Los cortes salen de la medida de la bolsa. Ambas piezas miden ancho + 1\". La pieza larga es fondo + 9\" y la corta es fondo + 2 1/2\". La medida de la hoja es solo referencia.",
+    "pasteTitle": "Pegar filas de la hoja de cálculo",
+    "pasteHelp": "Copia las filas (Trabajo #, Ancho hoja, Fondo hoja, Ancho bolsa, Fondo bolsa, Cant.) de la hoja de cálculo, pégalas aquí y presiona Agregar filas.",
+    "pasteAdd": "Agregar filas",
+    "bagN": "Bolsa {{n}}",
+    "remove": "Quitar bolsa",
+    "job": "Trabajo #",
+    "jobHelp": "Se imprime en la lista de cortes y las etiquetas.",
+    "bagWidth": "Ancho de bolsa",
+    "bagDepth": "Fondo de bolsa",
+    "bagHelp": "Medida terminada",
+    "leafWidth": "Ancho de hoja",
+    "leafDepth": "Fondo de hoja",
+    "leafHelp": "Opcional, de referencia",
+    "fillIn": "Llena el ancho y fondo de la bolsa para ver los cortes.",
+    "longBottom": "Pieza larga (abajo)",
+    "shortTop": "Pieza corta (arriba)",
+    "cutSize": "Medida de corte (An × L)",
+    "add": "Agregar otra bolsa",
+    "totalJobs": "Trabajos",
+    "totalBags": "Bolsas",
+    "pdf": "Descargar PDF de cortes",
+    "labels": "Descargar PDF de etiquetas",
+    "clearConfirm": "¿Borrar todas las bolsas y empezar de nuevo?"
   }
 }

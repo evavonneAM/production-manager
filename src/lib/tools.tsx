@@ -66,6 +66,7 @@ export const TOOLS: Tool[] = [
   {
     id: 'leafBag',
     group: 'other',
+    route: '/tools/leaf-bag',
     url: 'https://leaf-bag-calculator.vercel.app',
     keywords: 'leaf bag cut list labels',
     icon: <path d="M6 21c0-9 5-15 14-17-1 9-7 14-14 14M6 21l7-8" />,
