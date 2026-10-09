@@ -5,6 +5,8 @@ export type ToolGroup = 'drapery' | 'cushions' | 'other'
 export type Tool = {
   id: string
   group: ToolGroup
+  /** In-app route, once a calculator has moved into the app. */
+  route?: string
   /** Live calculator URL. Null while a tool isn't published yet. */
   url: string | null
   /** Extra search words (English) on top of the translated name/description. */
@@ -32,6 +34,7 @@ export const TOOLS: Tool[] = [
   {
     id: 'cushionCut',
     group: 'cushions',
+    route: '/tools/cushion-cut',
     url: 'https://cushion-cut-dims.vercel.app',
     keywords: 'cushion cut dimensions plate boxing zipper cording',
     icon: (
