@@ -514,6 +514,15 @@
     "totalStrips": "Cording strips ({{len}}\" bias)",
     "stripsCol": "Strips",
     "noFabric": "No fabric entered",
-    "stripsHelp": "Strips are {{len}}\" long, cut on the bias from 54\" fabric, counted separately for each fabric."
+    "stripsHelp": "Strips are {{len}}\" long, cut on the bias from 54\" fabric, counted separately for each fabric.",
+    "foam": "Foam (W × D × H)",
+    "foamWrap": "Foam wrap",
+    "wrap_none": "No wrap",
+    "wrap_lightDacron": "Lightweight Dacron",
+    "wrap_heavyDacron": "Heavyweight Dacron",
+    "wrap_envelope": "Envelope",
+    "foamNotes": "Foam notes",
+    "foamNotesPlaceholder": "e.g. HD36, layered: 1\" soft over 4\" firm",
+    "foamNotesHelp": "For the project manager: foam type, and if it's layered. Foam is cut to the ordered size."
   }
 }

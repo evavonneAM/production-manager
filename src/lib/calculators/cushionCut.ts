@@ -4,6 +4,8 @@
 
 export type ZipperStyle = 'wrap' | 'back'
 
+export type FoamWrap = 'none' | 'lightDacron' | 'heavyDacron' | 'envelope'
+
 export type CushionInput = {
   qty: number
   /** Front & zipper edge, inches. */
@@ -23,6 +25,8 @@ export type CushionCuts = {
   zipper: { qty: number; x: number; z: number }
   /** Total cording for this line, inches. */
   cording: number
+  /** Foam is cut to the ordered size. */
+  foam: { qty: number; width: number; depth: number; height: number }
 }
 
 /** Cording is cut on the bias from 54" fabric: a strip is about 74" long
@@ -55,6 +59,7 @@ export function cushionCuts({ qty, front: c, sides: d, height, style }: CushionI
   const deduction = heightDeduction(height)
   const e = height - deduction
   const plate = { qty: qty * 2, width: c + 1, depth: d + 1 }
+  const foam = { qty, width: c, depth: d, height }
   const cording = (c + d) * 2 * 2 * qty
   const zipZ = e / 2 + 1.25
   if (style === 'back') {
@@ -65,6 +70,7 @@ export function cushionCuts({ qty, front: c, sides: d, height, style }: CushionI
       boxing: { qty, x: d + d + c + 5, z: e + 1 },
       zipper: { qty: qty * 2, x: c - 3, z: zipZ },
       cording,
+      foam,
     }
   }
   return {
@@ -74,6 +80,7 @@ export function cushionCuts({ qty, front: c, sides: d, height, style }: CushionI
     boxing: { qty, x: c + d + 2, z: e + 1 },
     zipper: { qty: qty * 2, x: c + d + 2, z: zipZ },
     cording,
+    foam,
   }
 }
 

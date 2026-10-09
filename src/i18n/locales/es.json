@@ -513,6 +513,15 @@
     "totalStrips": "Tiras de cordón ({{len}}\" al bies)",
     "stripsCol": "Tiras",
     "noFabric": "Sin tela",
-    "stripsHelp": "Las tiras miden {{len}}\", cortadas al bies de tela de 54\", contadas por separado para cada tela."
+    "stripsHelp": "Las tiras miden {{len}}\", cortadas al bies de tela de 54\", contadas por separado para cada tela.",
+    "foam": "Espuma (An × Fo × Al)",
+    "foamWrap": "Envoltura de espuma",
+    "wrap_none": "Sin envoltura",
+    "wrap_lightDacron": "Dacron ligero",
+    "wrap_heavyDacron": "Dacron pesado",
+    "wrap_envelope": "Sobre (envelope)",
+    "foamNotes": "Notas de espuma",
+    "foamNotesPlaceholder": "p. ej. HD36, en capas: 1\" suave sobre 4\" firme",
+    "foamNotesHelp": "Para el gerente del proyecto: tipo de espuma y si va en capas. La espuma se corta a la medida pedida."
   }
 }

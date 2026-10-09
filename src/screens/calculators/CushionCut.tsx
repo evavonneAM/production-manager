@@ -11,6 +11,7 @@ import {
   Input,
   InputNumber,
   Popconfirm,
+  Select,
   Row,
   Segmented,
   Space,
@@ -28,6 +29,7 @@ import {
   formatInches,
   parseInches,
   type CushionCuts,
+  type FoamWrap,
   type ZipperStyle,
 } from '../../lib/calculators/cushionCut'
 import {
@@ -43,6 +45,8 @@ type Row = {
   fabric: string
   style: ZipperStyle
   direction: FabricDirection
+  foamWrap: FoamWrap
+  foamNotes: string
   qty: number
   front: string
   sides: string
@@ -58,6 +62,8 @@ const blank = (): Row => ({
   fabric: '',
   style: 'back',
   direction: 'none',
+  foamWrap: 'none',
+  foamNotes: '',
   qty: 1,
   front: '',
   sides: '',
@@ -125,6 +131,12 @@ function CutsTable({ cuts }: { cuts: CushionCuts }) {
     { key: 'plate', piece: t('cushionCut.plate'), qty: cuts.plate.qty, size: `${formatInches(cuts.plate.width)} × ${formatInches(cuts.plate.depth)}` },
     { key: 'boxing', piece: t('cushionCut.boxing'), qty: cuts.boxing.qty, size: `${formatInches(cuts.boxing.x)} × ${formatInches(cuts.boxing.z)}` },
     { key: 'zipper', piece: t('cushionCut.zipper'), qty: cuts.zipper.qty, size: `${formatInches(cuts.zipper.x)} × ${formatInches(cuts.zipper.z)}` },
+    {
+      key: 'foam',
+      piece: t('cushionCut.foam'),
+      qty: cuts.foam.qty,
+      size: `${formatInches(cuts.foam.width)} × ${formatInches(cuts.foam.depth)} × ${formatInches(cuts.foam.height)}`,
+    },
     {
       key: 'cording',
       piece: t('cushionCut.cording'),
@@ -198,6 +210,8 @@ export default function CushionCut() {
         width: parseInches(r.front)!,
         depth: parseInches(r.sides)!,
         height: parseInches(r.height)!,
+        foamWrap: r.foamWrap,
+        foamNotes: r.foamNotes.trim(),
         cuts,
       })
     })
@@ -357,6 +371,36 @@ export default function CushionCut() {
                   </Col>
                   <Col xs={24} sm={8}>
                     <InchField id={`height-${r.id}`} label={t('cushionCut.height')} help={t('cushionCut.heightHelp')} value={r.height} onChange={(v) => update(r.id, { height: v })} />
+                  </Col>
+                  <Col xs={24} sm={10}>
+                    <Form.Item label={t('cushionCut.foamWrap')} htmlFor={`wrap-${r.id}`} style={{ marginBottom: 20 }}>
+                      <Select
+                        id={`wrap-${r.id}`}
+                        size="large"
+                        value={r.foamWrap}
+                        onChange={(v) => update(r.id, { foamWrap: v })}
+                        options={(['none', 'lightDacron', 'heavyDacron', 'envelope'] as const).map((w) => ({
+                          value: w,
+                          label: t(`cushionCut.wrap_${w}`),
+                        }))}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={14}>
+                    <Form.Item
+                      label={t('cushionCut.foamNotes')}
+                      htmlFor={`foam-${r.id}`}
+                      extra={t('cushionCut.foamNotesHelp')}
+                      style={{ marginBottom: 20 }}
+                    >
+                      <Input.TextArea
+                        id={`foam-${r.id}`}
+                        autoSize={{ minRows: 2, maxRows: 5 }}
+                        value={r.foamNotes}
+                        onChange={(e) => update(r.id, { foamNotes: e.target.value })}
+                        placeholder={t('cushionCut.foamNotesPlaceholder')}
+                      />
+                    </Form.Item>
                   </Col>
                 </Row>
               </Form>

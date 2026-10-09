@@ -1,5 +1,13 @@
 import type { jsPDF as JsPDF } from 'jspdf'
-import { BIAS_STRIP_LENGTH, cordingByFabric, cordingStrips, formatInches, type CushionCuts, type ZipperStyle } from './cushionCut'
+import {
+  BIAS_STRIP_LENGTH,
+  cordingByFabric,
+  cordingStrips,
+  formatInches,
+  type CushionCuts,
+  type FoamWrap,
+  type ZipperStyle,
+} from './cushionCut'
 
 export type FabricDirection = 'none' | 'railroaded' | 'upTheRoll'
 
@@ -14,6 +22,8 @@ export type WorkOrderCushion = {
   width: number
   depth: number
   height: number
+  foamWrap: FoamWrap
+  foamNotes: string
   cuts: CushionCuts
 }
 
@@ -29,6 +39,12 @@ const ACCENT: [number, number, number] = [22, 119, 255]
 const HEADER: [number, number, number] = [0, 21, 41]
 
 const STYLE_TEXT: Record<ZipperStyle, string> = { back: 'Back zipper', wrap: 'Wrap-around zipper' }
+const WRAP_TEXT: Record<FoamWrap, string> = {
+  none: 'No wrap',
+  lightDacron: 'Lightweight Dacron',
+  heavyDacron: 'Heavyweight Dacron',
+  envelope: 'Envelope',
+}
 const DIRECTION_TEXT: Record<FabricDirection, string> = { none: '', railroaded: 'Railroaded', upTheRoll: 'Up the roll' }
 
 const clean = (s: string) =>
@@ -112,7 +128,7 @@ export function buildCushionWorkOrder(doc: JsPDF, job: WorkOrderJob, cushions: W
   doc.line(M, y, M + CW, y)
   y += 18
 
-  const BLOCK_H = 300
+  const BLOCK_H = 320
   cushions.forEach((c, i) => {
     if (y + BLOCK_H > PH - M) {
       doc.addPage()
@@ -207,6 +223,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
     ['Boxing (X x Z)', String(c.cuts.boxing.qty), `${formatInches(c.cuts.boxing.x)} x ${formatInches(c.cuts.boxing.z)}`],
     ['Zipper (X x Z)', String(c.cuts.zipper.qty), `${formatInches(c.cuts.zipper.x)} x ${formatInches(c.cuts.zipper.z)}`],
     ['Cording', '', `${formatInches(c.cuts.cording)}  (${cordingStrips(c.cuts.cording)} strips)`],
+    ['Foam (W x D x H)', String(c.cuts.foam.qty), `${formatInches(c.cuts.foam.width)} x ${formatInches(c.cuts.foam.depth)} x ${formatInches(c.cuts.foam.height)}`],
   ]
   rows.forEach(([a, b, s], k) => {
     if (k % 2 === 1) {
@@ -225,9 +242,23 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
   doc.setDrawColor(...RULE)
   doc.rect(rx, ry - 20 * rows.length - 16, rw, 20 * rows.length + 16, 'S')
 
+  // Foam wrap + project manager's notes.
+  ry += 14
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7.5)
+  doc.setTextColor(...MUTED)
+  doc.text('FOAM', rx, ry)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9.5)
+  doc.setTextColor(...INK)
+  const foamLines = doc
+    .splitTextToSize(clean(`Wrap: ${WRAP_TEXT[c.foamWrap]}${c.foamNotes ? `. ${c.foamNotes}` : ''}`), rw)
+    .slice(0, 4) as string[]
+  foamLines.forEach((l, k) => doc.text(l, rx, ry + 12 + k * 11.5))
+
   // Divider under the block.
   doc.setDrawColor(...RULE)
-  doc.line(M, top + 288, M + CW, top + 288)
+  doc.line(M, top + 308, M + CW, top + 308)
 }
 
 /** Plan (top) view: width across, depth down, zipper on the back edge. */
