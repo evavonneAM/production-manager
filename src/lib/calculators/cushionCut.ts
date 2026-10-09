@@ -1,6 +1,7 @@
 // Cushion cut dimensions — same formulas as the original cushion-cut-dims
-// calculator. Inputs are the ORDERED size; boxing and zipper use the finished
-// height after the workroom deduction.
+// calculator. Inputs are the ORDERED size. The cover is made to the finished
+// size: ¼" off width and depth, and the chosen deduction off the height.
+// Foam is cut to the ordered size.
 
 export type ZipperStyle = 'wrap' | 'back'
 
@@ -15,15 +16,22 @@ export type CushionInput = {
   /** Ordered height, inches. */
   height: number
   style: ZipperStyle
+  /** Inches taken off the ordered height for the finished boxing height. */
+  heightDeduction: number
+  /** False when the cushion has no cording. */
+  cording: boolean
 }
 
 export type CushionCuts = {
+  kind: 'box'
+  finishedWidth: number
+  finishedDepth: number
   finishedHeight: number
   deduction: number
   plate: { qty: number; width: number; depth: number }
   boxing: { qty: number; x: number; z: number }
   zipper: { qty: number; x: number; z: number }
-  /** Total cording for this line, inches. */
+  /** Total cording for this line, inches (0 when the cushion has none). */
   cording: number
   /** Foam is cut to the ordered size. */
   foam: { qty: number; width: number; depth: number; height: number }
@@ -48,22 +56,26 @@ export function cordingByFabric(items: { fabric: string; cording: number }[]): {
   return [...map.entries()].map(([fabric, inches]) => ({ fabric, inches, strips: cordingStrips(inches) }))
 }
 
-/** Under 5": −½" · 5" to 8": −1" · over 8": −1½" */
-export function heightDeduction(height: number): number {
-  if (height < 5) return 0.5
-  if (height <= 8) return 1
-  return 1.5
-}
+/** Taken off the ordered width and depth for the finished cover. */
+export const COVER_DEDUCTION = 0.25
 
-export function cushionCuts({ qty, front: c, sides: d, height, style }: CushionInput): CushionCuts {
-  const deduction = heightDeduction(height)
+/** Height deductions the workroom uses; ½" unless the job says otherwise. */
+export const HEIGHT_DEDUCTIONS = [0.25, 0.5, 1, 1.5] as const
+export const DEFAULT_HEIGHT_DEDUCTION = 0.5
+
+export function cushionCuts({ qty, front, sides, height, style, heightDeduction: deduction, cording: hasCording }: CushionInput): CushionCuts {
+  const c = front - COVER_DEDUCTION
+  const d = sides - COVER_DEDUCTION
   const e = height - deduction
   const plate = { qty: qty * 2, width: c + 1, depth: d + 1 }
-  const foam = { qty, width: c, depth: d, height }
-  const cording = (c + d) * 2 * 2 * qty
+  const foam = { qty, width: front, depth: sides, height }
+  const cording = hasCording ? (c + d) * 2 * 2 * qty : 0
   const zipZ = e / 2 + 1.25
   if (style === 'back') {
     return {
+      kind: 'box',
+      finishedWidth: c,
+      finishedDepth: d,
       finishedHeight: e,
       deduction,
       plate,
@@ -74,6 +86,9 @@ export function cushionCuts({ qty, front: c, sides: d, height, style }: CushionI
     }
   }
   return {
+    kind: 'box',
+    finishedWidth: c,
+    finishedDepth: d,
     finishedHeight: e,
     deduction,
     plate,
@@ -83,6 +98,69 @@ export function cushionCuts({ qty, front: c, sides: d, height, style }: CushionI
     foam,
   }
 }
+
+// ── Wedge (back) cushion ────────────────────────────────────────────
+// Stands on its deep end: `bottom` is the deep end, `top` the thin end,
+// `height` is bottom to top. The straight side is plumb; the sloped side is
+// the back rest. One main panel wraps the whole profile and closes with a
+// full-length zipper centered on the bottom; two side pieces close the ends.
+
+/** Wedge length deductions; ½" unless the job says otherwise. */
+export const LENGTH_DEDUCTIONS = [0.5, 1] as const
+export const DEFAULT_LENGTH_DEDUCTION = 0.5
+
+export type WedgeInput = {
+  qty: number
+  length: number
+  height: number
+  bottom: number
+  top: number
+  lengthDeduction: number
+  cording: boolean
+}
+
+export type WedgeCuts = {
+  kind: 'wedge'
+  finishedLength: number
+  deduction: number
+  /** Length of the sloped back-rest side. */
+  slope: number
+  /** Wraps the profile; ½" each end, ¾" at each zipper edge. */
+  panel: { qty: number; width: number; height: number }
+  /** Wedge-shaped ends with ½" seam allowance all around. */
+  side: { qty: number; height: number; top: number; bottom: number }
+  zipper: { qty: number; length: number }
+  /** Around both side pieces (0 when the cushion has no cording). */
+  cording: number
+  foam: { qty: number; length: number; height: number; bottom: number; top: number }
+}
+
+/** Workroom rule: sizes round UP to the next ⅛", never down. */
+const up8 = (x: number) => Math.ceil(x * 8 - 1e-9) / 8
+
+export function wedgeCuts({ qty, length, height: h, bottom: b, top: t, lengthDeduction, cording: hasCording }: WedgeInput): WedgeCuts {
+  const l = length - lengthDeduction
+  const run = b - t
+  const slope = Math.hypot(h, run)
+  const perimeter = h + b + t + slope
+  // A ½" offset of the profile: the sloped edge moves out ½" square to itself,
+  // which widens each end by ½"/cos and shifts it by ½"·tan along the slope.
+  const tan = run / h
+  const sec = slope / h
+  return {
+    kind: 'wedge',
+    finishedLength: l,
+    deduction: lengthDeduction,
+    slope,
+    panel: { qty, width: up8(l + 1), height: up8(perimeter + 1.5) },
+    side: { qty: qty * 2, height: up8(h + 1), top: up8(t + 0.5 + 0.5 * sec - 0.5 * tan), bottom: up8(b + 0.5 + 0.5 * sec + 0.5 * tan) },
+    zipper: { qty, length: l },
+    cording: hasCording ? perimeter * 2 * qty : 0,
+    foam: { qty, length, height: h, bottom: b, top: t },
+  }
+}
+
+export type AnyCuts = CushionCuts | WedgeCuts
 
 /** Parse workroom inches: "20", "20.5", "20 1/2", "20-1/2", "1/2", with or without ". */
 export function parseInches(raw: string): number | null {
@@ -97,13 +175,13 @@ export function parseInches(raw: string): number | null {
   return whole + frac
 }
 
-/** Decimal inches → nearest ⅛" as text, e.g. 20.5 → 20 1/2". */
+/** Decimal inches → text, rounded UP to the next ⅛" (never down), e.g. 20.5 → 20 1/2". */
 export function formatInches(dec: number): string {
   if (!isFinite(dec)) return '—'
   const neg = dec < 0 ? '-' : ''
   dec = Math.abs(dec)
   let w = Math.floor(dec)
-  let e = Math.round((dec - w) * 8)
+  let e = Math.ceil((dec - w) * 8 - 1e-9)
   if (e === 8) {
     w += 1
     e = 0
