@@ -372,49 +372,83 @@ function drawSide(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number
   doc.text(clean(`${formatInches(c.height)} ordered (dashed)`), x0, y + h + 14)
 }
 
-/** Wedge side profile: plumb front, sloped back rest, zipper on the bottom. */
+/** Wedge side piece as cut: solid cut line, dashed sew line (the finished
+ *  profile) ½" inside, plumb front, sloped back rest, zipper on the bottom. */
 function drawWedgeProfile(doc: JsPDF, c: WorkOrderCushion, cuts: WedgeCuts, x0: number, y0: number, boxW: number, boxH: number) {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
-  doc.text('SIDE PROFILE', x0, y0)
-  const sc = Math.min((boxW - 120) / c.depth, (boxH - 30) / c.height)
-  const b = c.depth * sc
-  const t = c.top * sc
-  const h = c.height * sc
-  const x = x0 + (boxW - b) / 2 - 10
-  const yB = y0 + 14 + h // bottom edge
-  const yT = y0 + 14
+  doc.text(`SIDE PIECE - CUT ${cuts.side.qty}`, x0, y0)
+
+  const h = c.height
+  const b = c.depth
+  const t = c.top
+  const sa = 0.5
+  const tan = (b - t) / h
+  const sec = cuts.slope / h
+  // Cut outline in inches, origin at the finished top-front corner, y down.
+  const topRight = t + sa * sec - sa * tan
+  const botRight = b + sa * sec + sa * tan
+  const sc = Math.min((boxW - 130) / (botRight + sa), (boxH - 40) / (h + 2 * sa))
+  const ox = x0 + 60 + sa * sc
+  const oy = y0 + 22 + sa * sc
+  const X = (x: number) => ox + x * sc
+  const Y = (y: number) => oy + y * sc
+
+  // Cut line.
   doc.setDrawColor(...INK)
   doc.setFillColor(241, 246, 251)
-  doc.setLineWidth(1.2)
-  // Front edge plumb on the left; back rest slopes from top-right to bottom-right.
-  doc.lines([[t, 0], [b - t, h], [-b, 0], [0, -h]], x, yT, [1, 1], 'FD', true)
+  doc.setLineWidth(1.4)
+  doc.lines(
+    [
+      [(topRight + sa) * sc, 0],
+      [(botRight - topRight) * sc, (h + 2 * sa) * sc],
+      [-(botRight + sa) * sc, 0],
+    ],
+    X(-sa),
+    Y(-sa),
+    [1, 1],
+    'FD',
+    true,
+  )
+  // Sew line (finished profile).
+  doc.setLineWidth(0.7)
+  doc.setLineDashPattern([3, 2], 0)
+  doc.lines([[t * sc, 0], [(b - t) * sc, h * sc], [-b * sc, 0]], X(0), Y(0), [1, 1], 'S', true)
+  doc.setLineDashPattern([], 0)
+
   // Zipper: centered on the bottom.
   doc.setDrawColor(...ACCENT)
   doc.setLineWidth(3)
-  doc.line(x + b * 0.2, yB, x + b * 0.8, yB)
+  doc.line(X(b * 0.2), Y(h + sa), X(b * 0.8), Y(h + sa))
   doc.setLineWidth(1)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7)
   doc.setTextColor(...ACCENT)
-  doc.text('ZIPPER', x + b / 2, yB + 10, { align: 'center' })
-  // Dimensions.
-  dim(doc, x, yT - 7, x + t, yT - 7, `${formatInches(c.top)}`)
-  dim(doc, x, yB + 22, x + b, yB + 22, `${formatInches(c.depth)}`)
+  doc.text('ZIPPER', X(b / 2), Y(h + sa) + 10, { align: 'center' })
+
+  // Cut dimensions.
+  const f = formatInches
+  dim(doc, X(-sa), Y(-sa) - 7, X(topRight), Y(-sa) - 7, f(cuts.side.top))
+  dim(doc, X(-sa), Y(h + sa) + 24, X(botRight), Y(h + sa) + 24, f(cuts.side.bottom))
+  const lx = X(-sa) - 10
   doc.setDrawColor(...INK)
   doc.setLineWidth(0.6)
-  const lx = x - 10
-  doc.line(lx, yT, lx, yB)
-  doc.line(lx - 3, yT, lx + 3, yT)
-  doc.line(lx - 3, yB, lx + 3, yB)
+  doc.line(lx, Y(-sa), lx, Y(h + sa))
+  doc.line(lx - 3, Y(-sa), lx + 3, Y(-sa))
+  doc.line(lx - 3, Y(h + sa), lx + 3, Y(h + sa))
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(...INK)
-  doc.text(clean(`${formatInches(c.height)} H`), lx - 4, (yT + yB) / 2 + 3, { align: 'right' })
-  doc.setFontSize(8)
+  doc.text(clean(f(cuts.side.height)), lx - 4, Y(h / 2) + 3, { align: 'right' })
+
+  // Labels.
+  const midX = X((topRight + botRight) / 2) + 10
+  doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
-  doc.text(clean(`BACK REST ${formatInches(cuts.slope)}`), x + (t + b) / 2 + 8, (yT + yB) / 2 + 3)
+  doc.text(clean(`BACK REST`), midX, Y(h / 2) - 4)
+  doc.text(clean(`1/2" seam allowance`), midX, Y(h / 2) + 6)
+  doc.text(clean(`dashed = sew line (${f(t)} / ${f(b)} x ${f(h)})`), midX, Y(h / 2) + 16)
 }
 
 /** Wedge front view: finished length across, height up. */
