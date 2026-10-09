@@ -493,6 +493,8 @@
     "clear": "Borrar todo",
     "clearConfirm": "¿Borrar todos los cojines y empezar de nuevo?",
     "namePlaceholder": "p. ej. Asiento del sofá, Cojín de respaldo",
-    "nameHelp": "Opcional. Aparece en la lista de cortes y la impresión."
+    "nameHelp": "Opcional. Aparece en la lista de cortes y la impresión.",
+    "railroaded": "Railroaded (tela de lado)",
+    "railroadedHelp": "La tela va de lado. Lo decide el gerente del proyecto con el cliente."
   }
 }

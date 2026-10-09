@@ -494,6 +494,8 @@
     "clear": "Clear all",
     "clearConfirm": "Clear every cushion and start over?",
     "namePlaceholder": "e.g. Sofa seat, Back pillow",
-    "nameHelp": "Optional. Shows on the cut list and printout."
+    "nameHelp": "Optional. Shows on the cut list and printout.",
+    "railroaded": "Railroaded",
+    "railroadedHelp": "Fabric runs sideways. Decided by the project manager with the client."
   }
 }

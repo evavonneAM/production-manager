@@ -5,6 +5,7 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Col,
   Form,
   Input,
@@ -27,11 +28,11 @@ import {
   type ZipperStyle,
 } from '../../lib/calculators/cushionCut'
 
-type Row = { id: number; label: string; style: ZipperStyle; qty: number; front: string; sides: string; height: string }
+type Row = { id: number; label: string; style: ZipperStyle; railroaded: boolean; qty: number; front: string; sides: string; height: string }
 
 const DRAFT_KEY = 'pm-calc-cushion-cut'
 let nextId = 1
-const blank = (): Row => ({ id: nextId++, label: '', style: 'wrap', qty: 1, front: '', sides: '', height: '' })
+const blank = (): Row => ({ id: nextId++, label: '', style: 'wrap', railroaded: false, qty: 1, front: '', sides: '', height: '' })
 
 function loadDraft(): Row[] {
   try {
@@ -163,7 +164,12 @@ export default function CushionCut() {
           return (
             <Card
               key={r.id}
-              title={r.label.trim() || t('cushionCut.cushionN', { n: i + 1 })}
+              title={
+                <Space size={8} wrap>
+                  {r.label.trim() || t('cushionCut.cushionN', { n: i + 1 })}
+                  {r.railroaded && <Tag color="purple">{t('cushionCut.railroaded')}</Tag>}
+                </Space>
+              }
               extra={
                 rows.length > 1 && (
                   <Button
@@ -221,6 +227,13 @@ export default function CushionCut() {
                         onChange={(v) => update(r.id, { qty: v ?? 1 })}
                         style={{ width: '100%' }}
                       />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24}>
+                    <Form.Item extra={t('cushionCut.railroadedHelp')} style={{ marginBottom: 20 }}>
+                      <Checkbox checked={r.railroaded} onChange={(e) => update(r.id, { railroaded: e.target.checked })}>
+                        {t('cushionCut.railroaded')}
+                      </Checkbox>
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
