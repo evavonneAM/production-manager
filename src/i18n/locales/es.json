@@ -638,9 +638,16 @@
     "erSeatInsert": "Relleno de asiento",
     "erBackInsert": "Relleno de respaldo",
     "erFabric": "Tela",
-    "erDirection": "Dirección / centrado de tela",
+    "erDirection": "Dirección de la tela",
     "copy": "Copiar",
     "copied": "Copiado. Pégalo en Estimate Rocket.",
-    "copyFailed": "No se pudo copiar. Selecciona el texto y cópialo."
+    "copyFailed": "No se pudo copiar. Selecciona el texto y cópialo.",
+    "erTbd": "Por definir",
+    "erCenter": "Centrado",
+    "erCenterHelp": "Qué centrar, si aplica.",
+    "erCenterPlaceholder": "p. ej. medallón, raya, flor grande",
+    "erWelt": "Vivo",
+    "erContrastWelt": "Vivo en contraste",
+    "erWeltFabric": "Tela del vivo"
   }
 }

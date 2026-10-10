@@ -13,6 +13,7 @@ import {
   InputNumber,
   Popconfirm,
   Row,
+  Segmented,
   Select,
   Space,
   Statistic,
@@ -53,7 +54,10 @@ type Row = {
   erBackInsert: string
   erReversible: boolean
   erFabric: string
-  erDirection: string
+  erDirection: 'tbd' | 'upTheRoll' | 'railroaded'
+  erCenter: string
+  erContrastWelt: boolean
+  erWeltFabric: string
 }
 type Section = { length: number; qty: number; seat: { d: number; h: number } | null; ib: { d: number; h: number } | null }
 
@@ -74,14 +78,22 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   erBackInsert: 'tbd',
   erReversible: true,
   erFabric: '',
-  erDirection: '',
+  erDirection: 'tbd',
+  erCenter: '',
+  erContrastWelt: false,
+  erWeltFabric: '',
   ...patch,
 })
 
 function loadDraft(): Row[] {
   try {
     const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') as Row[] | null
-    if (Array.isArray(saved) && saved.length) return saved.map((r) => ({ ...blank(), ...r, id: nextId++ }))
+    if (Array.isArray(saved) && saved.length)
+      return saved.map((r) => {
+        const row = { ...blank(), ...r, id: nextId++ }
+        if (!['tbd', 'upTheRoll', 'railroaded'].includes(row.erDirection)) row.erDirection = 'tbd'
+        return row
+      })
   } catch {
     // Storage unavailable or corrupt — start fresh.
   }
@@ -241,10 +253,38 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item label={t('cushionPricing.erDirection')} htmlFor={`er-dir-${row.id}`} style={{ marginBottom: 12 }}>
-              <Input id={`er-dir-${row.id}`} allowClear value={row.erDirection} onChange={(e) => update({ erDirection: e.target.value })} placeholder="To Be Determined" />
+            <Form.Item label={t('cushionPricing.erDirection')} style={{ marginBottom: 12 }}>
+              <Segmented
+                block
+                value={row.erDirection}
+                onChange={(v) => update({ erDirection: v as Row['erDirection'] })}
+                options={[
+                  { value: 'tbd', label: t('cushionPricing.erTbd') },
+                  { value: 'upTheRoll', label: t('cushionCut.upTheRoll') },
+                  { value: 'railroaded', label: t('cushionCut.railroaded') },
+                ]}
+              />
             </Form.Item>
           </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item label={t('cushionPricing.erCenter')} htmlFor={`er-ctr-${row.id}`} extra={t('cushionPricing.erCenterHelp')} style={{ marginBottom: 12 }}>
+              <Input id={`er-ctr-${row.id}`} allowClear value={row.erCenter} onChange={(e) => update({ erCenter: e.target.value })} placeholder={t('cushionPricing.erCenterPlaceholder')} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item label={t('cushionPricing.erWelt')} style={{ marginBottom: 12 }}>
+              <Checkbox checked={row.erContrastWelt} onChange={(e) => update({ erContrastWelt: e.target.checked })}>
+                {t('cushionPricing.erContrastWelt')}
+              </Checkbox>
+            </Form.Item>
+          </Col>
+          {row.erContrastWelt && (
+            <Col xs={24} sm={12}>
+              <Form.Item label={t('cushionPricing.erWeltFabric')} htmlFor={`er-welt-${row.id}`} style={{ marginBottom: 12 }}>
+                <Input id={`er-welt-${row.id}`} allowClear value={row.erWeltFabric} onChange={(e) => update({ erWeltFabric: e.target.value })} placeholder="To Be Determined (Price Not Included)" />
+              </Form.Item>
+            </Col>
+          )}
           <Col xs={24}>
             <Checkbox checked={row.erReversible} onChange={(e) => update({ erReversible: e.target.checked })} style={{ marginBottom: 12 }}>
               {t('cushionPricing.reversibleFabric')}
@@ -265,6 +305,9 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
           yardsPerItem: yards,
           fabric: row.erFabric,
           direction: row.erDirection,
+          center: row.erCenter,
+          contrastWelt: row.erContrastWelt,
+          weltFabric: row.erWeltFabric,
         })
         return (
           <Card

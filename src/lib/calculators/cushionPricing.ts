@@ -101,7 +101,19 @@ export type EstimateRocketInput = {
   insert: string
   yardsPerItem: number
   fabric: string
-  direction: string
+  direction: 'tbd' | 'upTheRoll' | 'railroaded'
+  /** What the fabric is centered on (pattern, motif, stripe…). */
+  center: string
+  contrastWelt: boolean
+  weltFabric: string
+}
+
+const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up the Roll', railroaded: 'Railroaded' } as const
+
+function directionLine(direction: EstimateRocketInput['direction'], center: string): string {
+  const c = center.trim()
+  if (direction === 'tbd' && !c) return 'To Be Determined'
+  return c ? `${DIRECTION_TEXT[direction]} - Centered: ${c}` : DIRECTION_TEXT[direction]
 }
 
 /** Yards shown on the estimate, rounded up to the next hundredth. */
@@ -126,6 +138,7 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     '#### Fabric:',
     `* **Body Yardage:** ${yd(e.yardsPerItem * e.qty)} Yards of Fabric Required in TOTAL (${yd(e.yardsPerItem)} Yards Per Item)`,
     `* **Body Fabric:** ${e.fabric.trim() || 'To Be Determined (Price Not Included)'}`,
-    `* **Body Fabric Direction/Center:** ${e.direction.trim() || 'To Be Determined'}`,
+    `* **Body Fabric Direction/Center:** ${directionLine(e.direction, e.center)}`,
+    ...(e.contrastWelt ? [`* **Contrast Welt:** ${e.weltFabric.trim() || 'To Be Determined (Price Not Included)'}`] : []),
   ].join('\n')
 }

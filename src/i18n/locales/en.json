@@ -639,9 +639,16 @@
     "erSeatInsert": "Seat insert",
     "erBackInsert": "Back insert",
     "erFabric": "Body fabric",
-    "erDirection": "Fabric direction / center",
+    "erDirection": "Fabric direction",
     "copy": "Copy",
     "copied": "Copied. Paste it into Estimate Rocket.",
-    "copyFailed": "Couldn't copy. Select the text and copy it instead."
+    "copyFailed": "Couldn't copy. Select the text and copy it instead.",
+    "erTbd": "To be determined",
+    "erCenter": "Centered",
+    "erCenterHelp": "What to center, if anything.",
+    "erCenterPlaceholder": "e.g. medallion, stripe, large floral",
+    "erWelt": "Welt",
+    "erContrastWelt": "Contrast welt",
+    "erWeltFabric": "Welt fabric"
   }
 }
