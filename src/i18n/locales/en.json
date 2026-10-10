@@ -239,7 +239,12 @@
     "passwordUpdated": "Password updated.",
     "passwordTooShort": "Password must be at least 8 characters.",
     "profileSaved": "Profile saved.",
-    "changePhoto": "Change photo"
+    "changePhoto": "Change photo",
+    "appearance": "Appearance",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeAuto": "Auto",
+    "appearanceHelp": "Auto follows your phone or computer setting. Saved on this device."
   },
   "projects": {
     "searchPlaceholder": "Search projects, jobs, clients…",

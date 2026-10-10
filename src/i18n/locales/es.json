@@ -229,7 +229,12 @@
     "passwordUpdated": "Contraseña actualizada.",
     "passwordTooShort": "La contraseña debe tener al menos 8 caracteres.",
     "profileSaved": "Perfil guardado.",
-    "changePhoto": "Cambiar foto"
+    "changePhoto": "Cambiar foto",
+    "appearance": "Apariencia",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeAuto": "Automático",
+    "appearanceHelp": "Automático sigue la configuración de tu teléfono o computadora. Se guarda en este dispositivo."
   },
   "projects": {
     "searchPlaceholder": "Buscar proyectos, trabajos, clientes…",
