@@ -631,6 +631,17 @@
     "opt_gooseSolid": "25/75 goose down solid",
     "opt_gooseEnv": "25/75 goose down envelope w/ foam",
     "opt_bolster": "Foam bolster",
-    "opt_plywood": "Plywood"
+    "opt_plywood": "Plywood",
+    "tabEr": "Estimate Rocket",
+    "erStyle": "Sewing style",
+    "erDims": "Dimensions",
+    "erConfirmed": "Confirmed",
+    "erSeatInsert": "Seat insert",
+    "erBackInsert": "Back insert",
+    "erFabric": "Body fabric",
+    "erDirection": "Fabric direction / center",
+    "copy": "Copy",
+    "copied": "Copied. Paste it into Estimate Rocket.",
+    "copyFailed": "Couldn't copy. Select the text and copy it instead."
   }
 }

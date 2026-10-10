@@ -634,6 +634,17 @@
     "opt_gooseSolid": "Гусиный пух 25/75 цельный",
     "opt_gooseEnv": "Конверт гусиный пух 25/75 с поролоном",
     "opt_bolster": "Валик из поролона",
-    "opt_plywood": "Фанера"
+    "opt_plywood": "Фанера",
+    "tabEr": "Estimate Rocket",
+    "erStyle": "Стиль пошива",
+    "erDims": "Размеры",
+    "erConfirmed": "Подтверждены",
+    "erSeatInsert": "Наполнитель сиденья",
+    "erBackInsert": "Наполнитель спинки",
+    "erFabric": "Ткань",
+    "erDirection": "Направление / центровка ткани",
+    "copy": "Копировать",
+    "copied": "Скопировано. Вставьте в Estimate Rocket.",
+    "copyFailed": "Не удалось скопировать. Выделите текст и скопируйте вручную."
   }
 }

@@ -20,12 +20,16 @@ import {
   Tabs,
   Tag,
   Typography,
+  message,
 } from 'antd'
-import { ArrowLeftOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
-import { parseInches } from '../../lib/calculators/inches'
+import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+import { formatInches, parseInches } from '../../lib/calculators/inches'
 import {
   ADD_ONS,
+  INSERT_NAMES,
   PRICE_OPTIONS,
+  SEWING_STYLES,
+  estimateRocketText,
   money,
   yardageNonReversible,
   yardageReversible,
@@ -33,7 +37,24 @@ import {
   type PriceOption,
 } from '../../lib/calculators/cushionPricing'
 
-type Row = { id: number; name: string; qty: number; length: string; seatD: string; seatH: string; ibD: string; ibH: string }
+type Row = {
+  id: number
+  name: string
+  qty: number
+  length: string
+  seatD: string
+  seatH: string
+  ibD: string
+  ibH: string
+  // Estimate Rocket text
+  erConfirmed: boolean
+  erStyle: string
+  erSeatInsert: string
+  erBackInsert: string
+  erReversible: boolean
+  erFabric: string
+  erDirection: string
+}
 type Section = { length: number; qty: number; seat: { d: number; h: number } | null; ib: { d: number; h: number } | null }
 
 const DRAFT_KEY = 'pm-calc-cushion-pricing'
@@ -47,6 +68,13 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   seatH: '',
   ibD: '',
   ibH: '',
+  erConfirmed: false,
+  erStyle: 'To Be Determined',
+  erSeatInsert: 'tbd',
+  erBackInsert: 'tbd',
+  erReversible: true,
+  erFabric: '',
+  erDirection: '',
   ...patch,
 })
 
@@ -145,6 +173,117 @@ function PriceTable({ section, group }: { section: Section; group: PriceGroup })
         { title: t('cushionPricing.ib'), key: 'ib', align: 'right', render: (_: unknown, o: PriceOption) => cell(o, 'ib') },
       ]}
     />
+  )
+}
+
+/** Estimate Rocket description for one cushion part, ready to copy. */
+function EstimateRocket({ row, section, update }: { row: Row; section: Section; update: (patch: Partial<Row>) => void }) {
+  const { t } = useTranslation()
+  const [msg, ctx] = message.useMessage()
+  const insertOptions = Object.entries(INSERT_NAMES).map(([value, label]) => ({ value, label }))
+  const yards = row.erReversible ? yardageReversible(section.length) : yardageNonReversible(section.length)
+  const parts = (
+    [
+      ['seat', 'Seat Insert', section.seat, row.erSeatInsert],
+      ['ib', 'Back Insert', section.ib, row.erBackInsert],
+    ] as const
+  ).filter(([, , p]) => p !== null)
+
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      msg.success(t('cushionPricing.copied'))
+    } catch {
+      msg.error(t('cushionPricing.copyFailed'))
+    }
+  }
+
+  return (
+    <>
+      {ctx}
+      <Form layout="vertical" component="div">
+        <Row gutter={12}>
+          <Col xs={24} sm={12}>
+            <Form.Item label={t('cushionPricing.erStyle')} htmlFor={`er-style-${row.id}`} style={{ marginBottom: 12 }}>
+              <Select
+                id={`er-style-${row.id}`}
+                showSearch
+                value={row.erStyle}
+                onChange={(v) => update({ erStyle: v })}
+                options={SEWING_STYLES.map((v) => ({ value: v, label: v }))}
+              />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item label={t('cushionPricing.erDims')} style={{ marginBottom: 12 }}>
+              <Checkbox checked={row.erConfirmed} onChange={(e) => update({ erConfirmed: e.target.checked })}>
+                {t('cushionPricing.erConfirmed')}
+              </Checkbox>
+            </Form.Item>
+          </Col>
+          {section.seat && (
+            <Col xs={24} sm={12}>
+              <Form.Item label={t('cushionPricing.erSeatInsert')} htmlFor={`er-si-${row.id}`} style={{ marginBottom: 12 }}>
+                <Select id={`er-si-${row.id}`} value={row.erSeatInsert} onChange={(v) => update({ erSeatInsert: v })} options={insertOptions} />
+              </Form.Item>
+            </Col>
+          )}
+          {section.ib && (
+            <Col xs={24} sm={12}>
+              <Form.Item label={t('cushionPricing.erBackInsert')} htmlFor={`er-bi-${row.id}`} style={{ marginBottom: 12 }}>
+                <Select id={`er-bi-${row.id}`} value={row.erBackInsert} onChange={(v) => update({ erBackInsert: v })} options={insertOptions} />
+              </Form.Item>
+            </Col>
+          )}
+          <Col xs={24} sm={12}>
+            <Form.Item label={t('cushionPricing.erFabric')} htmlFor={`er-fab-${row.id}`} style={{ marginBottom: 12 }}>
+              <Input id={`er-fab-${row.id}`} allowClear value={row.erFabric} onChange={(e) => update({ erFabric: e.target.value })} placeholder="To Be Determined (Price Not Included)" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item label={t('cushionPricing.erDirection')} htmlFor={`er-dir-${row.id}`} style={{ marginBottom: 12 }}>
+              <Input id={`er-dir-${row.id}`} allowClear value={row.erDirection} onChange={(e) => update({ erDirection: e.target.value })} placeholder="To Be Determined" />
+            </Form.Item>
+          </Col>
+          <Col xs={24}>
+            <Checkbox checked={row.erReversible} onChange={(e) => update({ erReversible: e.target.checked })} style={{ marginBottom: 12 }}>
+              {t('cushionPricing.reversibleFabric')}
+            </Checkbox>
+          </Col>
+        </Row>
+      </Form>
+      {parts.map(([key, label, p, insert]) => {
+        const text = estimateRocketText({
+          qty: section.qty,
+          width: formatInches(section.length),
+          depth: formatInches(p!.d),
+          height: formatInches(p!.h),
+          confirmed: row.erConfirmed,
+          sewingStyle: row.erStyle,
+          insertLabel: label,
+          insert,
+          yardsPerItem: yards,
+          fabric: row.erFabric,
+          direction: row.erDirection,
+        })
+        return (
+          <Card
+            key={key}
+            size="small"
+            type="inner"
+            title={t(`cushionPricing.${key}`)}
+            extra={
+              <Button type="primary" icon={<CopyOutlined />} onClick={() => copy(text)}>
+                {t('cushionPricing.copy')}
+              </Button>
+            }
+            style={{ marginTop: 12 }}
+          >
+            <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontSize: 12, maxHeight: 220, overflow: 'auto' }}>{text}</pre>
+          </Card>
+        )
+      })}
+    </>
   )
 }
 
@@ -332,6 +471,11 @@ export default function CushionPricing() {
                           </Col>
                         </Row>
                       ),
+                    },
+                    {
+                      key: 'er',
+                      label: t('cushionPricing.tabEr'),
+                      children: <EstimateRocket row={r} section={s} update={(patch) => update(r.id, patch)} />,
                     },
                   ]}
                 />

@@ -630,6 +630,17 @@
     "opt_gooseSolid": "Plumón de ganso 25/75 sólido",
     "opt_gooseEnv": "Sobre plumón de ganso 25/75 con espuma",
     "opt_bolster": "Cilindro de espuma",
-    "opt_plywood": "Contrachapado"
+    "opt_plywood": "Contrachapado",
+    "tabEr": "Estimate Rocket",
+    "erStyle": "Estilo de costura",
+    "erDims": "Medidas",
+    "erConfirmed": "Confirmadas",
+    "erSeatInsert": "Relleno de asiento",
+    "erBackInsert": "Relleno de respaldo",
+    "erFabric": "Tela",
+    "erDirection": "Dirección / centrado de tela",
+    "copy": "Copiar",
+    "copied": "Copiado. Pégalo en Estimate Rocket.",
+    "copyFailed": "No se pudo copiar. Selecciona el texto y cópialo."
   }
 }

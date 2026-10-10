@@ -50,3 +50,82 @@ export const ADD_ONS = {
 
 export const money = (n: number) =>
   isFinite(n) ? `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
+
+// ── Estimate Rocket line text ─────────────────────────────────────────
+// Matches the workroom's Estimate Rocket template so it can be pasted as is.
+// Always English: it goes on the client's estimate.
+
+export const SEWING_STYLES = [
+  'To Be Determined',
+  'Boxed-Clean Seam',
+  'Boxed-Welted',
+  'Boxed-French Seam',
+  'Boxed-Baseball Stitch',
+  'Boxed-French Mattress',
+  'Boxed-Flange',
+  'Knife Edge-Clean Seam',
+  'Knife Edge-Welted',
+  'Knife Edge-French Seam',
+  'Knife Edge-Baseball Stitch',
+  'Knife Edge-French Mattress',
+  'Knife Edge-Flange',
+  'Knife Edge-Butterfly Corner',
+  'Pocket Corner',
+  'Pocket Corner-Welted',
+  'Closed Corner-Welted',
+] as const
+
+/** Insert names as they read on the estimate. */
+export const INSERT_NAMES: Record<string, string> = {
+  tbd: 'To Be Determined',
+  existing: 'Use Existing',
+  foam: 'Foam',
+  celesteSolid: 'Solid Celeste',
+  celesteEnv: 'Celeste Envelope w/ Foam',
+  wgSolid: '50/50 WG Down Solid',
+  wgEnv: '50/50 WG Down Envelope w/ Foam',
+  gooseSolid: '25/75 Goose Down Solid',
+  gooseEnv: '25/75 Goose Down Envelope w/ Foam',
+  bolster: 'Foam Bolster',
+  plywood: 'Plywood',
+}
+
+export type EstimateRocketInput = {
+  qty: number
+  width: string
+  depth: string
+  height: string
+  confirmed: boolean
+  sewingStyle: string
+  insertLabel: 'Seat Insert' | 'Back Insert'
+  insert: string
+  yardsPerItem: number
+  fabric: string
+  direction: string
+}
+
+/** Yards shown on the estimate, rounded up to the next hundredth. */
+const yd = (n: number) => (Math.ceil(n * 100 - 1e-9) / 100).toFixed(2)
+
+export function estimateRocketText(e: EstimateRocketInput): string {
+  return [
+    '____',
+    '<center>_According To Design Specifications_</center>',
+    '____',
+    '#### Plan:',
+    '* **Custom Sewn**',
+    `* **Dimensions:** QTY ${e.qty} @ ${e.width}W x ${e.depth}D x ${e.height}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`,
+    '',
+    '#### Style:',
+    `* **Sewing Style:** ${e.sewingStyle}`,
+    '* **Zipper:** Standard',
+    '',
+    '#### Fill:',
+    `* **${e.insertLabel}:** ${INSERT_NAMES[e.insert] ?? e.insert}`,
+    '',
+    '#### Fabric:',
+    `* **Body Yardage:** ${yd(e.yardsPerItem * e.qty)} Yards of Fabric Required in TOTAL (${yd(e.yardsPerItem)} Yards Per Item)`,
+    `* **Body Fabric:** ${e.fabric.trim() || 'To Be Determined (Price Not Included)'}`,
+    `* **Body Fabric Direction/Center:** ${e.direction.trim() || 'To Be Determined'}`,
+  ].join('\n')
+}
