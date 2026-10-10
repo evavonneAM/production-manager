@@ -651,6 +651,15 @@
     "erWeltFabric": "Tela del vivo",
     "each": "C/u",
     "lineTotal": "Total",
-    "yardsEach": "{{n}} yd c/u (exacto {{exact}}), redondeado a yardas enteras"
+    "yardsEach": "{{n}} yd c/u (exacto {{exact}}), redondeado a yardas enteras",
+    "addOnsLabel": "Adicionales",
+    "addOnsHelp": "Los adicionales marcados se incluyen en el precio de esta sección en la cotización. Por pieza = asiento y respaldo cada uno.",
+    "addWelting": "Vivo (+{{price}} por pieza)",
+    "addTick": "Funda Celeste Bio exterior (+{{price}} por pieza)",
+    "comLabel": "COM (tela del cliente)",
+    "comNone": "Sin COM",
+    "com15": "15% COM (mano de obra × 1.15)",
+    "com25": "25% COM (línea aparte, mano de obra × 0.15)",
+    "addOnsCol": "Adicionales"
   }
 }

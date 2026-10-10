@@ -59,6 +59,10 @@ type Row = {
   erCenter: string
   erContrastWelt: boolean
   erWeltFabric: string
+  // Add-ons folded into this section's price
+  addWelting: boolean
+  addTick: boolean
+  com: 'none' | 'com15' | 'com25'
 }
 type Section = { length: number; qty: number; seat: { d: number; h: number } | null; ib: { d: number; h: number } | null }
 
@@ -83,6 +87,9 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   erCenter: '',
   erContrastWelt: false,
   erWeltFabric: '',
+  addWelting: false,
+  addTick: false,
+  com: 'none',
   ...patch,
 })
 
@@ -331,6 +338,20 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
   )
 }
 
+/** Pieces in a section: the seat and/or the inside back. */
+const pieceCount = (s: Section) => (s.seat ? 1 : 0) + (s.ib ? 1 : 0)
+
+/** Add-ons for one of this section, given its labor price each. */
+function sectionAddOns(r: Row, s: Section, labor: number): number {
+  const pieces = pieceCount(s)
+  return (
+    (r.addWelting ? ADD_ONS.welting * pieces : 0) +
+    (r.addTick ? ADD_ONS.outdoorTick * pieces : 0) +
+    (r.com === 'com15' ? labor * (ADD_ONS.com15 - 1) : 0) +
+    (r.com === 'com25' ? labor * ADD_ONS.com25Line : 0)
+  )
+}
+
 /** Small feet → inches and inches → yards helpers from the original page. */
 function Converters() {
   const { t } = useTranslation()
@@ -389,13 +410,29 @@ export default function CushionPricing() {
       if (!s) return []
       const labor = each(laborId, s)
       const insert = each(insertId, s)
+      const addOns = sectionAddOns(r, s, labor)
+      const eachPrice = labor + insert + addOns
       const yardsEach = wholeYards(reversible ? yardageReversible(s.length) : yardageNonReversible(s.length))
-      return [{ key: r.id, name: r.name.trim() || t('cushionPricing.sectionN', { n: i + 1 }), qty: s.qty, labor, insert, each: labor + insert, total: (labor + insert) * s.qty, yardsEach, yards: yardsEach * s.qty }]
+      return [
+        {
+          key: r.id,
+          name: r.name.trim() || t('cushionPricing.sectionN', { n: i + 1 }),
+          qty: s.qty,
+          labor,
+          insert,
+          addOns,
+          each: eachPrice,
+          total: eachPrice * s.qty,
+          yardsEach,
+          yards: yardsEach * s.qty,
+        },
+      ]
     })
     const sum = (k: 'total' | 'yards') => lines.reduce((n, l) => n + l[k], 0)
     const labor = lines.reduce((n, l) => n + l.labor * l.qty, 0)
     const insert = lines.reduce((n, l) => n + l.insert * l.qty, 0)
-    return { lines, labor, insert, total: sum('total'), yards: sum('yards') }
+    const addOns = lines.reduce((n, l) => n + l.addOns * l.qty, 0)
+    return { lines, labor, insert, addOns, total: sum('total'), yards: sum('yards') }
   }, [rows, sections, laborId, insertId, reversible, t])
 
   const addPasted = () => {
@@ -499,6 +536,34 @@ export default function CushionPricing() {
                     <InchField id={`ih-${r.id}`} label={t('cushionPricing.ibH')} value={r.ibH} onChange={(v) => update(r.id, { ibH: v })} />
                   </Col>
                 </Row>
+                <Row gutter={12}>
+                  <Col xs={24}>
+                    <Form.Item label={t('cushionPricing.addOnsLabel')} extra={t('cushionPricing.addOnsHelp')} style={{ marginBottom: 16 }}>
+                      <Space wrap size={[24, 8]}>
+                        <Checkbox checked={r.addWelting} onChange={(e) => update(r.id, { addWelting: e.target.checked })}>
+                          {t('cushionPricing.addWelting', { price: money(ADD_ONS.welting) })}
+                        </Checkbox>
+                        <Checkbox checked={r.addTick} onChange={(e) => update(r.id, { addTick: e.target.checked })}>
+                          {t('cushionPricing.addTick', { price: money(ADD_ONS.outdoorTick) })}
+                        </Checkbox>
+                      </Space>
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24}>
+                    <Form.Item label={t('cushionPricing.comLabel')} style={{ marginBottom: 16 }}>
+                      <Segmented
+                        block
+                        value={r.com}
+                        onChange={(v) => update(r.id, { com: v as Row['com'] })}
+                        options={[
+                          { value: 'none', label: t('cushionPricing.comNone') },
+                          { value: 'com15', label: t('cushionPricing.com15') },
+                          { value: 'com25', label: t('cushionPricing.com25') },
+                        ]}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
               </Form>
               {s ? (
                 <Tabs
@@ -590,6 +655,7 @@ export default function CushionPricing() {
               columns={[
                 { title: t('cushionPricing.name'), dataIndex: 'name' },
                 { title: t('cushionCut.qty'), dataIndex: 'qty', align: 'center', width: 56 },
+                { title: t('cushionPricing.addOnsCol'), dataIndex: 'addOns', align: 'right', render: (n: number) => (n ? money(n) : '—') },
                 { title: t('cushionPricing.each'), dataIndex: 'each', align: 'right', render: (n: number) => money(n) },
                 {
                   title: t('cushionPricing.lineTotal'),
@@ -607,6 +673,9 @@ export default function CushionPricing() {
             </Col>
             <Col xs={12} sm={6}>
               <Statistic title={t('cushionPricing.insert')} value={money(quote.insert)} />
+            </Col>
+            <Col xs={12} sm={6}>
+              <Statistic title={t('cushionPricing.addOnsCol')} value={money(quote.addOns)} />
             </Col>
             <Col xs={12} sm={6}>
               <Statistic title={t('cushionPricing.total')} value={money(quote.total)} valueStyle={{ fontWeight: 700 }} />

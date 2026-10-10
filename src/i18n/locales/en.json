@@ -652,6 +652,15 @@
     "erWeltFabric": "Welt fabric",
     "each": "Each",
     "lineTotal": "Total",
-    "yardsEach": "{{n}} yd each (exact {{exact}}), rounded up to whole yards"
+    "yardsEach": "{{n}} yd each (exact {{exact}}), rounded up to whole yards",
+    "addOnsLabel": "Add-ons",
+    "addOnsHelp": "Ticked add-ons are included in this section's price in the quote. Per piece = seat and inside back each.",
+    "addWelting": "Welting (+{{price}} per piece)",
+    "addTick": "Outdoor Celeste Bio tick (+{{price}} per piece)",
+    "comLabel": "COM (customer's own material)",
+    "comNone": "No COM",
+    "com15": "15% COM (labor × 1.15)",
+    "com25": "25% COM (separate line, labor × 0.15)",
+    "addOnsCol": "Add-ons"
   }
 }
