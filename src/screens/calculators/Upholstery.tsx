@@ -26,6 +26,8 @@ import { parseInches } from '../../lib/calculators/inches'
 import {
   DEFAULT_RATES,
   INSERT_NAMES,
+  MATCH_ORIGINAL,
+  USE_EXISTING,
   STYLE_NAMES,
   TYPES,
   UPCHARGES,
@@ -37,6 +39,7 @@ import {
   type Line,
   type Rates,
 } from '../../lib/calculators/upholstery'
+import { INSERT_NAMES as ER_INSERTS, SEWING_STYLES } from '../../lib/calculators/cushionPricing'
 
 type CushionRow = {
   id: number
@@ -68,6 +71,18 @@ type Draft = {
   fabric: string
   direction: 'tbd' | 'upTheRoll' | 'railroaded'
   center: string
+  // Estimate Rocket template
+  according: 'design' | 'designer'
+  depth: string
+  height: string
+  confirmed: boolean
+  seatStyle: string
+  backStyle: string
+  armStyle: string
+  seatInsert: string
+  backInsert: string
+  quotedSolid: boolean
+  quotedRailroaded: boolean
 }
 
 const DRAFT_KEY = 'pm-calc-upholstery'
@@ -104,6 +119,17 @@ const blankDraft = (): Draft => ({
   fabric: '',
   direction: 'tbd',
   center: '',
+  according: 'design',
+  depth: '',
+  height: '',
+  confirmed: false,
+  seatStyle: MATCH_ORIGINAL,
+  backStyle: MATCH_ORIGINAL,
+  armStyle: MATCH_ORIGINAL,
+  seatInsert: USE_EXISTING,
+  backInsert: USE_EXISTING,
+  quotedSolid: true,
+  quotedRailroaded: false,
 })
 
 function load<T extends object>(key: string, fallback: T): T {
@@ -216,18 +242,33 @@ export default function Upholstery() {
     [draft],
   )
   const est = useMemo(() => estimate(input, rates), [input, rates])
-  const erText = estimateRocketText(est, {
-    job: draft.job,
-    width: input.width,
-    cushions: input.cushions,
-    upcharges: input.upcharges,
-    mohair: draft.mohair,
-    white: draft.white,
+  const erText = estimateRocketText({
+    according: draft.according,
+    service: est.service,
+    width: draft.width,
+    depth: draft.depth,
+    height: draft.height,
+    confirmed: draft.confirmed,
+    seatStyle: draft.seatStyle,
+    backStyle: draft.backStyle,
+    armStyle: draft.armStyle,
+    seatInsert: draft.seatInsert,
+    backInsert: draft.backInsert,
+    yards: est.yards,
+    quotedSolid: draft.quotedSolid,
+    quotedRailroaded: draft.quotedRailroaded,
     com: draft.com,
     fabric: draft.fabric,
     direction: draft.direction,
     center: draft.center,
   })
+  const styleOptions = [MATCH_ORIGINAL, ...SEWING_STYLES].map((v) => ({ value: v, label: v }))
+  const insertOptions = [
+    USE_EXISTING,
+    ...Object.entries(ER_INSERTS)
+      .filter(([k]) => k !== 'existing')
+      .map(([, v]) => v),
+  ].map((v) => ({ value: v, label: v }))
 
   const type = est.type
   const slipMissing = draft.service === 'slip' && type.slip === null
@@ -319,7 +360,7 @@ export default function Upholstery() {
                   />
                 </Form.Item>
               </Col>
-              <Col xs={24} sm={12}>
+              <Col xs={24} sm={8}>
                 <InchField
                   id="u-width"
                   label={t('upholstery.width')}
@@ -327,6 +368,19 @@ export default function Upholstery() {
                   onChange={(v) => set({ width: v })}
                   help={est.limit ? t('upholstery.oversizeOver', { n: est.limit }) : t('upholstery.oversizeNone')}
                 />
+              </Col>
+              <Col xs={12} sm={8}>
+                <InchField id="u-depth" label={t('upholstery.depth')} value={draft.depth} onChange={(v) => set({ depth: v })} />
+              </Col>
+              <Col xs={12} sm={8}>
+                <InchField id="u-height" label={t('upholstery.height')} value={draft.height} onChange={(v) => set({ height: v })} />
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item label={t('upholstery.dims')} style={{ marginBottom: 16 }}>
+                  <Checkbox checked={draft.confirmed} onChange={(e) => set({ confirmed: e.target.checked })}>
+                    {t('cushionPricing.erConfirmed')}
+                  </Checkbox>
+                </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item label={t('upholstery.job')} htmlFor="u-job" style={{ marginBottom: 16 }}>
@@ -501,6 +555,18 @@ export default function Upholstery() {
                   <Input id="u-center" size="large" allowClear value={draft.center} onChange={(e) => set({ center: e.target.value })} placeholder={t('cushionPricing.erCenterPlaceholder')} />
                 </Form.Item>
               </Col>
+              <Col xs={24}>
+                <Form.Item label={t('upholstery.quoted')} extra={t('upholstery.quotedHelp')} style={{ marginBottom: 16 }}>
+                  <Space size={24} wrap>
+                    <Checkbox checked={draft.quotedSolid} onChange={(e) => set({ quotedSolid: e.target.checked })}>
+                      {t('upholstery.solid')}
+                    </Checkbox>
+                    <Checkbox checked={draft.quotedRailroaded} onChange={(e) => set({ quotedRailroaded: e.target.checked })}>
+                      {t('cushionCut.railroaded')}
+                    </Checkbox>
+                  </Space>
+                </Form.Item>
+              </Col>
             </Row>
           </Form>
           <Typography.Text type="secondary">{t('upholstery.suppliesNote')}</Typography.Text>
@@ -593,8 +659,53 @@ export default function Upholstery() {
           ]}
         />
 
+        <Step n={5} title={t('upholstery.s5style')}>
+          <Form layout="vertical" component="div">
+            <Row gutter={12}>
+              <Col xs={24}>
+                <Form.Item label={t('upholstery.according')} style={{ marginBottom: 16 }}>
+                  <Segmented
+                    block
+                    value={draft.according}
+                    onChange={(v) => set({ according: v as Draft['according'] })}
+                    options={[
+                      { value: 'design', label: 'Design Specifications' },
+                      { value: 'designer', label: 'Designer' },
+                    ]}
+                  />
+                </Form.Item>
+              </Col>
+              {(
+                [
+                  ['seatStyle', 'upholstery.seatStyle'],
+                  ['backStyle', 'upholstery.backStyle'],
+                  ['armStyle', 'upholstery.armStyle'],
+                ] as const
+              ).map(([k, label]) => (
+                <Col xs={24} sm={8} key={k}>
+                  <Form.Item label={t(label)} htmlFor={`u-${k}`} extra={k === 'armStyle' ? t('upholstery.armHelp') : undefined} style={{ marginBottom: 16 }}>
+                    <Select id={`u-${k}`} size="large" showSearch value={draft[k]} onChange={(v) => set({ [k]: v } as Partial<Draft>)} options={styleOptions} />
+                  </Form.Item>
+                </Col>
+              ))}
+              {(
+                [
+                  ['seatInsert', 'cushionPricing.erSeatInsert'],
+                  ['backInsert', 'cushionPricing.erBackInsert'],
+                ] as const
+              ).map(([k, label]) => (
+                <Col xs={24} sm={12} key={k}>
+                  <Form.Item label={t(label)} htmlFor={`u-${k}`} style={{ marginBottom: 16 }}>
+                    <Select id={`u-${k}`} size="large" value={draft[k]} onChange={(v) => set({ [k]: v } as Partial<Draft>)} options={insertOptions} />
+                  </Form.Item>
+                </Col>
+              ))}
+            </Row>
+          </Form>
+        </Step>
+
         <Step
-          n={5}
+          n={6}
           title={t('upholstery.s5')}
           extra={
             <Button type="primary" icon={<CopyOutlined />} onClick={copy}>

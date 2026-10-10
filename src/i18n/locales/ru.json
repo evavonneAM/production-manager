@@ -731,6 +731,18 @@
     "fabric": "Ткань",
     "supplies": "Материалы",
     "total": "Итого по смете",
-    "erPreview": "Показать текст для Estimate Rocket"
+    "erPreview": "Показать текст для Estimate Rocket",
+    "depth": "Глубина",
+    "height": "Высота",
+    "dims": "Размеры",
+    "quoted": "Расход посчитан как",
+    "quotedHelp": "Выводится как \"QUOTED SOLID/RAILROADED\" в смете.",
+    "solid": "Однотонная",
+    "s5style": "Стиль и наполнение (для сметы)",
+    "according": "Согласно",
+    "seatStyle": "Стиль сиденья",
+    "backStyle": "Стиль спинки",
+    "armStyle": "Стиль подлокотников",
+    "armHelp": "Добавляет \"Additional Charge if Changing Style\", если стиль меняется."
   }
 }

@@ -289,16 +289,27 @@ export function estimate(s: EstimateInput, R: Rates): Estimate {
 export const money = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 // ── Estimate Rocket text ──────────────────────────────────────────────
-// Same layout as the workroom's cushion template (Plan / Style / Fill /
-// Fabric), plus the priced lines. Always English: it goes on the estimate.
+// The workroom's Estimate Rocket upholstery template, filled in. Always
+// English: it goes on the client's estimate. Prices go on the line items.
+
+export const MATCH_ORIGINAL = 'Match Original'
+export const USE_EXISTING = 'Use Existing (Additional Charge If New Needed)'
 
 export type EstimateRocketDetails = {
-  job: string
-  width: number
-  cushions: Cushion[]
-  upcharges: Record<string, { qty: number; price: number }>
-  mohair: boolean
-  white: boolean
+  according: 'design' | 'designer'
+  service: 'up' | 'slip'
+  width: string
+  depth: string
+  height: string
+  confirmed: boolean
+  seatStyle: string
+  backStyle: string
+  armStyle: string
+  seatInsert: string
+  backInsert: string
+  yards: number
+  quotedSolid: boolean
+  quotedRailroaded: boolean
   com: boolean
   fabric: string
   direction: 'tbd' | 'upTheRoll' | 'railroaded'
@@ -307,42 +318,32 @@ export type EstimateRocketDetails = {
 
 const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up the Roll', railroaded: 'Railroaded' } as const
 
-export function estimateRocketText(e: Estimate, d: EstimateRocketDetails): string {
-  const inch = (n: number) => `${q(n)}"`
-  const out: string[] = ['____', '<center>_According To Design Specifications_</center>', '____']
-  out.push('#### Plan:', `* **${e.service === 'slip' ? 'Slipcover' : 'Upholstery'}**`, `* **Piece:** ${e.type.name}${d.width > 0 ? ` - ${inch(d.width)} wide` : ''}`)
-
-  const extras = UPCHARGES.filter((u) => (d.upcharges[u.id]?.qty ?? 0) > 0).map(
-    (u) => `* ${u.name}: ${q(d.upcharges[u.id].qty)} ${u.unit.toLowerCase()}`,
-  )
-  if (d.mohair) extras.push('* Mohair')
-  if (d.white) extras.push('* White fabric')
-  if (extras.length) out.push('', '#### Style:', ...extras)
-
-  const cushions = d.cushions.filter((c) => c.w > 0)
-  if (cushions.length) {
-    out.push('', '#### Fill:')
-    for (const c of cushions) {
-      const size = c.style === 'pillow' ? inch(c.w) : `${inch(c.w)}W x ${inch(c.d)}D x ${inch(c.h)}H`
-      const bits = [STYLE_NAMES[c.style], c.insert ? INSERT_NAMES[c.insert] : '', c.welt ? 'Welted' : '', c.attached ? 'Attached' : '']
-        .filter(Boolean)
-        .join(', ')
-      out.push(`* **${c.name || 'Cushion'}:** QTY ${Math.max(1, c.qty || 1)} @ ${size} - ${bits}`)
-    }
-  }
-
+export function estimateRocketText(d: EstimateRocketDetails): string {
+  const dim = (v: string) => (v.trim() ? `${v.trim()}"` : '_"')
+  const quoted = [d.quotedSolid && 'SOLID', d.quotedRailroaded && 'RAILROADED'].filter(Boolean).join('/')
   const c = d.center.trim()
   const dir = d.direction === 'tbd' && !c ? 'To Be Determined' : c ? `${DIRECTION_TEXT[d.direction]} - Centered: ${c}` : DIRECTION_TEXT[d.direction]
-  out.push(
+  const arm = d.armStyle === MATCH_ORIGINAL ? MATCH_ORIGINAL : `${d.armStyle} (Additional Charge if Changing Style)`
+  return [
+    '____',
+    `<center>_According To ${d.according === 'designer' ? 'Designer' : 'Design Specifications'}_</center>`,
+    '____',
+    '### Plan:',
+    `* Custom ${d.service === 'slip' ? 'Slipcover' : 'Reupholstery'}`,
+    `* **Dimensions:** ${dim(d.width)}W x ${dim(d.depth)}D x ${dim(d.height)}H - ${d.confirmed ? 'Confirmed' : 'Not Confirmed'}`,
     '',
-    '#### Fabric:',
-    `* **Body Yardage:** ${e.yards} Yards of Fabric Required in TOTAL`,
+    '### Style:',
+    `* **Seat Style:** ${d.seatStyle}`,
+    `* **Back Style:** ${d.backStyle}`,
+    `* **Arm Style:** ${arm}`,
+    '',
+    '### Fill:',
+    `* **Seat Insert:** ${d.seatInsert}`,
+    `* **Back Insert:** ${d.backInsert}`,
+    '',
+    '### Fabric:',
+    `* **Body Yardage:** ${d.yards} Yards of Fabric Required in TOTAL (${d.yards} Yards Per)${quoted ? ` QUOTED ${quoted}` : ''}`,
     `* **Body Fabric:** ${d.com ? "Customer's Own Material (COM)" : d.fabric.trim() || 'To Be Determined (Price Not Included)'}`,
-    `* **Body Fabric Direction/Center:** ${dir}`,
-  )
-
-  out.push('', '#### Pricing:')
-  for (const l of e.lines) out.push(`* ${l.desc}: ${money(l.amount)}`)
-  out.push(`* **Total:** ${money(e.total)}`)
-  return out.join('\n')
+    `* **Fabric Direction/Center:** ${dir}`,
+  ].join('\n')
 }

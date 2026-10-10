@@ -727,6 +727,18 @@
     "fabric": "Tela",
     "supplies": "Materiales",
     "total": "Total de la cotización",
-    "erPreview": "Ver el texto para Estimate Rocket"
+    "erPreview": "Ver el texto para Estimate Rocket",
+    "depth": "Fondo",
+    "height": "Altura",
+    "dims": "Medidas",
+    "quoted": "Yardaje cotizado como",
+    "quotedHelp": "Sale como \"QUOTED SOLID/RAILROADED\" en la cotización.",
+    "solid": "Liso",
+    "s5style": "Estilo y relleno (para la cotización)",
+    "according": "Según",
+    "seatStyle": "Estilo de asiento",
+    "backStyle": "Estilo de respaldo",
+    "armStyle": "Estilo de brazo",
+    "armHelp": "Agrega \"Additional Charge if Changing Style\" si se cambia."
   }
 }

@@ -728,6 +728,18 @@
     "fabric": "Fabric",
     "supplies": "Supplies",
     "total": "Estimate total",
-    "erPreview": "See the Estimate Rocket text"
+    "erPreview": "See the Estimate Rocket text",
+    "depth": "Depth",
+    "height": "Height",
+    "dims": "Dimensions",
+    "quoted": "Yardage quoted as",
+    "quotedHelp": "Prints as \"QUOTED SOLID/RAILROADED\" on the estimate.",
+    "solid": "Solid",
+    "s5style": "Style & fill (for the estimate)",
+    "according": "According to",
+    "seatStyle": "Seat style",
+    "backStyle": "Back style",
+    "armStyle": "Arm style",
+    "armHelp": "Adds \"Additional Charge if Changing Style\" when changed."
   }
 }
