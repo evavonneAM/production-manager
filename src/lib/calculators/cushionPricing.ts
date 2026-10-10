@@ -47,7 +47,6 @@ export const ADD_ONS = {
   welting: 10,
   outdoorTick: 10,
   com15: 1.15,
-  com25Line: 0.15,
 }
 
 export const money = (n: number) =>

@@ -581,7 +581,7 @@
   "cushionPricing": {
     "intro": "Ingresa la medida de cada sección. Los precios de cada opción aparecen mientras escribes. Los precios son por pieza.",
     "addOnsTitle": "Adicionales",
-    "addOns": "Mano de obra de cojín decorativo {{pillow}} c/u · Vivo +{{welt}} por pieza · Funda Celeste Bio exterior +{{tick}} por pieza · 15% COM: mano de obra × 1.15 · 25% COM: línea aparte de mano de obra × 0.15",
+    "addOns": "Mano de obra de cojín decorativo {{pillow}} c/u · Vivo +{{welt}} por pieza · Funda Celeste Bio exterior +{{tick}} por pieza · COM: mano de obra × 1.15. Marca los adicionales en cada sección para incluirlos en la cotización.",
     "converters": "Pies → pulgadas y pulgadas → yardas",
     "ftToIn": "Pies → pulgadas",
     "inToYd": "Pulgadas → yardas",
@@ -656,10 +656,12 @@
     "addOnsHelp": "Los adicionales marcados se incluyen en el precio de esta sección en la cotización. Por pieza = asiento y respaldo cada uno.",
     "addWelting": "Vivo (+{{price}} por pieza)",
     "addTick": "Funda Celeste Bio exterior (+{{price}} por pieza)",
-    "comLabel": "COM (tela del cliente)",
-    "comNone": "Sin COM",
-    "com15": "15% COM (mano de obra × 1.15)",
-    "com25": "25% COM (línea aparte, mano de obra × 0.15)",
-    "addOnsCol": "Adicionales"
+    "com15": "COM (mano de obra × 1.15)",
+    "addOnsCol": "Adicionales",
+    "ydEach": "{{n}} yd c/u",
+    "ydTotal": "{{n}} yd total",
+    "fabricTotal": "Tela (total)",
+    "fabricEachOne": "{{each}} yd c/u × {{qty}}",
+    "fabricEachMany": "Las yardas por unidad están en cada sección arriba"
   }
 }

@@ -62,7 +62,7 @@ type Row = {
   // Add-ons folded into this section's price
   addWelting: boolean
   addTick: boolean
-  com: 'none' | 'com15' | 'com25'
+  com: 'none' | 'com15'
 }
 type Section = { length: number; qty: number; seat: { d: number; h: number } | null; ib: { d: number; h: number } | null }
 
@@ -100,6 +100,7 @@ function loadDraft(): Row[] {
       return saved.map((r) => {
         const row = { ...blank(), ...r, id: nextId++ }
         if (!['tbd', 'upTheRoll', 'railroaded'].includes(row.erDirection)) row.erDirection = 'tbd'
+        if (row.com !== 'com15') row.com = 'none'
         return row
       })
   } catch {
@@ -347,8 +348,7 @@ function sectionAddOns(r: Row, s: Section, labor: number): number {
   return (
     (r.addWelting ? ADD_ONS.welting * pieces : 0) +
     (r.addTick ? ADD_ONS.outdoorTick * pieces : 0) +
-    (r.com === 'com15' ? labor * (ADD_ONS.com15 - 1) : 0) +
-    (r.com === 'com25' ? labor * ADD_ONS.com25Line : 0)
+    (r.com === 'com15' ? labor * (ADD_ONS.com15 - 1) : 0)
   )
 }
 
@@ -546,21 +546,10 @@ export default function CushionPricing() {
                         <Checkbox checked={r.addTick} onChange={(e) => update(r.id, { addTick: e.target.checked })}>
                           {t('cushionPricing.addTick', { price: money(ADD_ONS.outdoorTick) })}
                         </Checkbox>
+                        <Checkbox checked={r.com === 'com15'} onChange={(e) => update(r.id, { com: e.target.checked ? 'com15' : 'none' })}>
+                          {t('cushionPricing.com15')}
+                        </Checkbox>
                       </Space>
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24}>
-                    <Form.Item label={t('cushionPricing.comLabel')} style={{ marginBottom: 16 }}>
-                      <Segmented
-                        block
-                        value={r.com}
-                        onChange={(v) => update(r.id, { com: v as Row['com'] })}
-                        options={[
-                          { value: 'none', label: t('cushionPricing.comNone') },
-                          { value: 'com15', label: t('cushionPricing.com15') },
-                          { value: 'com25', label: t('cushionPricing.com25') },
-                        ]}
-                      />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -663,7 +652,19 @@ export default function CushionPricing() {
                   align: 'right',
                   render: (n: number) => <Typography.Text strong>{money(n)}</Typography.Text>,
                 },
-                { title: t('cushionPricing.fabric'), dataIndex: 'yards', align: 'right', render: (n: number) => `${n} ${t('calc.yd')}` },
+                {
+                  title: t('cushionPricing.fabric'),
+                  key: 'yards',
+                  align: 'right',
+                  render: (_: unknown, l: { yardsEach: number; yards: number }) => (
+                    <>
+                      <div>{t('cushionPricing.ydEach', { n: l.yardsEach })}</div>
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {t('cushionPricing.ydTotal', { n: l.yards })}
+                      </Typography.Text>
+                    </>
+                  ),
+                },
               ]}
             />
           )}
@@ -681,7 +682,12 @@ export default function CushionPricing() {
               <Statistic title={t('cushionPricing.total')} value={money(quote.total)} valueStyle={{ fontWeight: 700 }} />
             </Col>
             <Col xs={12} sm={6}>
-              <Statistic title={t('cushionPricing.fabric')} value={quote.yards} suffix={t('calc.yd')} />
+              <Statistic title={t('cushionPricing.fabricTotal')} value={quote.yards} suffix={t('calc.yd')} />
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {quote.lines.length === 1
+                  ? t('cushionPricing.fabricEachOne', { each: quote.lines[0].yardsEach, qty: quote.lines[0].qty })
+                  : t('cushionPricing.fabricEachMany')}
+              </Typography.Text>
             </Col>
           </Row>
         </Card>

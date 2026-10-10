@@ -582,7 +582,7 @@
   "cushionPricing": {
     "intro": "Enter each section's size. Prices for every labor and insert option show as you type. Prices are per piece.",
     "addOnsTitle": "Add-ons",
-    "addOns": "Throw pillow labor {{pillow}} each · Welting +{{welt}} per piece · Outdoor Celeste Bio tick +{{tick}} per piece · 15% COM: labor × 1.15 · 25% COM: separate line of labor × 0.15",
+    "addOns": "Throw pillow labor {{pillow}} each · Welting +{{welt}} per piece · Outdoor Celeste Bio tick +{{tick}} per piece · COM: labor × 1.15. Tick add-ons on each section to include them in the quote.",
     "converters": "Feet → inches and inches → yards",
     "ftToIn": "Feet → inches",
     "inToYd": "Inches → yards",
@@ -657,10 +657,12 @@
     "addOnsHelp": "Ticked add-ons are included in this section's price in the quote. Per piece = seat and inside back each.",
     "addWelting": "Welting (+{{price}} per piece)",
     "addTick": "Outdoor Celeste Bio tick (+{{price}} per piece)",
-    "comLabel": "COM (customer's own material)",
-    "comNone": "No COM",
-    "com15": "15% COM (labor × 1.15)",
-    "com25": "25% COM (separate line, labor × 0.15)",
-    "addOnsCol": "Add-ons"
+    "com15": "COM (labor × 1.15)",
+    "addOnsCol": "Add-ons",
+    "ydEach": "{{n}} yd each",
+    "ydTotal": "{{n}} yd total",
+    "fabricTotal": "Fabric (total)",
+    "fabricEachOne": "{{each}} yd each × {{qty}}",
+    "fabricEachMany": "Yards each are listed per section above"
   }
 }
