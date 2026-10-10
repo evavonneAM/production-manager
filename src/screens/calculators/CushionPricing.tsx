@@ -27,7 +27,6 @@ import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, PlusOutlined } from '@
 import { formatInches, parseInches } from '../../lib/calculators/inches'
 import {
   ADD_ONS,
-  INSERT_NAMES,
   PRICE_OPTIONS,
   SEWING_STYLES,
   estimateRocketText,
@@ -48,7 +47,9 @@ type Row = {
   seatH: string
   ibD: string
   ibH: string
-  // Estimate Rocket text
+  /** Labor option priced for this section (seat + inside back). */
+  labor: string
+  // Estimate Rocket text (the insert picks also price the quote)
   erConfirmed: boolean
   erStyle: string
   erSeatInsert: string
@@ -59,6 +60,10 @@ type Row = {
   erCenter: string
   erContrastWelt: boolean
   erWeltFabric: string
+  // Add-ons folded into this section's price
+  addWelting: boolean
+  addTick: boolean
+  com: 'none' | 'com15'
 }
 type Section = { length: number; qty: number; seat: { d: number; h: number } | null; ib: { d: number; h: number } | null }
 
@@ -73,6 +78,7 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   seatH: '',
   ibD: '',
   ibH: '',
+  labor: 'customFoam',
   erConfirmed: false,
   erStyle: 'To Be Determined',
   erSeatInsert: 'tbd',
@@ -83,6 +89,9 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   erCenter: '',
   erContrastWelt: false,
   erWeltFabric: '',
+  addWelting: false,
+  addTick: false,
+  com: 'none',
   ...patch,
 })
 
@@ -93,6 +102,7 @@ function loadDraft(): Row[] {
       return saved.map((r) => {
         const row = { ...blank(), ...r, id: nextId++ }
         if (!['tbd', 'upTheRoll', 'railroaded'].includes(row.erDirection)) row.erDirection = 'tbd'
+        if (row.com !== 'com15') row.com = 'none'
         return row
       })
   } catch {
@@ -193,7 +203,6 @@ function PriceTable({ section, group }: { section: Section; group: PriceGroup })
 function EstimateRocket({ row, section, update }: { row: Row; section: Section; update: (patch: Partial<Row>) => void }) {
   const { t } = useTranslation()
   const [msg, ctx] = message.useMessage()
-  const insertOptions = Object.entries(INSERT_NAMES).map(([value, label]) => ({ value, label }))
   const yards = row.erReversible ? yardageReversible(section.length) : yardageNonReversible(section.length)
   const parts = (
     [
@@ -234,20 +243,6 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
               </Checkbox>
             </Form.Item>
           </Col>
-          {section.seat && (
-            <Col xs={24} sm={12}>
-              <Form.Item label={t('cushionPricing.erSeatInsert')} htmlFor={`er-si-${row.id}`} style={{ marginBottom: 12 }}>
-                <Select id={`er-si-${row.id}`} value={row.erSeatInsert} onChange={(v) => update({ erSeatInsert: v })} options={insertOptions} />
-              </Form.Item>
-            </Col>
-          )}
-          {section.ib && (
-            <Col xs={24} sm={12}>
-              <Form.Item label={t('cushionPricing.erBackInsert')} htmlFor={`er-bi-${row.id}`} style={{ marginBottom: 12 }}>
-                <Select id={`er-bi-${row.id}`} value={row.erBackInsert} onChange={(v) => update({ erBackInsert: v })} options={insertOptions} />
-              </Form.Item>
-            </Col>
-          )}
           <Col xs={24} sm={12}>
             <Form.Item label={t('cushionPricing.erFabric')} htmlFor={`er-fab-${row.id}`} style={{ marginBottom: 12 }}>
               <Input id={`er-fab-${row.id}`} allowClear value={row.erFabric} onChange={(e) => update({ erFabric: e.target.value })} placeholder="To Be Determined (Price Not Included)" />
@@ -286,11 +281,6 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
               </Form.Item>
             </Col>
           )}
-          <Col xs={24}>
-            <Checkbox checked={row.erReversible} onChange={(e) => update({ erReversible: e.target.checked })} style={{ marginBottom: 12 }}>
-              {t('cushionPricing.reversibleFabric')}
-            </Checkbox>
-          </Col>
         </Row>
       </Form>
       {parts.map(([key, label, p, insert]) => {
@@ -331,6 +321,19 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
   )
 }
 
+/** Pieces in a section: the seat and/or the inside back. */
+const pieceCount = (s: Section) => (s.seat ? 1 : 0) + (s.ib ? 1 : 0)
+
+/** Add-ons for one of this section, given its labor price each. */
+function sectionAddOns(r: Row, s: Section, labor: number): number {
+  const pieces = pieceCount(s)
+  return (
+    (r.addWelting ? ADD_ONS.welting * pieces : 0) +
+    (r.addTick ? ADD_ONS.outdoorTick * pieces : 0) +
+    (r.com === 'com15' ? labor * (ADD_ONS.com15 - 1) : 0)
+  )
+}
+
 /** Small feet → inches and inches → yards helpers from the original page. */
 function Converters() {
   const { t } = useTranslation()
@@ -364,9 +367,6 @@ export default function CushionPricing() {
   const { t } = useTranslation()
   const [rows, setRows] = useState<Row[]>(loadDraft)
   const [paste, setPaste] = useState('')
-  const [laborId, setLaborId] = useState('customFoam')
-  const [insertId, setInsertId] = useState('none')
-  const [reversible, setReversible] = useState(true)
 
   useEffect(() => {
     try {
@@ -380,23 +380,39 @@ export default function CushionPricing() {
   const sections = useMemo(() => rows.map(toSection), [rows])
 
   const quote = useMemo(() => {
-    const each = (id: string, s: Section) => {
+    const part = (id: string, s: Section, p: 'seat' | 'ib') => {
       const o = PRICE_OPTIONS.find((x) => x.id === id)
-      return o ? (priceFor(o, s, 'seat') ?? 0) + (priceFor(o, s, 'ib') ?? 0) : 0
+      return o ? (priceFor(o, s, p) ?? 0) : 0
     }
     const lines = rows.flatMap((r, i) => {
       const s = sections[i]
       if (!s) return []
-      const labor = each(laborId, s)
-      const insert = each(insertId, s)
-      const yardsEach = wholeYards(reversible ? yardageReversible(s.length) : yardageNonReversible(s.length))
-      return [{ key: r.id, name: r.name.trim() || t('cushionPricing.sectionN', { n: i + 1 }), qty: s.qty, labor, insert, each: labor + insert, total: (labor + insert) * s.qty, yardsEach, yards: yardsEach * s.qty }]
+      const labor = part(r.labor, s, 'seat') + part(r.labor, s, 'ib')
+      const insert = part(r.erSeatInsert, s, 'seat') + part(r.erBackInsert, s, 'ib')
+      const addOns = sectionAddOns(r, s, labor)
+      const eachPrice = labor + insert + addOns
+      const yardsEach = wholeYards(r.erReversible ? yardageReversible(s.length) : yardageNonReversible(s.length))
+      return [
+        {
+          key: r.id,
+          name: r.name.trim() || t('cushionPricing.sectionN', { n: i + 1 }),
+          qty: s.qty,
+          labor,
+          insert,
+          addOns,
+          each: eachPrice,
+          total: eachPrice * s.qty,
+          yardsEach,
+          yards: yardsEach * s.qty,
+        },
+      ]
     })
     const sum = (k: 'total' | 'yards') => lines.reduce((n, l) => n + l[k], 0)
     const labor = lines.reduce((n, l) => n + l.labor * l.qty, 0)
     const insert = lines.reduce((n, l) => n + l.insert * l.qty, 0)
-    return { lines, labor, insert, total: sum('total'), yards: sum('yards') }
-  }, [rows, sections, laborId, insertId, reversible, t])
+    const addOns = lines.reduce((n, l) => n + l.addOns * l.qty, 0)
+    return { lines, labor, insert, addOns, total: sum('total'), yards: sum('yards') }
+  }, [rows, sections, t])
 
   const addPasted = () => {
     const pasted = parsePasted(paste)
@@ -406,6 +422,11 @@ export default function CushionPricing() {
   }
 
   const optionLabel = (o: PriceOption) => t(`cushionPricing.opt_${o.id}`)
+  const insertOptions = [
+    { value: 'tbd', label: t('cushionPricing.insertTbd') },
+    { value: 'existing', label: t('cushionPricing.insertExisting') },
+    ...PRICE_OPTIONS.filter((o) => o.group === 'insert').map((o) => ({ value: o.id, label: optionLabel(o) })),
+  ]
 
   return (
     <div style={{ maxWidth: 820, width: '100%', margin: '0 auto', padding: '16px 16px 48px' }}>
@@ -499,6 +520,50 @@ export default function CushionPricing() {
                     <InchField id={`ih-${r.id}`} label={t('cushionPricing.ibH')} value={r.ibH} onChange={(v) => update(r.id, { ibH: v })} />
                   </Col>
                 </Row>
+                <Row gutter={12}>
+                  <Col xs={24} sm={8}>
+                    <Form.Item label={t('cushionPricing.tabLabor')} htmlFor={`labor-${r.id}`} style={{ marginBottom: 16 }}>
+                      <Select
+                        id={`labor-${r.id}`}
+                        size="large"
+                        value={r.labor}
+                        onChange={(v) => update(r.id, { labor: v })}
+                        options={[
+                          { value: 'none', label: t('cushionPricing.none') },
+                          ...PRICE_OPTIONS.filter((o) => o.group === 'labor').map((o) => ({ value: o.id, label: optionLabel(o) })),
+                        ]}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item label={t('cushionPricing.erSeatInsert')} htmlFor={`er-si-${r.id}`} style={{ marginBottom: 16 }}>
+                      <Select id={`er-si-${r.id}`} size="large" value={r.erSeatInsert} onChange={(v) => update(r.id, { erSeatInsert: v })} options={insertOptions} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item label={t('cushionPricing.erBackInsert')} htmlFor={`er-bi-${r.id}`} style={{ marginBottom: 16 }}>
+                      <Select id={`er-bi-${r.id}`} size="large" value={r.erBackInsert} onChange={(v) => update(r.id, { erBackInsert: v })} options={insertOptions} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24}>
+                    <Form.Item label={t('cushionPricing.addOnsLabel')} extra={t('cushionPricing.addOnsHelp')} style={{ marginBottom: 16 }}>
+                      <Space wrap size={[24, 8]}>
+                        <Checkbox checked={r.addWelting} onChange={(e) => update(r.id, { addWelting: e.target.checked })}>
+                          {t('cushionPricing.addWelting', { price: money(ADD_ONS.welting) })}
+                        </Checkbox>
+                        <Checkbox checked={r.addTick} onChange={(e) => update(r.id, { addTick: e.target.checked })}>
+                          {t('cushionPricing.addTick', { price: money(ADD_ONS.outdoorTick) })}
+                        </Checkbox>
+                        <Checkbox checked={r.com === 'com15'} onChange={(e) => update(r.id, { com: e.target.checked ? 'com15' : 'none' })}>
+                          {t('cushionPricing.com15')}
+                        </Checkbox>
+                        <Checkbox checked={r.erReversible} onChange={(e) => update(r.id, { erReversible: e.target.checked })}>
+                          {t('cushionPricing.reversibleFabric')}
+                        </Checkbox>
+                      </Space>
+                    </Form.Item>
+                  </Col>
+                </Row>
               </Form>
               {s ? (
                 <Tabs
@@ -546,41 +611,6 @@ export default function CushionPricing() {
 
         <Card title={t('cushionPricing.quoteTitle')}>
           <Typography.Paragraph type="secondary">{t('cushionPricing.quoteHelp')}</Typography.Paragraph>
-          <Form layout="vertical" component="div">
-            <Row gutter={12}>
-              <Col xs={24} sm={12}>
-                <Form.Item label={t('cushionPricing.tabLabor')} htmlFor="quote-labor" style={{ marginBottom: 12 }}>
-                  <Select
-                    id="quote-labor"
-                    size="large"
-                    value={laborId}
-                    onChange={setLaborId}
-                    options={[
-                      { value: 'none', label: t('cushionPricing.none') },
-                      ...PRICE_OPTIONS.filter((o) => o.group === 'labor').map((o) => ({ value: o.id, label: optionLabel(o) })),
-                    ]}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item label={t('cushionPricing.insert')} htmlFor="quote-insert" style={{ marginBottom: 12 }}>
-                  <Select
-                    id="quote-insert"
-                    size="large"
-                    value={insertId}
-                    onChange={setInsertId}
-                    options={[
-                      { value: 'none', label: t('cushionPricing.none') },
-                      ...PRICE_OPTIONS.filter((o) => o.group === 'insert').map((o) => ({ value: o.id, label: optionLabel(o) })),
-                    ]}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Checkbox checked={reversible} onChange={(e) => setReversible(e.target.checked)}>
-              {t('cushionPricing.reversibleFabric')}
-            </Checkbox>
-          </Form>
           {quote.lines.length > 0 && (
             <Table
               size="small"
@@ -590,6 +620,7 @@ export default function CushionPricing() {
               columns={[
                 { title: t('cushionPricing.name'), dataIndex: 'name' },
                 { title: t('cushionCut.qty'), dataIndex: 'qty', align: 'center', width: 56 },
+                { title: t('cushionPricing.addOnsCol'), dataIndex: 'addOns', align: 'right', render: (n: number) => (n ? money(n) : '—') },
                 { title: t('cushionPricing.each'), dataIndex: 'each', align: 'right', render: (n: number) => money(n) },
                 {
                   title: t('cushionPricing.lineTotal'),
@@ -597,7 +628,19 @@ export default function CushionPricing() {
                   align: 'right',
                   render: (n: number) => <Typography.Text strong>{money(n)}</Typography.Text>,
                 },
-                { title: t('cushionPricing.fabric'), dataIndex: 'yards', align: 'right', render: (n: number) => `${n} ${t('calc.yd')}` },
+                {
+                  title: t('cushionPricing.fabric'),
+                  key: 'yards',
+                  align: 'right',
+                  render: (_: unknown, l: { yardsEach: number; yards: number }) => (
+                    <>
+                      <div>{t('cushionPricing.ydEach', { n: l.yardsEach })}</div>
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {t('cushionPricing.ydTotal', { n: l.yards })}
+                      </Typography.Text>
+                    </>
+                  ),
+                },
               ]}
             />
           )}
@@ -609,10 +652,18 @@ export default function CushionPricing() {
               <Statistic title={t('cushionPricing.insert')} value={money(quote.insert)} />
             </Col>
             <Col xs={12} sm={6}>
+              <Statistic title={t('cushionPricing.addOnsCol')} value={money(quote.addOns)} />
+            </Col>
+            <Col xs={12} sm={6}>
               <Statistic title={t('cushionPricing.total')} value={money(quote.total)} valueStyle={{ fontWeight: 700 }} />
             </Col>
             <Col xs={12} sm={6}>
-              <Statistic title={t('cushionPricing.fabric')} value={quote.yards} suffix={t('calc.yd')} />
+              <Statistic title={t('cushionPricing.fabricTotal')} value={quote.yards} suffix={t('calc.yd')} />
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {quote.lines.length === 1
+                  ? t('cushionPricing.fabricEachOne', { each: quote.lines[0].yardsEach, qty: quote.lines[0].qty })
+                  : t('cushionPricing.fabricEachMany')}
+              </Typography.Text>
             </Col>
           </Row>
         </Card>

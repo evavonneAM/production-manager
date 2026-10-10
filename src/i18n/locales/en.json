@@ -587,7 +587,7 @@
   "cushionPricing": {
     "intro": "Enter each section's size. Prices for every labor and insert option show as you type. Prices are per piece.",
     "addOnsTitle": "Add-ons",
-    "addOns": "Throw pillow labor {{pillow}} each · Welting +{{welt}} per piece · Outdoor Celeste Bio tick +{{tick}} per piece · 15% COM: labor × 1.15 · 25% COM: separate line of labor × 0.15",
+    "addOns": "Throw pillow labor {{pillow}} each · Welting +{{welt}} per piece · Outdoor Celeste Bio tick +{{tick}} per piece · COM: labor × 1.15. Tick add-ons on each section to include them in the quote.",
     "converters": "Feet → inches and inches → yards",
     "ftToIn": "Feet → inches",
     "inToYd": "Inches → yards",
@@ -617,7 +617,7 @@
     "nonReversible": "Non-reversible",
     "add": "Add another section",
     "quoteTitle": "Quote total",
-    "quoteHelp": "Pick the labor and insert for this job. Each section shows its price each (seat + inside back) and its total (× how many).",
+    "quoteHelp": "Each section's labor, inserts and add-ons are priced above. Price each is seat + inside back; total is × how many.",
     "insert": "Insert",
     "none": "None",
     "reversibleFabric": "Reversible fabric (yardage)",
@@ -657,6 +657,19 @@
     "erWeltFabric": "Welt fabric",
     "each": "Each",
     "lineTotal": "Total",
-    "yardsEach": "{{n}} yd each (exact {{exact}}), rounded up to whole yards"
+    "yardsEach": "{{n}} yd each (exact {{exact}}), rounded up to whole yards",
+    "addOnsLabel": "Add-ons and fabric",
+    "addOnsHelp": "Ticked add-ons are added to this section's price. Per piece = seat and inside back each.",
+    "addWelting": "Welting (+{{price}} per piece)",
+    "addTick": "Outdoor Celeste Bio tick (+{{price}} per piece)",
+    "com15": "COM (labor × 1.15)",
+    "addOnsCol": "Add-ons",
+    "ydEach": "{{n}} yd each",
+    "ydTotal": "{{n}} yd total",
+    "fabricTotal": "Fabric (total)",
+    "fabricEachOne": "{{each}} yd each × {{qty}}",
+    "fabricEachMany": "Yards each are listed per section above",
+    "insertTbd": "To be determined",
+    "insertExisting": "Use existing"
   }
 }

@@ -586,7 +586,7 @@
   "cushionPricing": {
     "intro": "Ingresa la medida de cada sección. Los precios de cada opción aparecen mientras escribes. Los precios son por pieza.",
     "addOnsTitle": "Adicionales",
-    "addOns": "Mano de obra de cojín decorativo {{pillow}} c/u · Vivo +{{welt}} por pieza · Funda Celeste Bio exterior +{{tick}} por pieza · 15% COM: mano de obra × 1.15 · 25% COM: línea aparte de mano de obra × 0.15",
+    "addOns": "Mano de obra de cojín decorativo {{pillow}} c/u · Vivo +{{welt}} por pieza · Funda Celeste Bio exterior +{{tick}} por pieza · COM: mano de obra × 1.15. Marca los adicionales en cada sección para incluirlos en la cotización.",
     "converters": "Pies → pulgadas y pulgadas → yardas",
     "ftToIn": "Pies → pulgadas",
     "inToYd": "Pulgadas → yardas",
@@ -616,7 +616,7 @@
     "nonReversible": "No reversible",
     "add": "Agregar otra sección",
     "quoteTitle": "Total de cotización",
-    "quoteHelp": "Elige la mano de obra y el relleno de este trabajo. Cada sección muestra su precio por unidad (asiento + respaldo) y su total (× cantidad).",
+    "quoteHelp": "La mano de obra, rellenos y adicionales de cada sección se eligen arriba. Precio c/u = asiento + respaldo; total = × cantidad.",
     "insert": "Relleno",
     "none": "Ninguno",
     "reversibleFabric": "Tela reversible (yardaje)",
@@ -656,6 +656,19 @@
     "erWeltFabric": "Tela del vivo",
     "each": "C/u",
     "lineTotal": "Total",
-    "yardsEach": "{{n}} yd c/u (exacto {{exact}}), redondeado a yardas enteras"
+    "yardsEach": "{{n}} yd c/u (exacto {{exact}}), redondeado a yardas enteras",
+    "addOnsLabel": "Adicionales y tela",
+    "addOnsHelp": "Los adicionales marcados se suman al precio de esta sección. Por pieza = asiento y respaldo cada uno.",
+    "addWelting": "Vivo (+{{price}} por pieza)",
+    "addTick": "Funda Celeste Bio exterior (+{{price}} por pieza)",
+    "com15": "COM (mano de obra × 1.15)",
+    "addOnsCol": "Adicionales",
+    "ydEach": "{{n}} yd c/u",
+    "ydTotal": "{{n}} yd total",
+    "fabricTotal": "Tela (total)",
+    "fabricEachOne": "{{each}} yd c/u × {{qty}}",
+    "fabricEachMany": "Las yardas por unidad están en cada sección arriba",
+    "insertTbd": "Por definir",
+    "insertExisting": "Usar existente"
   }
 }
