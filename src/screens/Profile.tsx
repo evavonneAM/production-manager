@@ -4,10 +4,13 @@ import { useAuth } from '../auth/AuthProvider'
 import { Avatar } from '../components/Avatar'
 import { LanguageSelect } from '../components/LanguageSelect'
 import { uploadAvatar } from '../lib/files'
+import { Segmented } from 'antd'
+import { useTheme, type ThemeMode } from '../lib/theme'
 
 export default function Profile() {
   const { t } = useTranslation()
   const { profile, updateProfile, setLanguage, changePassword, signOut, refreshProfile } = useAuth()
+  const { mode: themeMode, setMode: setThemeMode } = useTheme()
   const [avatarBusy, setAvatarBusy] = useState(false)
   const [avatarErr, setAvatarErr] = useState<string | null>(null)
 
@@ -135,6 +138,24 @@ export default function Profile() {
               value={profile.language}
               onChange={(lang) => void setLanguage(lang)}
             />
+          </div>
+          <div>
+            <span id="appearance-label" className="mb-1 block text-sm text-slate-300">
+              {t('profile.appearance')}
+            </span>
+            <Segmented
+              aria-labelledby="appearance-label"
+              block
+              size="large"
+              value={themeMode}
+              onChange={(v) => setThemeMode(v as ThemeMode)}
+              options={[
+                { value: 'light', label: t('profile.themeLight') },
+                { value: 'dark', label: t('profile.themeDark') },
+                { value: 'auto', label: t('profile.themeAuto') },
+              ]}
+            />
+            <p className="mt-1 text-xs text-slate-500">{t('profile.appearanceHelp')}</p>
           </div>
 
           {profileMsg && (

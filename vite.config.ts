@@ -22,8 +22,8 @@ export default defineConfig({
         description:
           'Phone-first production management for furniture work orders, jobs, and labor tracking.',
         lang: 'en',
-        theme_color: '#b45309',
-        background_color: '#0f172a',
+        theme_color: '#ffffff',
+        background_color: '#f5f5f5',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

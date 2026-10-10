@@ -238,7 +238,12 @@
     "passwordUpdated": "Пароль обновлён.",
     "passwordTooShort": "Пароль должен содержать не менее 8 символов.",
     "profileSaved": "Профиль сохранён.",
-    "changePhoto": "Изменить фото"
+    "changePhoto": "Изменить фото",
+    "appearance": "Оформление",
+    "themeLight": "Светлое",
+    "themeDark": "Тёмное",
+    "themeAuto": "Авто",
+    "appearanceHelp": "«Авто» следует настройке телефона или компьютера. Сохраняется на этом устройстве."
   },
   "projects": {
     "searchPlaceholder": "Поиск проектов, работ, клиентов…",
