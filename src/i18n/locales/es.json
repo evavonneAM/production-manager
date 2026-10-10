@@ -672,7 +672,7 @@
     "insertExisting": "Usar existente"
   },
   "upholstery": {
-    "intro": "Sigue \"Cómo cotizar mano de obra de tapicería\": mano de obra base, cojines, espuma, yardaje, materiales y adicionales. La cotización abajo lista cada línea como se ingresa en QuickBooks.",
+    "intro": "Sigue \"Cómo cotizar mano de obra de tapicería\": mano de obra base, cojines, espuma, yardaje, materiales y adicionales. La cotización de abajo se copia directo a Estimate Rocket.",
     "s1": "Mano de obra base",
     "s2": "Cojines y espuma",
     "s3": "Yardaje y materiales",
@@ -714,11 +714,11 @@
     "mohair": "Mohair: sumar {{pct}}% a la mano de obra",
     "white": "Tela blanca: sumar {{pct}}% a la mano de obra",
     "rates": "Tarifas (ver y editar)",
-    "ratesHelp": "Las tarifas de cojines y espuma coinciden con Precios de cojines; materiales coincide con QuickBooks. Se guardan en este dispositivo.",
+    "ratesHelp": "Las tarifas de cojines y espuma coinciden con Precios de cojines. Se guardan en este dispositivo.",
     "ratesReset": "Volver a tarifas estándar",
-    "copy": "Copiar para QuickBooks",
-    "copied": "Copiado. Pégalo en QuickBooks o tus notas.",
-    "qbItem": "Concepto de QuickBooks",
+    "copy": "Copiar para Estimate Rocket",
+    "copied": "Copiado. Pégalo en Estimate Rocket.",
+    "qbItem": "Concepto",
     "desc": "Descripción",
     "rate": "Tarifa",
     "amount": "Importe",
@@ -726,6 +726,7 @@
     "foam": "Espuma",
     "fabric": "Tela",
     "supplies": "Materiales",
-    "total": "Total de la cotización"
+    "total": "Total de la cotización",
+    "erPreview": "Ver el texto para Estimate Rocket"
   }
 }

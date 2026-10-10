@@ -1,6 +1,6 @@
 // Upholstery estimate — same math as the upholstery-estimator page, which
 // follows "How to price upholstery labor": base labor, cushions, foam,
-// yardage, supplies, then upcharges. Each line is a QuickBooks item.
+// yardage, supplies, then upcharges.
 
 export type Kind = 'chair' | 'ottoman' | 'love' | 'sofa'
 
@@ -288,8 +288,61 @@ export function estimate(s: EstimateInput, R: Rates): Estimate {
 
 export const money = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-/** Text for pasting into QuickBooks or notes. */
-export function quickBooksText(job: string, e: Estimate): string {
-  const rows = e.lines.map((l) => `${l.item} | ${l.desc} | qty ${q(l.qty)} @ ${money(l.rate)} = ${money(l.amount)}`)
-  return [job.trim(), ...rows, `TOTAL ${money(e.total)}`].filter(Boolean).join('\n')
+// ── Estimate Rocket text ──────────────────────────────────────────────
+// Same layout as the workroom's cushion template (Plan / Style / Fill /
+// Fabric), plus the priced lines. Always English: it goes on the estimate.
+
+export type EstimateRocketDetails = {
+  job: string
+  width: number
+  cushions: Cushion[]
+  upcharges: Record<string, { qty: number; price: number }>
+  mohair: boolean
+  white: boolean
+  com: boolean
+  fabric: string
+  direction: 'tbd' | 'upTheRoll' | 'railroaded'
+  center: string
+}
+
+const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up the Roll', railroaded: 'Railroaded' } as const
+
+export function estimateRocketText(e: Estimate, d: EstimateRocketDetails): string {
+  const inch = (n: number) => `${q(n)}"`
+  const out: string[] = ['____', '<center>_According To Design Specifications_</center>', '____']
+  out.push('#### Plan:', `* **${e.service === 'slip' ? 'Slipcover' : 'Upholstery'}**`, `* **Piece:** ${e.type.name}${d.width > 0 ? ` - ${inch(d.width)} wide` : ''}`)
+
+  const extras = UPCHARGES.filter((u) => (d.upcharges[u.id]?.qty ?? 0) > 0).map(
+    (u) => `* ${u.name}: ${q(d.upcharges[u.id].qty)} ${u.unit.toLowerCase()}`,
+  )
+  if (d.mohair) extras.push('* Mohair')
+  if (d.white) extras.push('* White fabric')
+  if (extras.length) out.push('', '#### Style:', ...extras)
+
+  const cushions = d.cushions.filter((c) => c.w > 0)
+  if (cushions.length) {
+    out.push('', '#### Fill:')
+    for (const c of cushions) {
+      const size = c.style === 'pillow' ? inch(c.w) : `${inch(c.w)}W x ${inch(c.d)}D x ${inch(c.h)}H`
+      const bits = [STYLE_NAMES[c.style], c.insert ? INSERT_NAMES[c.insert] : '', c.welt ? 'Welted' : '', c.attached ? 'Attached' : '']
+        .filter(Boolean)
+        .join(', ')
+      out.push(`* **${c.name || 'Cushion'}:** QTY ${Math.max(1, c.qty || 1)} @ ${size} - ${bits}`)
+    }
+  }
+
+  const c = d.center.trim()
+  const dir = d.direction === 'tbd' && !c ? 'To Be Determined' : c ? `${DIRECTION_TEXT[d.direction]} - Centered: ${c}` : DIRECTION_TEXT[d.direction]
+  out.push(
+    '',
+    '#### Fabric:',
+    `* **Body Yardage:** ${e.yards} Yards of Fabric Required in TOTAL`,
+    `* **Body Fabric:** ${d.com ? "Customer's Own Material (COM)" : d.fabric.trim() || 'To Be Determined (Price Not Included)'}`,
+    `* **Body Fabric Direction/Center:** ${dir}`,
+  )
+
+  out.push('', '#### Pricing:')
+  for (const l of e.lines) out.push(`* ${l.desc}: ${money(l.amount)}`)
+  out.push(`* **Total:** ${money(e.total)}`)
+  return out.join('\n')
 }

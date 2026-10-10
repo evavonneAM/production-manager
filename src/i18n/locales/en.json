@@ -673,7 +673,7 @@
     "insertExisting": "Use existing"
   },
   "upholstery": {
-    "intro": "Follows \"How to price upholstery labor\": base labor, cushions, foam, yardage, supplies, then upcharges. The estimate at the bottom lists each line the way you enter it in QuickBooks.",
+    "intro": "Follows \"How to price upholstery labor\": base labor, cushions, foam, yardage, supplies, then upcharges. The estimate at the bottom copies straight into Estimate Rocket.",
     "s1": "Base labor",
     "s2": "Cushions & foam",
     "s3": "Yardage & supplies",
@@ -715,11 +715,11 @@
     "mohair": "Mohair: add {{pct}}% to total labor",
     "white": "White fabric: add {{pct}}% to total labor",
     "rates": "Rates (show and edit)",
-    "ratesHelp": "Cushion and foam rates match the Cushion Pricing calculator; supplies matches the QuickBooks item. Saved on this device.",
+    "ratesHelp": "Cushion and foam rates match the Cushion Pricing calculator. Saved on this device.",
     "ratesReset": "Reset to standard rates",
-    "copy": "Copy for QuickBooks",
-    "copied": "Copied. Paste into QuickBooks or your notes.",
-    "qbItem": "QuickBooks item",
+    "copy": "Copy for Estimate Rocket",
+    "copied": "Copied. Paste it into Estimate Rocket.",
+    "qbItem": "Item",
     "desc": "Description",
     "rate": "Rate",
     "amount": "Amount",
@@ -727,6 +727,7 @@
     "foam": "Foam",
     "fabric": "Fabric",
     "supplies": "Supplies",
-    "total": "Estimate total"
+    "total": "Estimate total",
+    "erPreview": "See the Estimate Rocket text"
   }
 }

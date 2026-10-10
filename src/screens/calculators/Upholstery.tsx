@@ -31,7 +31,7 @@ import {
   UPCHARGES,
   estimate,
   money,
-  quickBooksText,
+  estimateRocketText,
   type CushionInsert,
   type CushionStyle,
   type Line,
@@ -65,6 +65,9 @@ type Draft = {
   mohair: boolean
   white: boolean
   upcharges: Record<string, { qty: number | null; price: number | null }>
+  fabric: string
+  direction: 'tbd' | 'upTheRoll' | 'railroaded'
+  center: string
 }
 
 const DRAFT_KEY = 'pm-calc-upholstery'
@@ -98,6 +101,9 @@ const blankDraft = (): Draft => ({
   mohair: false,
   white: false,
   upcharges: {},
+  fabric: '',
+  direction: 'tbd',
+  center: '',
 })
 
 function load<T extends object>(key: string, fallback: T): T {
@@ -160,7 +166,7 @@ function Step({ n, title, extra, children }: { n: number; title: string; extra?:
   )
 }
 
-/** Upholstery estimate: furniture, cushions, yardage and upcharges in; QuickBooks lines out. */
+/** Upholstery estimate: furniture, cushions, yardage and upcharges in; priced lines and Estimate Rocket text out. */
 export default function Upholstery() {
   const { t } = useTranslation()
   const [msg, ctx] = message.useMessage()
@@ -180,10 +186,8 @@ export default function Upholstery() {
   const setCushion = (id: number, patch: Partial<CushionRow>) =>
     setDraft((d) => ({ ...d, cushions: d.cushions.map((c) => (c.id === id ? { ...c, ...patch } : c)) }))
 
-  const est = useMemo(
-    () =>
-      estimate(
-        {
+  const input = useMemo(
+    () => ({
           typeId: draft.typeId,
           service: draft.service,
           width: parseInches(draft.width) ?? 0,
@@ -208,18 +212,29 @@ export default function Upholstery() {
           upcharges: Object.fromEntries(
             UPCHARGES.map((u) => [u.id, { qty: draft.upcharges[u.id]?.qty ?? 0, price: draft.upcharges[u.id]?.price ?? u.price }]),
           ),
-        },
-        rates,
-      ),
-    [draft, rates],
+    }),
+    [draft],
   )
+  const est = useMemo(() => estimate(input, rates), [input, rates])
+  const erText = estimateRocketText(est, {
+    job: draft.job,
+    width: input.width,
+    cushions: input.cushions,
+    upcharges: input.upcharges,
+    mohair: draft.mohair,
+    white: draft.white,
+    com: draft.com,
+    fabric: draft.fabric,
+    direction: draft.direction,
+    center: draft.center,
+  })
 
   const type = est.type
   const slipMissing = draft.service === 'slip' && type.slip === null
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(quickBooksText(draft.job, est))
+      await navigator.clipboard.writeText(erText)
       msg.success(t('upholstery.copied'))
     } catch {
       msg.error(t('cushionPricing.copyFailed'))
@@ -453,6 +468,39 @@ export default function Upholstery() {
                   <InputNumber id="u-fab" size="large" min={0} value={draft.fabricPerYard} onChange={(v) => set({ fabricPerYard: v })} addonBefore="$" style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
+              <Col xs={24}>
+                <Form.Item label={t('cushionPricing.erFabric')} htmlFor="u-fabname" style={{ marginBottom: 16 }}>
+                  <Input
+                    id="u-fabname"
+                    size="large"
+                    allowClear
+                    disabled={draft.com}
+                    value={draft.com ? "Customer's Own Material (COM)" : draft.fabric}
+                    onChange={(e) => set({ fabric: e.target.value })}
+                    placeholder="To Be Determined (Price Not Included)"
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item label={t('cushionPricing.erDirection')} style={{ marginBottom: 16 }}>
+                  <Segmented
+                    block
+                    size="large"
+                    value={draft.direction}
+                    onChange={(v) => set({ direction: v as Draft['direction'] })}
+                    options={[
+                      { value: 'tbd', label: t('cushionPricing.erTbd') },
+                      { value: 'upTheRoll', label: t('cushionCut.upTheRoll') },
+                      { value: 'railroaded', label: t('cushionCut.railroaded') },
+                    ]}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item label={t('cushionPricing.erCenter')} htmlFor="u-center" extra={t('cushionPricing.erCenterHelp')} style={{ marginBottom: 16 }}>
+                  <Input id="u-center" size="large" allowClear value={draft.center} onChange={(e) => set({ center: e.target.value })} placeholder={t('cushionPricing.erCenterPlaceholder')} />
+                </Form.Item>
+              </Col>
             </Row>
           </Form>
           <Typography.Text type="secondary">{t('upholstery.suppliesNote')}</Typography.Text>
@@ -601,6 +649,16 @@ export default function Upholstery() {
               <Statistic title={t('upholstery.total')} value={money(est.total)} valueStyle={{ fontSize: 22, fontWeight: 700 }} />
             </Col>
           </Row>
+          <Collapse
+            style={{ marginTop: 16 }}
+            items={[
+              {
+                key: 'er',
+                label: t('upholstery.erPreview'),
+                children: <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontSize: 12 }}>{erText}</pre>,
+              },
+            ]}
+          />
         </Step>
       </Space>
     </div>
