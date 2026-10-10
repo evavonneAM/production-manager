@@ -32,6 +32,7 @@ import {
   SEWING_STYLES,
   estimateRocketText,
   money,
+  wholeYards,
   yardageNonReversible,
   yardageReversible,
   type PriceGroup,
@@ -377,19 +378,25 @@ export default function CushionPricing() {
 
   const update = (id: number, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)))
   const sections = useMemo(() => rows.map(toSection), [rows])
-  const done = sections.filter((s): s is Section => s !== null)
 
   const quote = useMemo(() => {
-    const sum = (id: string) => {
+    const each = (id: string, s: Section) => {
       const o = PRICE_OPTIONS.find((x) => x.id === id)
-      if (!o) return 0
-      return done.reduce((n, s) => n + s.qty * ((priceFor(o, s, 'seat') ?? 0) + (priceFor(o, s, 'ib') ?? 0)), 0)
+      return o ? (priceFor(o, s, 'seat') ?? 0) + (priceFor(o, s, 'ib') ?? 0) : 0
     }
-    const labor = sum(laborId)
-    const insert = sum(insertId)
-    const yards = done.reduce((n, s) => n + s.qty * (reversible ? yardageReversible(s.length) : yardageNonReversible(s.length)), 0)
-    return { labor, insert, total: labor + insert, yards }
-  }, [done, laborId, insertId, reversible])
+    const lines = rows.flatMap((r, i) => {
+      const s = sections[i]
+      if (!s) return []
+      const labor = each(laborId, s)
+      const insert = each(insertId, s)
+      const yardsEach = wholeYards(reversible ? yardageReversible(s.length) : yardageNonReversible(s.length))
+      return [{ key: r.id, name: r.name.trim() || t('cushionPricing.sectionN', { n: i + 1 }), qty: s.qty, labor, insert, each: labor + insert, total: (labor + insert) * s.qty, yardsEach, yards: yardsEach * s.qty }]
+    })
+    const sum = (k: 'total' | 'yards') => lines.reduce((n, l) => n + l[k], 0)
+    const labor = lines.reduce((n, l) => n + l.labor * l.qty, 0)
+    const insert = lines.reduce((n, l) => n + l.insert * l.qty, 0)
+    return { lines, labor, insert, total: sum('total'), yards: sum('yards') }
+  }, [rows, sections, laborId, insertId, reversible, t])
 
   const addPasted = () => {
     const pasted = parsePasted(paste)
@@ -505,12 +512,16 @@ export default function CushionPricing() {
                       children: (
                         <Row gutter={16}>
                           <Col span={12}>
-                            <Statistic title={t('cushionPricing.reversible')} value={(yardageReversible(s.length) * s.qty).toFixed(3)} suffix={t('calc.yd')} />
-                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>((W × 2) + 20) ÷ 36 × {s.qty}</Typography.Text>
+                            <Statistic title={t('cushionPricing.reversible')} value={wholeYards(yardageReversible(s.length)) * s.qty} suffix={t('calc.yd')} />
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                              {t('cushionPricing.yardsEach', { n: wholeYards(yardageReversible(s.length)), exact: yardageReversible(s.length).toFixed(2) })}
+                            </Typography.Text>
                           </Col>
                           <Col span={12}>
-                            <Statistic title={t('cushionPricing.nonReversible')} value={(yardageNonReversible(s.length) * s.qty).toFixed(3)} suffix={t('calc.yd')} />
-                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>(W + 10) ÷ 36 × {s.qty}</Typography.Text>
+                            <Statistic title={t('cushionPricing.nonReversible')} value={wholeYards(yardageNonReversible(s.length)) * s.qty} suffix={t('calc.yd')} />
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                              {t('cushionPricing.yardsEach', { n: wholeYards(yardageNonReversible(s.length)), exact: yardageNonReversible(s.length).toFixed(2) })}
+                            </Typography.Text>
                           </Col>
                         </Row>
                       ),
@@ -570,6 +581,26 @@ export default function CushionPricing() {
               {t('cushionPricing.reversibleFabric')}
             </Checkbox>
           </Form>
+          {quote.lines.length > 0 && (
+            <Table
+              size="small"
+              pagination={false}
+              style={{ marginTop: 16 }}
+              dataSource={quote.lines}
+              columns={[
+                { title: t('cushionPricing.name'), dataIndex: 'name' },
+                { title: t('cushionCut.qty'), dataIndex: 'qty', align: 'center', width: 56 },
+                { title: t('cushionPricing.each'), dataIndex: 'each', align: 'right', render: (n: number) => money(n) },
+                {
+                  title: t('cushionPricing.lineTotal'),
+                  dataIndex: 'total',
+                  align: 'right',
+                  render: (n: number) => <Typography.Text strong>{money(n)}</Typography.Text>,
+                },
+                { title: t('cushionPricing.fabric'), dataIndex: 'yards', align: 'right', render: (n: number) => `${n} ${t('calc.yd')}` },
+              ]}
+            />
+          )}
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col xs={12} sm={6}>
               <Statistic title={t('cushionPricing.tabLabor')} value={money(quote.labor)} />
@@ -581,7 +612,7 @@ export default function CushionPricing() {
               <Statistic title={t('cushionPricing.total')} value={money(quote.total)} valueStyle={{ fontWeight: 700 }} />
             </Col>
             <Col xs={12} sm={6}>
-              <Statistic title={t('cushionPricing.fabric')} value={quote.yards.toFixed(2)} suffix={t('calc.yd')} />
+              <Statistic title={t('cushionPricing.fabric')} value={quote.yards} suffix={t('calc.yd')} />
             </Col>
           </Row>
         </Card>

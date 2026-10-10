@@ -611,7 +611,7 @@
     "nonReversible": "No reversible",
     "add": "Agregar otra sección",
     "quoteTitle": "Total de cotización",
-    "quoteHelp": "Elige la mano de obra y el relleno de este trabajo para sumar todas las secciones (precio × cantidad, asiento + respaldo).",
+    "quoteHelp": "Elige la mano de obra y el relleno de este trabajo. Cada sección muestra su precio por unidad (asiento + respaldo) y su total (× cantidad).",
     "insert": "Relleno",
     "none": "Ninguno",
     "reversibleFabric": "Tela reversible (yardaje)",
@@ -648,6 +648,9 @@
     "erCenterPlaceholder": "p. ej. medallón, raya, flor grande",
     "erWelt": "Vivo",
     "erContrastWelt": "Vivo en contraste",
-    "erWeltFabric": "Tela del vivo"
+    "erWeltFabric": "Tela del vivo",
+    "each": "C/u",
+    "lineTotal": "Total",
+    "yardsEach": "{{n}} yd c/u (exacto {{exact}}), redondeado a yardas enteras"
   }
 }

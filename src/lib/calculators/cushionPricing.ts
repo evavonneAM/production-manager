@@ -38,6 +38,8 @@ export const PRICE_OPTIONS: PriceOption[] = [
 /** Yards of fabric per piece, from the section length only. */
 export const yardageReversible = (w: number) => (w * 2 + 20) / 36
 export const yardageNonReversible = (w: number) => (w + 10) / 36
+/** Yardage is ordered in whole yards: round up per item. */
+export const wholeYards = (n: number) => Math.ceil(n - 1e-9)
 
 /** Flat add-ons from the price sheet. */
 export const ADD_ONS = {
@@ -116,8 +118,6 @@ function directionLine(direction: EstimateRocketInput['direction'], center: stri
   return c ? `${DIRECTION_TEXT[direction]} - Centered: ${c}` : DIRECTION_TEXT[direction]
 }
 
-/** Yards shown on the estimate, rounded up to the next hundredth. */
-const yd = (n: number) => (Math.ceil(n * 100 - 1e-9) / 100).toFixed(2)
 
 export function estimateRocketText(e: EstimateRocketInput): string {
   return [
@@ -136,7 +136,7 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     `* **${e.insertLabel}:** ${INSERT_NAMES[e.insert] ?? e.insert}`,
     '',
     '#### Fabric:',
-    `* **Body Yardage:** ${yd(e.yardsPerItem * e.qty)} Yards of Fabric Required in TOTAL (${yd(e.yardsPerItem)} Yards Per Item)`,
+    `* **Body Yardage:** ${wholeYards(e.yardsPerItem) * e.qty} Yards of Fabric Required in TOTAL (${wholeYards(e.yardsPerItem)} Yards Per Item)`,
     `* **Body Fabric:** ${e.fabric.trim() || 'To Be Determined (Price Not Included)'}`,
     `* **Body Fabric Direction/Center:** ${directionLine(e.direction, e.center)}`,
     ...(e.contrastWelt ? [`* **Contrast Welt:** ${e.weltFabric.trim() || 'To Be Determined (Price Not Included)'}`] : []),

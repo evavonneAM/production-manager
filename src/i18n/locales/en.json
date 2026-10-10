@@ -612,7 +612,7 @@
     "nonReversible": "Non-reversible",
     "add": "Add another section",
     "quoteTitle": "Quote total",
-    "quoteHelp": "Pick the labor and insert for this job to total every section (price × how many, seat + inside back).",
+    "quoteHelp": "Pick the labor and insert for this job. Each section shows its price each (seat + inside back) and its total (× how many).",
     "insert": "Insert",
     "none": "None",
     "reversibleFabric": "Reversible fabric (yardage)",
@@ -649,6 +649,9 @@
     "erCenterPlaceholder": "e.g. medallion, stripe, large floral",
     "erWelt": "Welt",
     "erContrastWelt": "Contrast welt",
-    "erWeltFabric": "Welt fabric"
+    "erWeltFabric": "Welt fabric",
+    "each": "Each",
+    "lineTotal": "Total",
+    "yardsEach": "{{n}} yd each (exact {{exact}}), rounded up to whole yards"
   }
 }
