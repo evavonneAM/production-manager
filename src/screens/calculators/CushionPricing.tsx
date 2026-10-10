@@ -27,7 +27,6 @@ import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, PlusOutlined } from '@
 import { formatInches, parseInches } from '../../lib/calculators/inches'
 import {
   ADD_ONS,
-  INSERT_NAMES,
   PRICE_OPTIONS,
   SEWING_STYLES,
   estimateRocketText,
@@ -48,7 +47,9 @@ type Row = {
   seatH: string
   ibD: string
   ibH: string
-  // Estimate Rocket text
+  /** Labor option priced for this section (seat + inside back). */
+  labor: string
+  // Estimate Rocket text (the insert picks also price the quote)
   erConfirmed: boolean
   erStyle: string
   erSeatInsert: string
@@ -77,6 +78,7 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   seatH: '',
   ibD: '',
   ibH: '',
+  labor: 'customFoam',
   erConfirmed: false,
   erStyle: 'To Be Determined',
   erSeatInsert: 'tbd',
@@ -201,7 +203,6 @@ function PriceTable({ section, group }: { section: Section; group: PriceGroup })
 function EstimateRocket({ row, section, update }: { row: Row; section: Section; update: (patch: Partial<Row>) => void }) {
   const { t } = useTranslation()
   const [msg, ctx] = message.useMessage()
-  const insertOptions = Object.entries(INSERT_NAMES).map(([value, label]) => ({ value, label }))
   const yards = row.erReversible ? yardageReversible(section.length) : yardageNonReversible(section.length)
   const parts = (
     [
@@ -242,20 +243,6 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
               </Checkbox>
             </Form.Item>
           </Col>
-          {section.seat && (
-            <Col xs={24} sm={12}>
-              <Form.Item label={t('cushionPricing.erSeatInsert')} htmlFor={`er-si-${row.id}`} style={{ marginBottom: 12 }}>
-                <Select id={`er-si-${row.id}`} value={row.erSeatInsert} onChange={(v) => update({ erSeatInsert: v })} options={insertOptions} />
-              </Form.Item>
-            </Col>
-          )}
-          {section.ib && (
-            <Col xs={24} sm={12}>
-              <Form.Item label={t('cushionPricing.erBackInsert')} htmlFor={`er-bi-${row.id}`} style={{ marginBottom: 12 }}>
-                <Select id={`er-bi-${row.id}`} value={row.erBackInsert} onChange={(v) => update({ erBackInsert: v })} options={insertOptions} />
-              </Form.Item>
-            </Col>
-          )}
           <Col xs={24} sm={12}>
             <Form.Item label={t('cushionPricing.erFabric')} htmlFor={`er-fab-${row.id}`} style={{ marginBottom: 12 }}>
               <Input id={`er-fab-${row.id}`} allowClear value={row.erFabric} onChange={(e) => update({ erFabric: e.target.value })} placeholder="To Be Determined (Price Not Included)" />
@@ -294,11 +281,6 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
               </Form.Item>
             </Col>
           )}
-          <Col xs={24}>
-            <Checkbox checked={row.erReversible} onChange={(e) => update({ erReversible: e.target.checked })} style={{ marginBottom: 12 }}>
-              {t('cushionPricing.reversibleFabric')}
-            </Checkbox>
-          </Col>
         </Row>
       </Form>
       {parts.map(([key, label, p, insert]) => {
@@ -385,9 +367,6 @@ export default function CushionPricing() {
   const { t } = useTranslation()
   const [rows, setRows] = useState<Row[]>(loadDraft)
   const [paste, setPaste] = useState('')
-  const [laborId, setLaborId] = useState('customFoam')
-  const [insertId, setInsertId] = useState('none')
-  const [reversible, setReversible] = useState(true)
 
   useEffect(() => {
     try {
@@ -401,18 +380,18 @@ export default function CushionPricing() {
   const sections = useMemo(() => rows.map(toSection), [rows])
 
   const quote = useMemo(() => {
-    const each = (id: string, s: Section) => {
+    const part = (id: string, s: Section, p: 'seat' | 'ib') => {
       const o = PRICE_OPTIONS.find((x) => x.id === id)
-      return o ? (priceFor(o, s, 'seat') ?? 0) + (priceFor(o, s, 'ib') ?? 0) : 0
+      return o ? (priceFor(o, s, p) ?? 0) : 0
     }
     const lines = rows.flatMap((r, i) => {
       const s = sections[i]
       if (!s) return []
-      const labor = each(laborId, s)
-      const insert = each(insertId, s)
+      const labor = part(r.labor, s, 'seat') + part(r.labor, s, 'ib')
+      const insert = part(r.erSeatInsert, s, 'seat') + part(r.erBackInsert, s, 'ib')
       const addOns = sectionAddOns(r, s, labor)
       const eachPrice = labor + insert + addOns
-      const yardsEach = wholeYards(reversible ? yardageReversible(s.length) : yardageNonReversible(s.length))
+      const yardsEach = wholeYards(r.erReversible ? yardageReversible(s.length) : yardageNonReversible(s.length))
       return [
         {
           key: r.id,
@@ -433,7 +412,7 @@ export default function CushionPricing() {
     const insert = lines.reduce((n, l) => n + l.insert * l.qty, 0)
     const addOns = lines.reduce((n, l) => n + l.addOns * l.qty, 0)
     return { lines, labor, insert, addOns, total: sum('total'), yards: sum('yards') }
-  }, [rows, sections, laborId, insertId, reversible, t])
+  }, [rows, sections, t])
 
   const addPasted = () => {
     const pasted = parsePasted(paste)
@@ -443,6 +422,11 @@ export default function CushionPricing() {
   }
 
   const optionLabel = (o: PriceOption) => t(`cushionPricing.opt_${o.id}`)
+  const insertOptions = [
+    { value: 'tbd', label: t('cushionPricing.insertTbd') },
+    { value: 'existing', label: t('cushionPricing.insertExisting') },
+    ...PRICE_OPTIONS.filter((o) => o.group === 'insert').map((o) => ({ value: o.id, label: optionLabel(o) })),
+  ]
 
   return (
     <div style={{ maxWidth: 820, width: '100%', margin: '0 auto', padding: '16px 16px 48px' }}>
@@ -537,6 +521,30 @@ export default function CushionPricing() {
                   </Col>
                 </Row>
                 <Row gutter={12}>
+                  <Col xs={24} sm={8}>
+                    <Form.Item label={t('cushionPricing.tabLabor')} htmlFor={`labor-${r.id}`} style={{ marginBottom: 16 }}>
+                      <Select
+                        id={`labor-${r.id}`}
+                        size="large"
+                        value={r.labor}
+                        onChange={(v) => update(r.id, { labor: v })}
+                        options={[
+                          { value: 'none', label: t('cushionPricing.none') },
+                          ...PRICE_OPTIONS.filter((o) => o.group === 'labor').map((o) => ({ value: o.id, label: optionLabel(o) })),
+                        ]}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item label={t('cushionPricing.erSeatInsert')} htmlFor={`er-si-${r.id}`} style={{ marginBottom: 16 }}>
+                      <Select id={`er-si-${r.id}`} size="large" value={r.erSeatInsert} onChange={(v) => update(r.id, { erSeatInsert: v })} options={insertOptions} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item label={t('cushionPricing.erBackInsert')} htmlFor={`er-bi-${r.id}`} style={{ marginBottom: 16 }}>
+                      <Select id={`er-bi-${r.id}`} size="large" value={r.erBackInsert} onChange={(v) => update(r.id, { erBackInsert: v })} options={insertOptions} />
+                    </Form.Item>
+                  </Col>
                   <Col xs={24}>
                     <Form.Item label={t('cushionPricing.addOnsLabel')} extra={t('cushionPricing.addOnsHelp')} style={{ marginBottom: 16 }}>
                       <Space wrap size={[24, 8]}>
@@ -548,6 +556,9 @@ export default function CushionPricing() {
                         </Checkbox>
                         <Checkbox checked={r.com === 'com15'} onChange={(e) => update(r.id, { com: e.target.checked ? 'com15' : 'none' })}>
                           {t('cushionPricing.com15')}
+                        </Checkbox>
+                        <Checkbox checked={r.erReversible} onChange={(e) => update(r.id, { erReversible: e.target.checked })}>
+                          {t('cushionPricing.reversibleFabric')}
                         </Checkbox>
                       </Space>
                     </Form.Item>
@@ -600,41 +611,6 @@ export default function CushionPricing() {
 
         <Card title={t('cushionPricing.quoteTitle')}>
           <Typography.Paragraph type="secondary">{t('cushionPricing.quoteHelp')}</Typography.Paragraph>
-          <Form layout="vertical" component="div">
-            <Row gutter={12}>
-              <Col xs={24} sm={12}>
-                <Form.Item label={t('cushionPricing.tabLabor')} htmlFor="quote-labor" style={{ marginBottom: 12 }}>
-                  <Select
-                    id="quote-labor"
-                    size="large"
-                    value={laborId}
-                    onChange={setLaborId}
-                    options={[
-                      { value: 'none', label: t('cushionPricing.none') },
-                      ...PRICE_OPTIONS.filter((o) => o.group === 'labor').map((o) => ({ value: o.id, label: optionLabel(o) })),
-                    ]}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item label={t('cushionPricing.insert')} htmlFor="quote-insert" style={{ marginBottom: 12 }}>
-                  <Select
-                    id="quote-insert"
-                    size="large"
-                    value={insertId}
-                    onChange={setInsertId}
-                    options={[
-                      { value: 'none', label: t('cushionPricing.none') },
-                      ...PRICE_OPTIONS.filter((o) => o.group === 'insert').map((o) => ({ value: o.id, label: optionLabel(o) })),
-                    ]}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Checkbox checked={reversible} onChange={(e) => setReversible(e.target.checked)}>
-              {t('cushionPricing.reversibleFabric')}
-            </Checkbox>
-          </Form>
           {quote.lines.length > 0 && (
             <Table
               size="small"

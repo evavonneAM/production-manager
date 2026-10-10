@@ -611,7 +611,7 @@
     "nonReversible": "No reversible",
     "add": "Agregar otra sección",
     "quoteTitle": "Total de cotización",
-    "quoteHelp": "Elige la mano de obra y el relleno de este trabajo. Cada sección muestra su precio por unidad (asiento + respaldo) y su total (× cantidad).",
+    "quoteHelp": "La mano de obra, rellenos y adicionales de cada sección se eligen arriba. Precio c/u = asiento + respaldo; total = × cantidad.",
     "insert": "Relleno",
     "none": "Ninguno",
     "reversibleFabric": "Tela reversible (yardaje)",
@@ -652,8 +652,8 @@
     "each": "C/u",
     "lineTotal": "Total",
     "yardsEach": "{{n}} yd c/u (exacto {{exact}}), redondeado a yardas enteras",
-    "addOnsLabel": "Adicionales",
-    "addOnsHelp": "Los adicionales marcados se incluyen en el precio de esta sección en la cotización. Por pieza = asiento y respaldo cada uno.",
+    "addOnsLabel": "Adicionales y tela",
+    "addOnsHelp": "Los adicionales marcados se suman al precio de esta sección. Por pieza = asiento y respaldo cada uno.",
     "addWelting": "Vivo (+{{price}} por pieza)",
     "addTick": "Funda Celeste Bio exterior (+{{price}} por pieza)",
     "com15": "COM (mano de obra × 1.15)",
@@ -662,6 +662,8 @@
     "ydTotal": "{{n}} yd total",
     "fabricTotal": "Tela (total)",
     "fabricEachOne": "{{each}} yd c/u × {{qty}}",
-    "fabricEachMany": "Las yardas por unidad están en cada sección arriba"
+    "fabricEachMany": "Las yardas por unidad están en cada sección arriba",
+    "insertTbd": "Por definir",
+    "insertExisting": "Usar existente"
   }
 }
