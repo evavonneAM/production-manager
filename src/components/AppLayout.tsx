@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
+import { AppLogo } from './AppLogo'
 import { useAsync } from '../hooks/useAsync'
 import { getDepartments, getBadgeCounts } from '../lib/data'
 import { replayPendingClockOut } from '../lib/offlineClock'
@@ -110,9 +111,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 print:!hidden flex-col border-r border-slate-800 bg-slate-950 px-3 py-6 md:flex">
         <div className="mb-8 flex items-center gap-2 px-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-700 text-sm font-bold">
-            PM
-          </div>
+          <AppLogo size={36} radius={8} />
           <span className="font-semibold">{t('common.appName')}</span>
         </div>
         <nav className="flex flex-col gap-1">

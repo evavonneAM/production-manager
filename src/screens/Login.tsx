@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { LanguageSelect } from '../components/LanguageSelect'
 import i18n, { type AppLanguage } from '../i18n'
+import { AppLogo } from '../components/AppLogo'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -39,9 +40,7 @@ export default function Login() {
     <main className="flex min-h-full flex-col items-center justify-center bg-slate-900 px-6 py-12 text-slate-100">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-700 text-xl font-bold shadow-lg">
-            PM
-          </div>
+          <AppLogo size={56} radius={16} />
           <h1 className="text-xl font-semibold">{t('common.appName')}</h1>
         </div>
 
