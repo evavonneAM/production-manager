@@ -4,6 +4,7 @@ import { useAuth } from './auth/AuthProvider'
 import { AppLayout } from './components/AppLayout'
 import { FullScreenLoader } from './components/FullScreenLoader'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { AdminOnly } from './components/AdminOnly'
 import Login from './screens/Login'
 import MyWork from './screens/MyWork'
 import Projects from './screens/Projects'
@@ -17,15 +18,17 @@ import Priority from './screens/Priority'
 import Inbox from './screens/Inbox'
 import Reports from './screens/Reports'
 import Tools from './screens/Tools'
-import CushionCut from './screens/calculators/CushionCut'
-import LeafBag from './screens/calculators/LeafBag'
-import CushionPricing from './screens/calculators/CushionPricing'
-import Upholstery from './screens/calculators/Upholstery'
 import Profile from './screens/Profile'
 import QrResolve from './screens/QrResolve'
 
 // Scanner pulls in the camera library — load it only when opened.
 const Scan = lazy(() => import('./screens/Scan'))
+// Calculators (and their PDF code) load only when opened.
+const CushionCut = lazy(() => import('./screens/calculators/CushionCut'))
+const LeafBag = lazy(() => import('./screens/calculators/LeafBag'))
+const CushionPricing = lazy(() => import('./screens/calculators/CushionPricing'))
+const Upholstery = lazy(() => import('./screens/calculators/Upholstery'))
+const page = (el: React.ReactNode) => <Suspense fallback={<FullScreenLoader />}>{el}</Suspense>
 
 function ProtectedLayout() {
   const { session, loading } = useAuth()
@@ -85,10 +88,10 @@ export default function App() {
         <Route path="/inbox" element={<Inbox />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/tools" element={<Tools />} />
-        <Route path="/tools/cushion-cut" element={<CushionCut />} />
-        <Route path="/tools/leaf-bag" element={<LeafBag />} />
-        <Route path="/tools/cushion-pricing" element={<CushionPricing />} />
-        <Route path="/tools/upholstery" element={<Upholstery />} />
+        <Route path="/tools/cushion-cut" element={page(<CushionCut />)} />
+        <Route path="/tools/leaf-bag" element={page(<LeafBag />)} />
+        <Route path="/tools/cushion-pricing" element={<AdminOnly>{page(<CushionPricing />)}</AdminOnly>} />
+        <Route path="/tools/upholstery" element={<AdminOnly>{page(<Upholstery />)}</AdminOnly>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

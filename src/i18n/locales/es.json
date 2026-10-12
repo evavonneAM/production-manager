@@ -454,7 +454,10 @@
         "name": "Bolsa de hojas",
         "desc": "Pega las medidas del cliente y obtén la lista de cortes y etiquetas"
       }
-    }
+    },
+    "adminOnlyTitle": "Solo administradores",
+    "adminOnlyBody": "Esta herramienta muestra precios, así que solo los administradores pueden abrirla.",
+    "adminOnlyTag": "Solo administradores"
   },
   "calc": {
     "in": "pulg",
