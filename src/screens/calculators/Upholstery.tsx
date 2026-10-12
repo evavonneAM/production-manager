@@ -23,6 +23,7 @@ import {
 } from 'antd'
 import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { parseInches } from '../../lib/calculators/inches'
+import { FURNITURE_PHOTOS } from '../../assets/furniture'
 import {
   DEFAULT_RATES,
   INSERT_NAMES,
@@ -342,7 +343,17 @@ export default function Upholstery() {
                     size="large"
                     value={draft.typeId}
                     onChange={(v) => set({ typeId: v })}
-                    options={TYPES.map((x) => ({ value: x.id, label: `${x.name} — ${money(x.up)}` }))}
+                    optionLabelProp="title"
+                    options={TYPES.map((x) => ({
+                      value: x.id,
+                      title: `${x.name} — ${money(x.up)}`,
+                      label: (
+                        <Space>
+                          <img src={FURNITURE_PHOTOS[x.id]} alt="" width={36} height={36} style={{ objectFit: 'contain', background: '#fff', borderRadius: 4 }} />
+                          {`${x.name} — ${money(x.up)}`}
+                        </Space>
+                      ),
+                    }))}
                   />
                 </Form.Item>
               </Col>
@@ -389,7 +400,16 @@ export default function Upholstery() {
               </Col>
             </Row>
           </Form>
-          <Alert type="info" showIcon title={type.note + (slipMissing ? ` ${t('upholstery.noSlip')}` : '')} />
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+            <img
+              src={FURNITURE_PHOTOS[type.id]}
+              alt={type.name}
+              width={120}
+              height={120}
+              style={{ objectFit: 'contain', background: '#fff', borderRadius: 8, padding: 6, border: '1px solid rgba(0,0,0,.06)' }}
+            />
+            <Alert style={{ flex: '1 1 260px' }} type="info" showIcon title={type.note + (slipMissing ? ` ${t('upholstery.noSlip')}` : '')} />
+          </div>
         </Step>
 
         <Step
