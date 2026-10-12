@@ -60,6 +60,7 @@ export const TOOLS: Tool[] = [
   {
     id: 'upholstery',
     group: 'other',
+    route: '/tools/upholstery',
     url: null,
     keywords: 'upholstery estimate labor quickbooks',
     icon: <path d="M4 18v-6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v6M4 14h16M6 18v2M18 18v2" />,
