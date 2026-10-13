@@ -42,30 +42,33 @@ type Row = {
   id: number
   name: string
   qty: number
+  /** Side to side — the zipper side. */
   length: string
-  seatD: string
-  seatH: string
-  ibD: string
-  ibH: string
-  /** Labor option priced for this section (seat + inside back). */
+  /** Depth (seat) or height (back). */
+  depth: string
+  thickness: string
+  /** Seat or back cushion — only changes the Estimate Rocket wording. */
+  part: 'seat' | 'back'
   labor: string
-  // Estimate Rocket text (the insert picks also price the quote)
+  insert: string
+  // Estimate Rocket text
   erConfirmed: boolean
   erStyle: string
-  erSeatInsert: string
-  erBackInsert: string
   erReversible: boolean
   erFabric: string
   erDirection: 'tbd' | 'upTheRoll' | 'railroaded'
   erCenter: string
   erContrastWelt: boolean
   erWeltFabric: string
-  // Add-ons folded into this section's price
+  // Add-ons folded into this cushion's price
   addWelting: boolean
   addTick: boolean
   com: 'none' | 'com15'
 }
-type Section = { length: number; qty: number; seat: { d: number; h: number } | null; ib: { d: number; h: number } | null }
+type Section = { length: number; qty: number; d: number; h: number }
+
+/** Older drafts had a seat and an inside back on one card. */
+type OldRow = Partial<Row> & { seatD?: string; seatH?: string; ibD?: string; ibH?: string; erSeatInsert?: string; erBackInsert?: string }
 
 const DRAFT_KEY = 'pm-calc-cushion-pricing'
 let nextId = 1
@@ -74,15 +77,13 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   name: '',
   qty: 1,
   length: '',
-  seatD: '',
-  seatH: '',
-  ibD: '',
-  ibH: '',
+  depth: '',
+  thickness: '',
+  part: 'seat',
   labor: 'customFoam',
+  insert: 'tbd',
   erConfirmed: false,
   erStyle: 'To Be Determined',
-  erSeatInsert: 'tbd',
-  erBackInsert: 'tbd',
   erReversible: true,
   erFabric: '',
   erDirection: 'tbd',
@@ -97,13 +98,34 @@ const blank = (patch: Partial<Row> = {}): Row => ({
 
 function loadDraft(): Row[] {
   try {
-    const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') as Row[] | null
+    const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') as OldRow[] | null
     if (Array.isArray(saved) && saved.length)
-      return saved.map((r) => {
-        const row = { ...blank(), ...r, id: nextId++ }
-        if (!['tbd', 'upTheRoll', 'railroaded'].includes(row.erDirection)) row.erDirection = 'tbd'
-        if (row.com !== 'com15') row.com = 'none'
-        return row
+      return saved.flatMap((old) => {
+        const { seatD, seatH, ibD, ibH, erSeatInsert, erBackInsert, ...rest } = old
+        const fix = (r: Row) => {
+          if (!['tbd', 'upTheRoll', 'railroaded'].includes(r.erDirection)) r.erDirection = 'tbd'
+          if (r.com !== 'com15') r.com = 'none'
+          return r
+        }
+        if (seatD === undefined && ibD === undefined) return [fix({ ...blank(), ...rest, id: nextId++ })]
+        // Split an old seat + inside back card into two cushions.
+        const out: Row[] = []
+        if (seatD || seatH || !(ibD || ibH))
+          out.push(fix({ ...blank(), ...rest, id: nextId++, part: 'seat', depth: seatD ?? '', thickness: seatH ?? '', insert: erSeatInsert ?? 'tbd' }))
+        if (ibD || ibH)
+          out.push(
+            fix({
+              ...blank(),
+              ...rest,
+              id: nextId++,
+              name: rest.name ? `${rest.name} back` : '',
+              part: 'back',
+              depth: ibD ?? '',
+              thickness: ibH ?? '',
+              insert: erBackInsert ?? 'tbd',
+            }),
+          )
+        return out
       })
   } catch {
     // Storage unavailable or corrupt — start fresh.
@@ -111,7 +133,11 @@ function loadDraft(): Row[] {
   return [blank()]
 }
 
-/** Rows copied from the spreadsheet: Name, Qty, Length, Seat D, Seat H, IB D, IB H (tab-separated). */
+/**
+ * Rows copied from the spreadsheet: Name, Qty, Length, Depth, Thickness
+ * (tab-separated). The old 7-column layout (with inside back height and
+ * thickness) becomes a seat cushion plus a back cushion.
+ */
 function parsePasted(text: string): Row[] {
   return text
     .replace(/\r/g, '')
@@ -119,36 +145,29 @@ function parsePasted(text: string): Row[] {
     .map((l) => l.split('\t').map((c) => c.trim()))
     .filter((cells) => cells.some(Boolean))
     .filter((cells) => cells.slice(2).some((c) => parseInches(c) !== null))
-    .map(([name = '', qty = '', length = '', seatD = '', seatH = '', ibD = '', ibH = '']) =>
-      blank({ name, qty: Math.max(1, parseInt(qty) || 1), length, seatD, seatH, ibD, ibH }),
-    )
-}
-
-const pair = (d: string, h: string) => {
-  const dd = parseInches(d)
-  const hh = parseInches(h)
-  return dd !== null && hh !== null && dd > 0 && hh > 0 ? { d: dd, h: hh } : null
+    .flatMap(([name = '', qty = '', length = '', d = '', h = '', ibD = '', ibH = '']) => {
+      const base = { name, qty: Math.max(1, parseInt(qty) || 1), length }
+      const out = [blank({ ...base, depth: d, thickness: h })]
+      if (ibD || ibH) out.push(blank({ ...base, name: name ? `${name} back` : '', part: 'back', depth: ibD, thickness: ibH }))
+      return out
+    })
 }
 
 function toSection(r: Row): Section | null {
   const length = parseInches(r.length)
-  if (length === null || length <= 0) return null
-  const seat = pair(r.seatD, r.seatH)
-  const ib = pair(r.ibD, r.ibH)
-  if (!seat && !ib) return null
-  return { length, qty: Math.max(1, r.qty || 1), seat, ib }
+  const d = parseInches(r.depth)
+  const h = parseInches(r.thickness)
+  if (length === null || d === null || h === null || length <= 0 || d <= 0 || h <= 0) return null
+  return { length, qty: Math.max(1, r.qty || 1), d, h }
 }
 
-const priceFor = (o: PriceOption, s: Section, part: 'seat' | 'ib') => {
-  const p = s[part]
-  return p ? o.price(s.length, p.d, p.h) : null
-}
+const priceFor = (o: PriceOption, s: Section) => o.price(s.length, s.d, s.h)
 
-function InchField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
+function InchField({ id, label, value, onChange, help }: { id: string; label: string; value: string; onChange: (v: string) => void; help?: string }) {
   const { t } = useTranslation()
   const bad = value.trim() !== '' && parseInches(value) === null
   return (
-    <Form.Item label={label} htmlFor={id} validateStatus={bad ? 'error' : undefined} help={bad ? t('calc.badInches') : undefined} style={{ marginBottom: 16 }}>
+    <Form.Item label={label} htmlFor={id} validateStatus={bad ? 'error' : undefined} help={bad ? t('calc.badInches') : undefined} extra={help} style={{ marginBottom: 16 }}>
       <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} inputMode="decimal" suffix={t('calc.in')} size="large" />
     </Form.Item>
   )
@@ -156,21 +175,14 @@ function InchField({ id, label, value, onChange }: { id: string; label: string; 
 
 function PriceTable({ section, group }: { section: Section; group: PriceGroup }) {
   const { t } = useTranslation()
-  const tooThick = (o: PriceOption, part: 'seat' | 'ib') => {
-    const p = section[part]
-    if (!p) return false
-    return (o.maxBox !== undefined && p.h > o.maxBox) || (o.maxDiameter !== undefined && p.h > o.maxDiameter)
-  }
-  const cell = (o: PriceOption, part: 'seat' | 'ib') => {
-    const v = priceFor(o, section, part)
-    if (v === null) return <Typography.Text type="secondary">—</Typography.Text>
-    return (
-      <Space size={4} wrap style={{ justifyContent: 'flex-end' }}>
-        <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>{money(v)}</Typography.Text>
-        {tooThick(o, part) && <Tag color="error">{t('cushionPricing.overMax')}</Tag>}
-      </Space>
-    )
-  }
+  const tooThick = (o: PriceOption) =>
+    (o.maxBox !== undefined && section.h > o.maxBox) || (o.maxDiameter !== undefined && section.h > o.maxDiameter)
+  const cell = (o: PriceOption) => (
+    <Space size={4} wrap style={{ justifyContent: 'flex-end' }}>
+      <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>{money(priceFor(o, section))}</Typography.Text>
+      {tooThick(o) && <Tag color="error">{t('cushionPricing.overMax')}</Tag>}
+    </Space>
+  )
   return (
     <Table
       size="small"
@@ -192,8 +204,7 @@ function PriceTable({ section, group }: { section: Section; group: PriceGroup })
             </>
           ),
         },
-        { title: t('cushionPricing.seat'), key: 'seat', align: 'right', render: (_: unknown, o: PriceOption) => cell(o, 'seat') },
-        { title: t('cushionPricing.ib'), key: 'ib', align: 'right', render: (_: unknown, o: PriceOption) => cell(o, 'ib') },
+        { title: t('cushionPricing.priceEach'), key: 'price', align: 'right', render: (_: unknown, o: PriceOption) => cell(o) },
       ]}
     />
   )
@@ -204,12 +215,6 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
   const { t } = useTranslation()
   const [msg, ctx] = message.useMessage()
   const yards = row.erReversible ? yardageReversible(section.length) : yardageNonReversible(section.length)
-  const parts = (
-    [
-      ['seat', 'Seat Insert', section.seat, row.erSeatInsert],
-      ['ib', 'Back Insert', section.ib, row.erBackInsert],
-    ] as const
-  ).filter(([, , p]) => p !== null)
 
   const copy = async (text: string) => {
     try {
@@ -283,16 +288,16 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
           )}
         </Row>
       </Form>
-      {parts.map(([key, label, p, insert]) => {
+      {[row.part].map((key) => {
         const text = estimateRocketText({
           qty: section.qty,
           width: formatInches(section.length),
-          depth: formatInches(p!.d),
-          height: formatInches(p!.h),
+          depth: formatInches(section.d),
+          height: formatInches(section.h),
           confirmed: row.erConfirmed,
           sewingStyle: row.erStyle,
-          insertLabel: label,
-          insert,
+          insertLabel: key === 'back' ? 'Back Insert' : 'Seat Insert',
+          insert: row.insert,
           yardsPerItem: yards,
           fabric: row.erFabric,
           direction: row.erDirection,
@@ -305,7 +310,7 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
             key={key}
             size="small"
             type="inner"
-            title={t(`cushionPricing.${key}`)}
+            title={t(key === 'back' ? 'cushionPricing.ib' : 'cushionPricing.seat')}
             extra={
               <Button type="primary" icon={<CopyOutlined />} onClick={() => copy(text)}>
                 {t('cushionPricing.copy')}
@@ -321,15 +326,11 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
   )
 }
 
-/** Pieces in a section: the seat and/or the inside back. */
-const pieceCount = (s: Section) => (s.seat ? 1 : 0) + (s.ib ? 1 : 0)
-
-/** Add-ons for one of this section, given its labor price each. */
-function sectionAddOns(r: Row, s: Section, labor: number): number {
-  const pieces = pieceCount(s)
+/** Add-ons for one of this cushion, given its labor price each. */
+function sectionAddOns(r: Row, labor: number): number {
   return (
-    (r.addWelting ? ADD_ONS.welting * pieces : 0) +
-    (r.addTick ? ADD_ONS.outdoorTick * pieces : 0) +
+    (r.addWelting ? ADD_ONS.welting : 0) +
+    (r.addTick ? ADD_ONS.outdoorTick : 0) +
     (r.com === 'com15' ? labor * (ADD_ONS.com15 - 1) : 0)
   )
 }
@@ -380,22 +381,22 @@ export default function CushionPricing() {
   const sections = useMemo(() => rows.map(toSection), [rows])
 
   const quote = useMemo(() => {
-    const part = (id: string, s: Section, p: 'seat' | 'ib') => {
+    const price = (id: string, s: Section) => {
       const o = PRICE_OPTIONS.find((x) => x.id === id)
-      return o ? (priceFor(o, s, p) ?? 0) : 0
+      return o ? priceFor(o, s) : 0
     }
     const lines = rows.flatMap((r, i) => {
       const s = sections[i]
       if (!s) return []
-      const labor = part(r.labor, s, 'seat') + part(r.labor, s, 'ib')
-      const insert = part(r.erSeatInsert, s, 'seat') + part(r.erBackInsert, s, 'ib')
-      const addOns = sectionAddOns(r, s, labor)
+      const labor = price(r.labor, s)
+      const insert = price(r.insert, s)
+      const addOns = sectionAddOns(r, labor)
       const eachPrice = labor + insert + addOns
       const yardsEach = wholeYards(r.erReversible ? yardageReversible(s.length) : yardageNonReversible(s.length))
       return [
         {
           key: r.id,
-          name: r.name.trim() || t('cushionPricing.sectionN', { n: i + 1 }),
+          name: r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 }),
           qty: s.qty,
           labor,
           insert,
@@ -468,7 +469,7 @@ export default function CushionPricing() {
                     autoSize={{ minRows: 4, maxRows: 12 }}
                     value={paste}
                     onChange={(e) => setPaste(e.target.value)}
-                    placeholder={'3A\t1\t74\t25\t4\t24\t6'}
+                    placeholder={'3A\t1\t74\t25\t4'}
                     style={{ fontFamily: 'monospace' }}
                   />
                   <Button type="primary" style={{ marginTop: 12 }} disabled={!paste.trim()} onClick={addPasted}>
@@ -485,7 +486,7 @@ export default function CushionPricing() {
           return (
             <Card
               key={r.id}
-              title={r.name.trim() || t('cushionPricing.sectionN', { n: i + 1 })}
+              title={r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 })}
               extra={
                 rows.length > 1 && (
                   <Button type="text" danger icon={<DeleteOutlined />} aria-label={t('cushionPricing.remove')} onClick={() => setRows((rs) => rs.filter((x) => x.id !== r.id))} />
@@ -494,34 +495,42 @@ export default function CushionPricing() {
             >
               <Form layout="vertical" component="div">
                 <Row gutter={12}>
-                  <Col xs={24} sm={10}>
+                  <Col xs={24} sm={8}>
                     <Form.Item label={t('cushionPricing.name')} htmlFor={`name-${r.id}`} style={{ marginBottom: 16 }}>
                       <Input id={`name-${r.id}`} size="large" allowClear value={r.name} onChange={(e) => update(r.id, { name: e.target.value })} placeholder="3A" />
                     </Form.Item>
                   </Col>
-                  <Col xs={12} sm={6}>
+                  <Col xs={24} sm={8}>
+                    <Form.Item label={t('cushionPricing.part')} style={{ marginBottom: 16 }}>
+                      <Segmented
+                        block
+                        size="large"
+                        value={r.part}
+                        onChange={(v) => update(r.id, { part: v as Row['part'] })}
+                        options={[
+                          { value: 'seat', label: t('cushionPricing.seat') },
+                          { value: 'back', label: t('cushionPricing.ib') },
+                        ]}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
                     <Form.Item label={t('cushionCut.howMany')} htmlFor={`qty-${r.id}`} style={{ marginBottom: 16 }}>
                       <InputNumber id={`qty-${r.id}`} size="large" min={1} precision={0} value={r.qty} onChange={(v) => update(r.id, { qty: v ?? 1 })} style={{ width: '100%' }} />
                     </Form.Item>
                   </Col>
+                  <Col xs={24} sm={8}>
+                    <InchField id={`len-${r.id}`} label={t('cushionPricing.length')} help={t('cushionPricing.lengthHelp')} value={r.length} onChange={(v) => update(r.id, { length: v })} />
+                  </Col>
                   <Col xs={12} sm={8}>
-                    <InchField id={`len-${r.id}`} label={t('cushionPricing.length')} value={r.length} onChange={(v) => update(r.id, { length: v })} />
+                    <InchField id={`d-${r.id}`} label={t('cushionPricing.depth')} help={t('cushionPricing.depthHelp')} value={r.depth} onChange={(v) => update(r.id, { depth: v })} />
                   </Col>
-                  <Col xs={12} sm={6}>
-                    <InchField id={`sd-${r.id}`} label={t('cushionPricing.seatD')} value={r.seatD} onChange={(v) => update(r.id, { seatD: v })} />
-                  </Col>
-                  <Col xs={12} sm={6}>
-                    <InchField id={`sh-${r.id}`} label={t('cushionPricing.seatH')} value={r.seatH} onChange={(v) => update(r.id, { seatH: v })} />
-                  </Col>
-                  <Col xs={12} sm={6}>
-                    <InchField id={`id-${r.id}`} label={t('cushionPricing.ibD')} value={r.ibD} onChange={(v) => update(r.id, { ibD: v })} />
-                  </Col>
-                  <Col xs={12} sm={6}>
-                    <InchField id={`ih-${r.id}`} label={t('cushionPricing.ibH')} value={r.ibH} onChange={(v) => update(r.id, { ibH: v })} />
+                  <Col xs={12} sm={8}>
+                    <InchField id={`h-${r.id}`} label={t('cushionPricing.thickness')} value={r.thickness} onChange={(v) => update(r.id, { thickness: v })} />
                   </Col>
                 </Row>
                 <Row gutter={12}>
-                  <Col xs={24} sm={8}>
+                  <Col xs={24} sm={12}>
                     <Form.Item label={t('cushionPricing.tabLabor')} htmlFor={`labor-${r.id}`} style={{ marginBottom: 16 }}>
                       <Select
                         id={`labor-${r.id}`}
@@ -535,14 +544,9 @@ export default function CushionPricing() {
                       />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item label={t('cushionPricing.erSeatInsert')} htmlFor={`er-si-${r.id}`} style={{ marginBottom: 16 }}>
-                      <Select id={`er-si-${r.id}`} size="large" value={r.erSeatInsert} onChange={(v) => update(r.id, { erSeatInsert: v })} options={insertOptions} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item label={t('cushionPricing.erBackInsert')} htmlFor={`er-bi-${r.id}`} style={{ marginBottom: 16 }}>
-                      <Select id={`er-bi-${r.id}`} size="large" value={r.erBackInsert} onChange={(v) => update(r.id, { erBackInsert: v })} options={insertOptions} />
+                  <Col xs={24} sm={12}>
+                    <Form.Item label={t('cushionPricing.insert')} htmlFor={`ins-${r.id}`} style={{ marginBottom: 16 }}>
+                      <Select id={`ins-${r.id}`} size="large" value={r.insert} onChange={(v) => update(r.id, { insert: v })} options={insertOptions} />
                     </Form.Item>
                   </Col>
                   <Col xs={24}>
