@@ -129,7 +129,6 @@ export type EstimateInput = {
   yards: number | null
   fabricPerYard: number
   com: boolean
-  cushionYards: boolean
   mohair: boolean
   white: boolean
   upcharges: Record<string, { qty: number; price: number }>
@@ -253,7 +252,8 @@ export function estimate(s: EstimateInput, R: Rates): Estimate {
   }
 
   const pieceYards = s.yards ?? (t.kind === 'sofa' ? sofaYards(w) : t.yd)
-  const yards = wholeYards(pieceYards + (s.cushionYards ? cushYd : 0))
+  // The chart's yardage is for the frame only; cushion fabric is always added.
+  const yards = wholeYards(pieceYards + cushYd)
   let fabric = 0
   let supplies = 0
   if (yards > 0) {

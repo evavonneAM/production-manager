@@ -65,7 +65,6 @@ type Draft = {
   yards: number | null
   fabricPerYard: number | null
   com: boolean
-  cushionYards: boolean
   mohair: boolean
   white: boolean
   upcharges: Record<string, { qty: number | null; price: number | null }>
@@ -113,7 +112,6 @@ const blankDraft = (): Draft => ({
   yards: null,
   fabricPerYard: null,
   com: false,
-  cushionYards: true,
   mohair: false,
   white: false,
   upcharges: {},
@@ -233,7 +231,6 @@ export default function Upholstery() {
           yards: draft.yards,
           fabricPerYard: draft.fabricPerYard ?? 0,
           com: draft.com,
-          cushionYards: draft.cushionYards,
           mohair: draft.mohair,
           white: draft.white,
           upcharges: Object.fromEntries(
@@ -504,10 +501,6 @@ export default function Upholstery() {
             <Checkbox checked={draft.com} onChange={(e) => set({ com: e.target.checked })}>
               {t('upholstery.com')}
             </Checkbox>
-            <Checkbox checked={draft.cushionYards} onChange={(e) => set({ cushionYards: e.target.checked })}>
-              {t('upholstery.cushionYards')}
-            </Checkbox>
-            <Alert type="warning" showIcon title={t('upholstery.cushionYardsWarn')} />
           </Space>
         </Step>
 
@@ -520,7 +513,7 @@ export default function Upholstery() {
                   htmlFor="u-yards"
                   extra={t('upholstery.yardsHint', {
                     piece: est.pieceYards,
-                    cushions: draft.cushionYards ? Math.round(est.cushionYards * 100) / 100 : 0,
+                    cushions: Math.round(est.cushionYards * 100) / 100,
                     total: est.yards,
                   })}
                   style={{ marginBottom: 16 }}
