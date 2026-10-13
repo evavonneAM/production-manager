@@ -157,26 +157,22 @@ export function buildPleatWorkOrder(doc: JsPDF, w: PleatWorkOrder): JsPDF {
   doc.text('Pin', M + 3 * 130 + 16, y)
   y += 28
 
-  // Marking guide: where each piece starts, measured from the lead edge.
+  // Marking guide: every mark measured from the lead edge, in order.
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
   doc.text('MARKING GUIDE (MEASURED FROM THE LEAD EDGE)', M, y)
   y += 8
-  const rows = segs.map((s, i) => {
-    const n = segs.slice(0, i + 1).filter((x) => x.type === s.type).length
-    const name = s.type === 'lead' ? 'Lead edge' : s.type === 'return' ? 'Return' : `${s.type === 'pleat' ? 'Pleat' : 'Space'} ${n}`
-    return [name, f(s.from), f(s.from + s.width), f(s.width)]
-  })
-  const cols = [M, M + 150, M + 260, M + 370]
+  const marks = [0, ...segs.map((s) => s.from + s.width)]
+  const cols = [M, M + 60, M + 170]
   doc.setFillColor(...HEADER)
   doc.rect(M, y, CW, 16, 'F')
   doc.setTextColor(255, 255, 255)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(8)
-  ;['PIECE', 'STARTS AT', 'ENDS AT', 'WIDTH'].forEach((h, i) => doc.text(h, cols[i] + 6, y + 11))
+  ;['#', 'MARK AT', 'NOTE'].forEach((h, i) => doc.text(h, cols[i] + 6, y + 11))
   y += 16
-  rows.forEach((r, k) => {
+  marks.forEach((m, k) => {
     if (y + 16 > PH - M) {
       doc.addPage()
       y = M
@@ -185,10 +181,13 @@ export function buildPleatWorkOrder(doc: JsPDF, w: PleatWorkOrder): JsPDF {
       doc.setFillColor(244, 246, 249)
       doc.rect(M, y, CW, 16, 'F')
     }
-    doc.setFont('helvetica', k === 0 || k === rows.length - 1 ? 'bold' : 'normal')
+    const note = k === 0 ? 'Lead edge' : k === marks.length - 1 ? 'Return' : ''
+    doc.setFont('helvetica', note ? 'bold' : 'normal')
     doc.setFontSize(9.5)
     doc.setTextColor(...INK)
-    r.forEach((v, i) => doc.text(clean(v), cols[i] + 6, y + 11.5))
+    doc.text(String(k + 1), cols[0] + 6, y + 11.5)
+    doc.text(clean(f(m)), cols[1] + 6, y + 11.5)
+    if (note) doc.text(note, cols[2] + 6, y + 11.5)
     y += 16
   })
 
