@@ -28,6 +28,7 @@ const CushionCut = lazy(() => import('./screens/calculators/CushionCut'))
 const LeafBag = lazy(() => import('./screens/calculators/LeafBag'))
 const CushionPricing = lazy(() => import('./screens/calculators/CushionPricing'))
 const Upholstery = lazy(() => import('./screens/calculators/Upholstery'))
+const DraperyPleat = lazy(() => import('./screens/calculators/DraperyPleat'))
 const page = (el: React.ReactNode) => <Suspense fallback={<FullScreenLoader />}>{el}</Suspense>
 
 function ProtectedLayout() {
@@ -90,6 +91,7 @@ export default function App() {
         <Route path="/tools" element={<Tools />} />
         <Route path="/tools/cushion-cut" element={page(<CushionCut />)} />
         <Route path="/tools/leaf-bag" element={page(<LeafBag />)} />
+        <Route path="/tools/drapery-pleat" element={page(<DraperyPleat />)} />
         <Route path="/tools/cushion-pricing" element={<AdminOnly>{page(<CushionPricing />)}</AdminOnly>} />
         <Route path="/tools/upholstery" element={<AdminOnly>{page(<Upholstery />)}</AdminOnly>} />
       </Route>

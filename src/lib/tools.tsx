@@ -29,6 +29,7 @@ export const TOOLS: Tool[] = [
   {
     id: 'drapery',
     group: 'drapery',
+    route: '/tools/drapery-pleat',
     url: 'https://drapery-calculator.vercel.app',
     keywords: 'drapery pleat pinch spacing work order',
     icon: <path d="M3 4h18M6 4v4l-1 12M10 4v4l1 12M14 4v4l-1 12M18 4v4l1 12M5 8h15" />,

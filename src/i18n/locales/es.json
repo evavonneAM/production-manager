@@ -745,5 +745,33 @@
     "backStyle": "Estilo de respaldo",
     "armStyle": "Estilo de brazo",
     "armHelp": "Agrega \"Additional Charge if Changing Style\" si se cambia."
+  },
+  "draperyPleat": {
+    "intro": "Calcula un panel a la vez (para un par, haz un panel con la mitad del ancho de la barra). Los anchos de pliegue y espacio, alfileres y espacios se actualizan mientras escribes.",
+    "panel": "Panel",
+    "name": "Panel / ubicación",
+    "namePlaceholder": "p. ej. Sala izquierda",
+    "hemmed": "Ancho con dobladillo",
+    "hemmedHelp": "Antes de plisar",
+    "finished": "Ancho terminado",
+    "finishedHelp": "Después de plisar. La mitad del ancho de la barra para pares.",
+    "return": "Retorno",
+    "leadEdge": "Borde frontal",
+    "defaultIs": "Normalmente {{v}}",
+    "pleats": "Pliegues",
+    "results": "Distribución",
+    "pleatWidth": "Ancho de pliegue",
+    "spaceWidth": "Ancho de espacio",
+    "spaces": "Espacios",
+    "spacesHelp": "Pliegues − 1",
+    "pins": "Alfileres",
+    "pinsHelp": "1 borde frontal + 1 por pliegue + 1 retorno",
+    "diagram": "Distribución de pliegues",
+    "legend": "Azul = borde frontal y retorno · Amarillo = pliegue · Verde = espacio · Puntos = alfileres",
+    "adds": "La distribución suma {{total}} (ancho con dobladillo {{hemmed}}). Las medidas se redondean hacia arriba al 1/8\".",
+    "tooNarrow": "El ancho con dobladillo no es mayor que el ancho terminado más el retorno y el borde frontal, así que no queda tela para pliegues.",
+    "fillIn": "Llena el ancho con dobladillo y el terminado para ver la distribución.",
+    "pdf": "Descargar PDF de distribución",
+    "clearConfirm": "¿Borrar este panel y empezar de nuevo?"
   }
 }
