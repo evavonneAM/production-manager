@@ -4,8 +4,8 @@
 // The spaces fill the finished width; the pleats take up what's left of the
 // hemmed width after the lead edge, finished width and return.
 
-export const DEFAULT_RETURN = 2.5
-export const DEFAULT_LEAD = 4
+export const DEFAULT_RETURN = 4
+export const DEFAULT_LEAD = 2.5
 export const DEFAULT_PLEATS = 7
 
 export type PleatInput = { hemmed: number; finished: number; ret: number; lead: number; pleats: number }
@@ -22,14 +22,15 @@ export type PleatLayout = {
   total: number
 }
 
-/** Workroom rule: sizes round UP to the next ⅛", never down. */
-const up8 = (x: number) => Math.ceil(x * 8 - 1e-9) / 8
+/** Layout marks round to the nearest ⅛" so they land on the fabric (not the
+ *  round-up rule used for cut sizes). */
+const near8 = (x: number) => Math.round(x * 8) / 8
 
 export function pleatLayout({ hemmed, finished, ret, lead, pleats }: PleatInput): PleatLayout | null {
   if (!(hemmed > 0 && finished > 0 && pleats >= 2)) return null
   const spaces = pleats - 1
-  const spaceWidth = up8(finished / spaces)
-  const pleatWidth = up8((hemmed - ret - finished - lead) / pleats)
+  const spaceWidth = near8(finished / spaces)
+  const pleatWidth = near8((hemmed - ret - finished - lead) / pleats)
   if (!(pleatWidth > 0)) return null
   return {
     pleats,

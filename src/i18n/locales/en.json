@@ -769,7 +769,7 @@
     "pinsHelp": "1 lead edge + 1 per pleat + 1 return",
     "diagram": "Pleat layout",
     "legend": "Blue = lead edge and return · Yellow = pleat · Green = space · Dots = pins",
-    "adds": "The layout adds up to {{total}} (hemmed width {{hemmed}}). Sizes round up to the next 1/8\".",
+    "adds": "The layout adds up to {{total}} (hemmed width {{hemmed}}). Pleat and space widths round to the nearest 1/8\".",
     "tooNarrow": "The hemmed width isn't wider than the finished width plus the return and lead edge, so there's nothing left for pleats.",
     "fillIn": "Fill in the hemmed and finished widths to see the layout.",
     "pdf": "Download layout PDF",

@@ -206,7 +206,7 @@ export function buildPleatWorkOrder(doc: JsPDF, w: PleatWorkOrder): JsPDF {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8)
     doc.setTextColor(...MUTED)
-    doc.text('Sizes round up to the next 1/8".', M, PH - 20)
+    doc.text('Pleat and space widths round to the nearest 1/8".', M, PH - 20)
     doc.text(`Page ${p} of ${pages}`, PW - M, PH - 20, { align: 'right' })
   }
   return doc

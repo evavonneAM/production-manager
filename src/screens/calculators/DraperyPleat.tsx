@@ -9,7 +9,7 @@ import { downloadPleatWorkOrder } from '../../lib/calculators/draperyPleatPdf'
 
 type Draft = { job: string; name: string; hemmed: string; finished: string; ret: string; lead: string; pleats: number }
 
-const DRAFT_KEY = 'pm-calc-drapery-pleat'
+const DRAFT_KEY = 'pm-calc-drapery-pleat-v2'
 const blank = (): Draft => ({
   job: '',
   name: '',

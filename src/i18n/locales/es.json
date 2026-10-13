@@ -768,7 +768,7 @@
     "pinsHelp": "1 borde frontal + 1 por pliegue + 1 retorno",
     "diagram": "Distribución de pliegues",
     "legend": "Azul = borde frontal y retorno · Amarillo = pliegue · Verde = espacio · Puntos = alfileres",
-    "adds": "La distribución suma {{total}} (ancho con dobladillo {{hemmed}}). Las medidas se redondean hacia arriba al 1/8\".",
+    "adds": "La distribución suma {{total}} (ancho con dobladillo {{hemmed}}). Los anchos de pliegue y espacio se redondean al 1/8\" más cercano.",
     "tooNarrow": "El ancho con dobladillo no es mayor que el ancho terminado más el retorno y el borde frontal, así que no queda tela para pliegues.",
     "fillIn": "Llena el ancho con dobladillo y el terminado para ver la distribución.",
     "pdf": "Descargar PDF de distribución",
