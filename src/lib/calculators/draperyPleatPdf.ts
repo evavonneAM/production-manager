@@ -164,13 +164,13 @@ export function buildPleatWorkOrder(doc: JsPDF, w: PleatWorkOrder): JsPDF {
   doc.text('MARKING GUIDE (MEASURED FROM THE LEAD EDGE)', M, y)
   y += 8
   const marks = [0, ...segs.map((s) => s.from + s.width)]
-  const cols = [M, M + 60, M + 170]
+  const cols = [M, M + 110]
   doc.setFillColor(...HEADER)
   doc.rect(M, y, CW, 16, 'F')
   doc.setTextColor(255, 255, 255)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(8)
-  ;['#', 'MARK AT', 'NOTE'].forEach((h, i) => doc.text(h, cols[i] + 6, y + 11))
+  ;['MARK AT', 'NOTE'].forEach((h, i) => doc.text(h, cols[i] + 6, y + 11))
   y += 16
   marks.forEach((m, k) => {
     if (y + 16 > PH - M) {
@@ -185,9 +185,8 @@ export function buildPleatWorkOrder(doc: JsPDF, w: PleatWorkOrder): JsPDF {
     doc.setFont('helvetica', note ? 'bold' : 'normal')
     doc.setFontSize(9.5)
     doc.setTextColor(...INK)
-    doc.text(String(k + 1), cols[0] + 6, y + 11.5)
-    doc.text(clean(f(m)), cols[1] + 6, y + 11.5)
-    if (note) doc.text(note, cols[2] + 6, y + 11.5)
+    doc.text(clean(f(m)), cols[0] + 6, y + 11.5)
+    if (note) doc.text(note, cols[1] + 6, y + 11.5)
     y += 16
   })
 
