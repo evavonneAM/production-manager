@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Avatar, Card, Col, Divider, Empty, Input, Row, Tag, Typography, theme } from 'antd'
 import { ExportOutlined } from '@ant-design/icons'
 import { TOOLS, TOOL_GROUPS, type Tool } from '../lib/tools'
+import { useAuth } from '../auth/AuthProvider'
 
 function ToolIcon({ tool, color }: { tool: Tool; color: string }) {
   return (
@@ -28,6 +29,7 @@ export default function Tools() {
   const { t } = useTranslation()
   const { token } = theme.useToken()
   const [query, setQuery] = useState('')
+  const isAdmin = useAuth().profile?.role === 'admin'
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -39,9 +41,9 @@ export default function Tools() {
         .includes(q)
     return TOOL_GROUPS.map((group) => ({
       group,
-      tools: TOOLS.filter((tool) => tool.group === group && match(tool)),
+      tools: TOOLS.filter((tool) => tool.group === group && (isAdmin || !tool.adminOnly) && match(tool)),
     })).filter((g) => g.tools.length > 0)
-  }, [query, t])
+  }, [query, t, isAdmin])
 
   return (
     <div style={{ maxWidth: 880, width: '100%', margin: '0 auto', padding: '24px 16px' }}>
@@ -88,6 +90,11 @@ export default function Tools() {
                     title={
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         {t(`tools.items.${tool.id}.name`)}
+                        {tool.adminOnly && (
+                          <Tag color="gold" style={{ marginInlineEnd: 0 }}>
+                            {t('tools.adminOnlyTag')}
+                          </Tag>
+                        )}
                         {tool.route ? null : live ? (
                           <ExportOutlined style={{ fontSize: 12, color: token.colorTextTertiary }} />
                         ) : (

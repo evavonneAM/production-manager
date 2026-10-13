@@ -455,7 +455,10 @@
         "name": "Leaf Bag",
         "desc": "Paste client sizes, get the cut list and labels"
       }
-    }
+    },
+    "adminOnlyTitle": "Admins only",
+    "adminOnlyBody": "This tool shows pricing, so only admins can open it.",
+    "adminOnlyTag": "Admins only"
   },
   "calc": {
     "in": "in",

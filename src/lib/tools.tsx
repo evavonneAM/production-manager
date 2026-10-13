@@ -12,6 +12,8 @@ export type Tool = {
   /** Extra search words (English) on top of the translated name/description. */
   keywords: string
   icon: ReactNode
+  /** Shows prices — only admins see it. */
+  adminOnly?: boolean
 }
 
 // Workroom calculators. Each is still its own small site; as they're finished
@@ -47,6 +49,7 @@ export const TOOLS: Tool[] = [
   {
     id: 'cushionPricing',
     group: 'cushions',
+    adminOnly: true,
     route: '/tools/cushion-pricing',
     url: 'https://cushion-pricing.vercel.app',
     keywords: 'cushion pricing price foam inches yards convert',
@@ -60,6 +63,7 @@ export const TOOLS: Tool[] = [
   {
     id: 'upholstery',
     group: 'other',
+    adminOnly: true,
     route: '/tools/upholstery',
     url: null,
     keywords: 'upholstery estimate labor quickbooks',
