@@ -8,6 +8,10 @@ export const DEFAULT_RETURN = 4
 export const DEFAULT_LEAD = 2.5
 export const DEFAULT_PLEATS = 7
 
+/** As seen from the room. Draw right = stacks right, so the lead edge is on the
+ *  left and the return on the right; draw left is the mirror image. */
+export type DrawDirection = 'left' | 'right' | 'both'
+
 export type PleatInput = { hemmed: number; finished: number; ret: number; lead: number; pleats: number }
 
 export type PleatLayout = {
@@ -60,4 +64,10 @@ export function segments(l: PleatLayout, ret: number, lead: number): Segment[] {
   push('pleat', l.pleatWidth)
   push('return', ret)
   return out
+}
+
+/** The same pieces laid out the other way round (return first). */
+export function mirrored(segs: Segment[]): Segment[] {
+  const total = segs.reduce((n, s) => n + s.width, 0)
+  return [...segs].reverse().map((s) => ({ ...s, from: total - s.from - s.width }))
 }

@@ -748,7 +748,7 @@
     "armHelp": "Adds \"Additional Charge if Changing Style\" when changed."
   },
   "draperyPleat": {
-    "intro": "Figure one panel at a time (for a pair, do one panel with half the rod width). The pleat and space widths, pins and spaces update as you type.",
+    "intro": "Figure one panel at a time. Pick the draw so the diagram shows which side the lead edge and return go on.",
     "panel": "Panel",
     "name": "Panel / location",
     "namePlaceholder": "e.g. Living room left",
@@ -773,6 +773,15 @@
     "tooNarrow": "The hemmed width isn't wider than the finished width plus the return and lead edge, so there's nothing left for pleats.",
     "fillIn": "Fill in the hemmed and finished widths to see the layout.",
     "pdf": "Download layout PDF",
-    "clearConfirm": "Clear this panel and start over?"
+    "clearConfirm": "Clear this panel and start over?",
+    "draw": "Draw",
+    "draw_left": "Draw left",
+    "draw_right": "Draw right",
+    "draw_both": "Both (pair)",
+    "draw_leftHelp": "Stacks on the left. Return on the left, lead edge on the right (as seen from the room).",
+    "draw_rightHelp": "Stacks on the right. Lead edge on the left, return on the right (as seen from the room).",
+    "draw_bothHelp": "A pair: make 2 panels, mirror images. Lead edges meet in the middle. Enter half the rod width as the finished width.",
+    "leftPanel": "Left panel",
+    "rightPanel": "Right panel"
   }
 }

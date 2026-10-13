@@ -1,18 +1,32 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Alert, Button, Card, Col, Form, Input, InputNumber, Popconfirm, Row, Space, Statistic, Typography, theme } from 'antd'
+import { Alert, Button, Card, Col, Form, Input, InputNumber, Popconfirm, Radio, Row, Space, Statistic, Typography, theme } from 'antd'
 import { ArrowLeftOutlined, FilePdfOutlined } from '@ant-design/icons'
 import { formatInches, parseInches } from '../../lib/calculators/inches'
-import { DEFAULT_LEAD, DEFAULT_PLEATS, DEFAULT_RETURN, pleatLayout, segments, type PleatLayout } from '../../lib/calculators/draperyPleat'
+import {
+  DEFAULT_LEAD,
+  DEFAULT_PLEATS,
+  DEFAULT_RETURN,
+  mirrored,
+  pleatLayout,
+  segments,
+  type DrawDirection,
+  type PleatLayout,
+  type Segment,
+} from '../../lib/calculators/draperyPleat'
+import drawLeft from '../../assets/drapery/draw-left.webp'
+import drawRight from '../../assets/drapery/draw-right.webp'
+import drawBoth from '../../assets/drapery/draw-both.webp'
 import { downloadPleatWorkOrder } from '../../lib/calculators/draperyPleatPdf'
 
-type Draft = { job: string; name: string; hemmed: string; finished: string; ret: string; lead: string; pleats: number }
+type Draft = { job: string; name: string; draw: DrawDirection; hemmed: string; finished: string; ret: string; lead: string; pleats: number }
 
 const DRAFT_KEY = 'pm-calc-drapery-pleat-v2'
 const blank = (): Draft => ({
   job: '',
   name: '',
+  draw: 'both',
   hemmed: '',
   finished: '',
   ret: formatInches(DEFAULT_RETURN).replace('"', ''),
@@ -46,41 +60,68 @@ function InchField({ id, label, value, onChange, help }: { id: string; label: st
   )
 }
 
-/** Flat panel, lead edge on the left: lead | pleat space … pleat | return, with pins. */
-function LayoutDiagram({ layout, ret, lead }: { layout: PleatLayout; ret: number; lead: number }) {
-  const { t } = useTranslation()
+/** One panel as seen from the room, with pins. */
+function PanelBar({ segs, x0, width, left, right, title }: { segs: Segment[]; x0: number; width: number; left: string; right: string; title?: string }) {
   const { token } = theme.useToken()
-  const segs = segments(layout, ret, lead)
   const total = segs.reduce((n, s) => n + s.width, 0)
-  const W = 720
-  const sc = (W - 2) / total
+  const sc = width / total
   const fill = { lead: token.colorPrimaryBg, return: token.colorPrimaryBg, pleat: token.colorWarningBg, space: token.colorSuccessBg }
   const pins = [0, ...segs.filter((s) => s.type === 'pleat').map((s) => s.from + s.width / 2), total]
   return (
+    <g>
+      {title && (
+        <text x={x0 + width / 2} y={14} fontSize={12} fontWeight={600} textAnchor="middle" fill={token.colorText}>
+          {title}
+        </text>
+      )}
+      <text x={x0} y={14} fontSize={12} fill={token.colorText}>
+        {left}
+      </text>
+      <text x={x0 + width} y={14} fontSize={12} textAnchor="end" fill={token.colorText}>
+        {right}
+      </text>
+      {segs.map((s, i) => (
+        <g key={i}>
+          <rect x={x0 + s.from * sc} y={24} width={s.width * sc} height={48} fill={fill[s.type]} stroke={token.colorBorder} />
+          {s.width * sc > 26 && (
+            <text x={x0 + (s.from + s.width / 2) * sc} y={52} fontSize={11} textAnchor="middle" fill={token.colorText}>
+              {formatInches(s.width)}
+            </text>
+          )}
+        </g>
+      ))}
+      {pins.map((x, i) => (
+        <g key={`p${i}`}>
+          <line x1={x0 + x * sc} x2={x0 + x * sc} y1={72} y2={84} stroke={token.colorPrimary} />
+          <circle cx={x0 + x * sc} cy={88} r={4} fill={token.colorPrimary} />
+        </g>
+      ))}
+    </g>
+  )
+}
+
+/** The panel (or pair) as seen from the room: lead edge and return on the right sides. */
+function LayoutDiagram({ layout, ret, lead, draw }: { layout: PleatLayout; ret: number; lead: number; draw: DrawDirection }) {
+  const { t } = useTranslation()
+  const { token } = theme.useToken()
+  const segs = segments(layout, ret, lead)
+  const W = 720
+  const L = t('draperyPleat.leadEdge')
+  const R = t('draperyPleat.return')
+  const half = (W - 24) / 2
+  return (
     <div style={{ overflowX: 'auto' }}>
       <svg viewBox={`0 0 ${W} 120`} width="100%" style={{ minWidth: 480, display: 'block' }} role="img" aria-label={t('draperyPleat.diagram')}>
-        <text x={1} y={14} fontSize={12} fill={token.colorText}>
-          {t('draperyPleat.leadEdge')}
-        </text>
-        <text x={W - 1} y={14} fontSize={12} textAnchor="end" fill={token.colorText}>
-          {t('draperyPleat.return')}
-        </text>
-        {segs.map((s, i) => (
-          <g key={i}>
-            <rect x={1 + s.from * sc} y={24} width={s.width * sc} height={48} fill={fill[s.type]} stroke={token.colorBorder} />
-            {s.width * sc > 26 && (
-              <text x={1 + (s.from + s.width / 2) * sc} y={52} fontSize={11} textAnchor="middle" fill={token.colorText}>
-                {formatInches(s.width)}
-              </text>
-            )}
-          </g>
-        ))}
-        {pins.map((x, i) => (
-          <g key={`p${i}`}>
-            <line x1={1 + x * sc} x2={1 + x * sc} y1={72} y2={84} stroke={token.colorPrimary} />
-            <circle cx={1 + x * sc} cy={88} r={4} fill={token.colorPrimary} />
-          </g>
-        ))}
+        {draw === 'both' ? (
+          <>
+            <PanelBar segs={mirrored(segs)} x0={1} width={half} left={R} right={L} title={t('draperyPleat.leftPanel')} />
+            <PanelBar segs={segs} x0={W - 1 - half} width={half} left={L} right={R} title={t('draperyPleat.rightPanel')} />
+          </>
+        ) : draw === 'left' ? (
+          <PanelBar segs={mirrored(segs)} x0={1} width={W - 2} left={R} right={L} />
+        ) : (
+          <PanelBar segs={segs} x0={1} width={W - 2} left={L} right={R} />
+        )}
         <text x={1} y={114} fontSize={11} fill={token.colorTextSecondary}>
           {t('draperyPleat.legend')}
         </text>
@@ -88,6 +129,9 @@ function LayoutDiagram({ layout, ret, lead }: { layout: PleatLayout; ret: number
     </div>
   )
 }
+
+/** Draw direction choices, with the workroom's drawings. */
+const DRAW_PICS: Record<DrawDirection, string> = { left: drawLeft, right: drawRight, both: drawBoth }
 
 /** Drapery pleat layout for one panel: pleat and space widths, pins, and a work-order PDF. */
 export default function DraperyPleat() {
@@ -121,7 +165,7 @@ export default function DraperyPleat() {
     if (!layout) return
     setBusy(true)
     try {
-      await downloadPleatWorkOrder({ name: d.name.trim(), job: d.job.trim(), ...nums, layout })
+      await downloadPleatWorkOrder({ name: d.name.trim(), job: d.job.trim(), draw: d.draw, ...nums, layout })
     } finally {
       setBusy(false)
     }
@@ -151,6 +195,25 @@ export default function DraperyPleat() {
               <Col xs={24} sm={12}>
                 <Form.Item label={t('draperyPleat.name')} htmlFor="dp-name" style={{ marginBottom: 16 }}>
                   <Input id="dp-name" size="large" allowClear value={d.name} onChange={(e) => set({ name: e.target.value })} placeholder={t('draperyPleat.namePlaceholder')} />
+                </Form.Item>
+              </Col>
+              <Col xs={24}>
+                <Form.Item label={t('draperyPleat.draw')} extra={t(`draperyPleat.draw_${d.draw}Help`)} style={{ marginBottom: 16 }}>
+                  <Radio.Group value={d.draw} onChange={(e) => set({ draw: e.target.value })} style={{ width: '100%' }}>
+                    <Row gutter={[12, 12]}>
+                      {(['left', 'right', 'both'] as const).map((k) => (
+                        <Col xs={8} key={k}>
+                          <Radio.Button
+                            value={k}
+                            style={{ display: 'block', height: 'auto', padding: 8, textAlign: 'center', borderRadius: 8, borderInlineStartWidth: 1 }}
+                          >
+                            <img src={DRAW_PICS[k]} alt="" style={{ width: '100%', maxWidth: 160, background: '#fff', borderRadius: 4 }} />
+                            <div style={{ fontWeight: 600, marginTop: 4 }}>{t(`draperyPleat.draw_${k}`)}</div>
+                          </Radio.Button>
+                        </Col>
+                      ))}
+                    </Row>
+                  </Radio.Group>
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
@@ -201,7 +264,7 @@ export default function DraperyPleat() {
                 </Col>
               </Row>
               <div style={{ marginTop: 20 }}>
-                <LayoutDiagram layout={layout} ret={nums.ret} lead={nums.lead} />
+                <LayoutDiagram layout={layout} ret={nums.ret} lead={nums.lead} draw={d.draw} />
               </div>
               <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
                 {t('draperyPleat.adds', { total: formatInches(layout.total), hemmed: formatInches(nums.hemmed) })}

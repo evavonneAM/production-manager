@@ -1,6 +1,6 @@
 import type { jsPDF as JsPDF } from 'jspdf'
 import { formatInches as f } from './inches'
-import { segments, type PleatLayout } from './draperyPleat'
+import { mirrored, segments, type DrawDirection, type PleatLayout, type Segment } from './draperyPleat'
 
 export type PleatWorkOrder = {
   name: string
@@ -9,7 +9,14 @@ export type PleatWorkOrder = {
   finished: number
   ret: number
   lead: number
+  draw: DrawDirection
   layout: PleatLayout
+}
+
+const DRAW_TEXT: Record<DrawDirection, string> = {
+  right: 'Draws right - lead edge on the left, return on the right (as seen from the room)',
+  left: 'Draws left - return on the left, lead edge on the right (as seen from the room)',
+  both: 'Pair - make 2 panels, mirror images. Lead edges meet in the center, returns at each end.',
 }
 
 // Letter, points. English only: jsPDF's built-in font has no Cyrillic.
@@ -105,44 +112,29 @@ export function buildPleatWorkOrder(doc: JsPDF, w: PleatWorkOrder): JsPDF {
   )
   y += 26
 
-  // Diagram: one bar, lead edge on the left.
+  // Diagram, as seen from the room.
   const segs = segments(l, w.ret, w.lead)
-  const totalIn = segs.reduce((n, s) => n + s.width, 0)
-  const sc = CW / totalIn
   const barH = 44
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
-  doc.text('LAYOUT (FLAT, FACE UP)', M, y)
-  y += 12
+  doc.text('LAYOUT (AS SEEN FROM THE ROOM)', M, y)
+  y += 13
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9.5)
   doc.setTextColor(...INK)
-  doc.setFontSize(8.5)
-  doc.text('Lead edge', M, y + 4)
-  doc.text('Return', M + CW, y + 4, { align: 'right' })
-  y += 10
-  segs.forEach((s) => {
-    const x = M + s.from * sc
-    const wpx = s.width * sc
-    doc.setFillColor(...(FILL[s.type] as unknown as [number, number, number]))
-    doc.setDrawColor(150, 150, 150)
-    doc.setLineWidth(0.6)
-    doc.rect(x, y, wpx, barH, 'FD')
-    if (wpx > 18) {
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(wpx > 30 ? 8 : 6.5)
-      doc.setTextColor(...INK)
-      doc.text(clean(f(s.width)), x + wpx / 2, y + barH / 2 + 3, { align: 'center' })
-    }
-  })
-  // Pins: lead edge, centre of each pleat, return.
-  const pinXs = [M, ...segs.filter((s) => s.type === 'pleat').map((s) => M + (s.from + s.width / 2) * sc), M + totalIn * sc]
-  doc.setFillColor(...PIN)
-  doc.setDrawColor(...PIN)
-  pinXs.forEach((x) => {
-    doc.line(x, y + barH, x, y + barH + 8)
-    doc.circle(x, y + barH + 11, 2.6, 'F')
-  })
-  y += barH + 26
+  doc.text(clean(DRAW_TEXT[w.draw]), M, y)
+  y += 14
+  if (w.draw === 'both') {
+    const half = (CW - 16) / 2
+    drawBar(doc, mirrored(segs), M, y, half, barH, 'Return', 'Lead edge', 'LEFT PANEL')
+    drawBar(doc, segs, M + half + 16, y, half, barH, 'Lead edge', 'Return', 'RIGHT PANEL')
+  } else if (w.draw === 'left') {
+    drawBar(doc, mirrored(segs), M, y, CW, barH, 'Return', 'Lead edge')
+  } else {
+    drawBar(doc, segs, M, y, CW, barH, 'Lead edge', 'Return')
+  }
+  y += barH + 36
   // Legend.
   ;(
     [
@@ -210,4 +202,40 @@ export function buildPleatWorkOrder(doc: JsPDF, w: PleatWorkOrder): JsPDF {
     doc.text(`Page ${p} of ${pages}`, PW - M, PH - 20, { align: 'right' })
   }
   return doc
+}
+
+/** One panel as a bar of pieces with pins under it. */
+function drawBar(doc: JsPDF, segs: Segment[], x0: number, y: number, width: number, barH: number, leftLabel: string, rightLabel: string, title?: string) {
+  const total = segs.reduce((n, s) => n + s.width, 0)
+  const sc = width / total
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(8.5)
+  doc.setTextColor(...INK)
+  if (title) doc.text(title, x0 + width / 2, y + 4, { align: 'center' })
+  doc.text(leftLabel, x0, y + 4)
+  doc.text(rightLabel, x0 + width, y + 4, { align: 'right' })
+  const top = y + 10
+  segs.forEach((s) => {
+    const x = x0 + s.from * sc
+    const wpx = s.width * sc
+    doc.setFillColor(...(FILL[s.type] as unknown as [number, number, number]))
+    doc.setDrawColor(150, 150, 150)
+    doc.setLineWidth(0.6)
+    doc.rect(x, top, wpx, barH, 'FD')
+    if (wpx > 18) {
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(wpx > 30 ? 8 : 6.5)
+      doc.setTextColor(...INK)
+      doc.text(clean(f(s.width)), x + wpx / 2, top + barH / 2 + 3, { align: 'center' })
+    }
+  })
+  // Pins: each end of the panel and the centre of every pleat.
+  const pins = [0, ...segs.filter((s) => s.type === 'pleat').map((s) => s.from + s.width / 2), total]
+  doc.setFillColor(...PIN)
+  doc.setDrawColor(...PIN)
+  pins.forEach((p) => {
+    const x = x0 + p * sc
+    doc.line(x, top + barH, x, top + barH + 8)
+    doc.circle(x, top + barH + 11, 2.6, 'F')
+  })
 }
