@@ -495,24 +495,10 @@ export default function CushionPricing() {
             >
               <Form layout="vertical" component="div">
                 <Row gutter={12}>
-                  <Col xs={24} sm={10}>
+                  <Col xs={24} sm={8}>
                     <Form.Item label={t('cushionPricing.name')} htmlFor={`name-${r.id}`} style={{ marginBottom: 16 }}>
                       <Input id={`name-${r.id}`} size="large" allowClear value={r.name} onChange={(e) => update(r.id, { name: e.target.value })} placeholder="3A" />
                     </Form.Item>
-                  </Col>
-                  <Col xs={12} sm={6}>
-                    <Form.Item label={t('cushionCut.howMany')} htmlFor={`qty-${r.id}`} style={{ marginBottom: 16 }}>
-                      <InputNumber id={`qty-${r.id}`} size="large" min={1} precision={0} value={r.qty} onChange={(v) => update(r.id, { qty: v ?? 1 })} style={{ width: '100%' }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={12} sm={8}>
-                    <InchField id={`len-${r.id}`} label={t('cushionPricing.length')} help={t('cushionPricing.lengthHelp')} value={r.length} onChange={(v) => update(r.id, { length: v })} />
-                  </Col>
-                  <Col xs={12} sm={8}>
-                    <InchField id={`d-${r.id}`} label={t('cushionPricing.depth')} help={t('cushionPricing.depthHelp')} value={r.depth} onChange={(v) => update(r.id, { depth: v })} />
-                  </Col>
-                  <Col xs={12} sm={8}>
-                    <InchField id={`h-${r.id}`} label={t('cushionPricing.thickness')} value={r.thickness} onChange={(v) => update(r.id, { thickness: v })} />
                   </Col>
                   <Col xs={24} sm={8}>
                     <Form.Item label={t('cushionPricing.part')} style={{ marginBottom: 16 }}>
@@ -527,6 +513,20 @@ export default function CushionPricing() {
                         ]}
                       />
                     </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item label={t('cushionCut.howMany')} htmlFor={`qty-${r.id}`} style={{ marginBottom: 16 }}>
+                      <InputNumber id={`qty-${r.id}`} size="large" min={1} precision={0} value={r.qty} onChange={(v) => update(r.id, { qty: v ?? 1 })} style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <InchField id={`len-${r.id}`} label={t('cushionPricing.length')} help={t('cushionPricing.lengthHelp')} value={r.length} onChange={(v) => update(r.id, { length: v })} />
+                  </Col>
+                  <Col xs={12} sm={8}>
+                    <InchField id={`d-${r.id}`} label={t('cushionPricing.depth')} help={t('cushionPricing.depthHelp')} value={r.depth} onChange={(v) => update(r.id, { depth: v })} />
+                  </Col>
+                  <Col xs={12} sm={8}>
+                    <InchField id={`h-${r.id}`} label={t('cushionPricing.thickness')} value={r.thickness} onChange={(v) => update(r.id, { thickness: v })} />
                   </Col>
                 </Row>
                 <Row gutter={12}>
