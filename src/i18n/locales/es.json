@@ -760,7 +760,23 @@
     "seatStyle": "Estilo de asiento",
     "backStyle": "Estilo de respaldo",
     "armStyle": "Estilo de brazo",
-    "armHelp": "Agrega \"Additional Charge if Changing Style\" si se cambia."
+    "armHelp": "Agrega \"Additional Charge if Changing Style\" si se cambia.",
+    "hist": {
+      "title": "Comparación con el historial",
+      "none": "Todavía no hay precios anteriores de Estimate Rocket para este tipo.",
+      "range": "piezas anteriores similares: {{low}}–{{high}} (punto medio {{median}})",
+      "inLine": "La mano de obra de este presupuesto ({{labor}}) está en línea con trabajos anteriores.",
+      "higher": "La mano de obra de este presupuesto ({{labor}}) está {{pct}}% por encima de piezas anteriores similares. Conviene revisarlo.",
+      "lower": "La mano de obra de este presupuesto ({{labor}}) está {{pct}}% por debajo de piezas anteriores similares. Conviene revisarlo.",
+      "basisN_one": "Según {{count}} pieza anterior",
+      "basisN_many": "Según {{count}} piezas anteriores",
+      "basisN_other": "Según {{count}} piezas anteriores",
+      "basisSize": "a {{n}} pulgadas de este ancho",
+      "basisRecent": "últimos 2 años",
+      "laborOnly": "Solo compara la mano de obra, porque los presupuestos anteriores cobraban la tela y la espuma por separado.",
+      "slipFallback": "Hay muy pocas fundas anteriores, así que se muestran precios de retapizado.",
+      "showJobs": "Ver las piezas anteriores más parecidas"
+    }
   },
   "draperyPleat": {
     "intro": "Calcula un panel a la vez. Elige la apertura para que el diagrama muestre de qué lado van el borde frontal y el retorno.",

@@ -761,7 +761,22 @@
     "seatStyle": "Seat style",
     "backStyle": "Back style",
     "armStyle": "Arm style",
-    "armHelp": "Adds \"Additional Charge if Changing Style\" when changed."
+    "armHelp": "Adds \"Additional Charge if Changing Style\" when changed.",
+    "hist": {
+      "title": "History check",
+      "none": "No past Estimate Rocket prices for this type yet.",
+      "range": "similar past pieces were {{low}}–{{high}} (middle {{median}})",
+      "inLine": "This estimate's labor ({{labor}}) is in line with past jobs.",
+      "higher": "This estimate's labor ({{labor}}) is {{pct}}% above what similar past pieces were priced at. Worth a second look.",
+      "lower": "This estimate's labor ({{labor}}) is {{pct}}% below what similar past pieces were priced at. Worth a second look.",
+      "basisN_one": "Based on {{count}} past piece",
+      "basisN_other": "Based on {{count}} past pieces",
+      "basisSize": "within {{n}} in of this width",
+      "basisRecent": "last 2 years",
+      "laborOnly": "Compares labor only, because past estimates priced fabric and foam separately.",
+      "slipFallback": "Too few past slipcovers, so reupholstery prices are shown.",
+      "showJobs": "Show the closest past pieces"
+    }
   },
   "draperyPleat": {
     "intro": "Figure one panel at a time. Pick the draw so the diagram shows which side the lead edge and return go on.",

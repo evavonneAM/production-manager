@@ -9,12 +9,12 @@ export type FurnitureType = { id: string; name: string; up: number; slip: number
 export const TYPES: FurnitureType[] = [
   { id: 'parsons', name: 'Parsons Chair', up: 225, slip: null, yd: 2, kind: 'chair', note: 'Usually a dining chair. Common upcharge: decorative band.' },
   { id: 'slipper', name: 'Slipper Chair', up: 670, slip: 545, yd: 4, kind: 'chair', note: 'No arms. Common upcharges: cushions, skirts, decorative band.' },
-  { id: 'arm', name: 'Arm Chair', up: 1065, slip: 915, yd: 6, kind: 'chair', note: 'Common upcharges: cushions, barrel chair upcharge, arm covers, skirts, decorative band.' },
+  { id: 'arm', name: 'Arm Chair', up: 850, slip: 730, yd: 6, kind: 'chair', note: 'Common upcharges: cushions, barrel chair upcharge, arm covers, skirts, decorative band.' },
   { id: 'wing', name: 'Wingback Chair', up: 1250, slip: 1095, yd: 8, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band.' },
   { id: 'frenchA', name: 'French Chair (armless)', up: 500, slip: null, yd: 2, kind: 'chair', note: 'Armless. Common upcharges: gimp or double welt cord.' },
   { id: 'frenchW', name: 'French Chair (with arms)', up: 565, slip: null, yd: 3, kind: 'chair', note: 'With arms. Common upcharges: gimp or double welt cord.' },
   { id: 'bergere', name: 'Bergere Chair', up: 670, slip: null, yd: 5, kind: 'chair', note: 'A barrel chair with decorative wood. Common upcharges: cushions, gimp or double welt cord.' },
-  { id: 'ottoman', name: 'Ottoman', up: 250, slip: 160, yd: 3, kind: 'ottoman', note: 'Common upcharges: cushions, skirts, decorative band.' },
+  { id: 'ottoman', name: 'Ottoman', up: 425, slip: 272, yd: 3, kind: 'ottoman', note: 'Common upcharges: cushions, skirts, decorative band.' },
   { id: 'love', name: 'Love Seat', up: 1750, slip: 1465, yd: 12, kind: 'love', note: 'Base covers up to 60 in. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
   { id: 'sofa', name: 'Sofa', up: 2250, slip: 1945, yd: 12, kind: 'sofa', note: 'Base covers up to 72 in. Yardage: 6 ft 12, 7 ft 14, 9 ft 16. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
 ]

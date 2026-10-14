@@ -46,6 +46,7 @@ import {
   type Rates,
 } from '../../lib/calculators/upholstery'
 import { INSERT_NAMES as ER_INSERTS, SEWING_STYLES } from '../../lib/calculators/cushionPricing'
+import UpholsteryHistoryCheck from './UpholsteryHistoryCheck'
 
 type CushionRow = {
   id: number
@@ -919,6 +920,7 @@ export default function Upholstery() {
               <Statistic title={t('upholstery.total')} value={money(est.total)} valueStyle={{ fontSize: 22, fontWeight: 700 }} />
             </Col>
           </Row>
+          <UpholsteryHistoryCheck typeId={draft.typeId} service={est.service} width={parseInches(draft.width) ?? 0} labor={est.labor} />
           <Collapse
             style={{ marginTop: 16 }}
             items={[
