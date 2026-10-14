@@ -695,7 +695,7 @@
     "job": "Cliente / trabajo (opcional)",
     "noSlip": "No hay precio de funda para este tipo, así que se usa la mano de obra de tapicería.",
     "addCushion": "Agregar cojín",
-    "noCushions": "Sin cojines. Agrega uno si el mueble tiene cojines sueltos.",
+    "noCushions": "La mano de obra base no incluye cojines. Agregue cada uno si la pieza tiene cojines sueltos.",
     "cushionN": "Cojín {{n}}",
     "removeCushion": "Quitar cojín",
     "cw": "An (largo)",

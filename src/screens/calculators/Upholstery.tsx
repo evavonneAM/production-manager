@@ -36,6 +36,7 @@ import {
   trimInches,
   trimQty,
   skirtFor,
+  bandingInches,
   estimate,
   money,
   estimateRocketText,
@@ -101,7 +102,6 @@ const ARMED = new Set(['arm', 'wing', 'frenchW', 'bergere', 'love', 'sofa'])
 const COUNTED: [string, 'each' | 'pair' | 'ft' | 'piece'][] = [
   ['buttons', 'each'],
   ['ties', 'pair'],
-  ['band', 'ft'],
   ['biotick', 'piece'],
 ]
 
@@ -114,6 +114,10 @@ function extraQty(d: Draft, id: string): number {
     return d.extras[id] && inches !== null ? trimQty(inches, UPCHARGES.find((u) => u.id === id)!.unit) : 0
   }
   if (id === skirtFor(kind)) return d.extras.skirt ? 1 : 0
+  if (id === 'band') {
+    const inches = bandingInches(d.typeId, kind, parseInches(d.width) ?? 0, parseInches(d.depth) ?? 0)
+    return d.extras.band && inches !== null ? trimQty(inches, 'Foot') : 0
+  }
   if (id === 'armcov') return d.extras.armcov && ARMED.has(d.typeId) ? 1 : 0
   if (id === 'barrel') return d.extras.barrel && kind === 'chair' ? 1 : 0
   return 0
@@ -697,6 +701,21 @@ export default function Upholstery() {
               />
             )
           })}
+
+          {(() => {
+            const inches = bandingInches(draft.typeId, type.kind, parseInches(draft.width) ?? 0, parseInches(draft.depth) ?? 0)
+            const qty = inches !== null ? trimQty(inches, 'Foot') : null
+            return (
+              <ExtraRow
+                checked={qty !== null && !!draft.extras.band}
+                disabled={qty === null}
+                onChange={(on) => setExtra('band', on)}
+                label={upcharge('band').name}
+                detail={qty !== null ? `${qty} ${t('upholstery.trimUnit.ft')}` : undefined}
+                amount={qty !== null ? qty * priceOf('band') : undefined}
+              />
+            )
+          })()}
 
           <Typography.Title level={5}>{t('upholstery.addOnsTitle')}</Typography.Title>
           <ExtraRow

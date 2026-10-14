@@ -696,7 +696,7 @@
     "job": "Client / job (optional)",
     "noSlip": "No slipcover price is listed for this type, so upholstery labor is used.",
     "addCushion": "Add cushion",
-    "noCushions": "No cushions. Add one if the piece has loose cushions.",
+    "noCushions": "No cushions included in base labor. Add each if the piece has loose cushions.",
     "cushionN": "Cushion {{n}}",
     "removeCushion": "Remove cushion",
     "cw": "W (length)",

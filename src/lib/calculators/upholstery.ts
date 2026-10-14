@@ -39,6 +39,14 @@ export const TRIM_RULES: Record<string, { w: number; d: number; h: number; extra
   sofa: { w: 2, d: 2, h: 0, extra: 36 },
 }
 
+/** Decorative banding inches: ottoman all the way around, slipper chair front and sides, others across the front. */
+export function bandingInches(typeId: string, kind: Kind, w: number, d: number): number | null {
+  if (!(w > 0)) return null
+  if (kind === 'ottoman') return d > 0 ? 2 * w + 2 * d : null
+  if (typeId === 'slipper') return d > 0 ? w + 2 * d : null
+  return w
+}
+
 /** Upcharges priced by length, filled from TRIM_RULES. */
 export const TRIM_UPCHARGES = ['gimp', 'welt', 'nail']
 
