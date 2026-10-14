@@ -32,6 +32,9 @@ import {
   STYLE_NAMES,
   TYPES,
   UPCHARGES,
+  TRIM_UPCHARGES,
+  trimInches,
+  trimQty,
   estimate,
   money,
   estimateRocketText,
@@ -86,6 +89,8 @@ type Draft = {
   quotedSolid: boolean
   quotedRailroaded: boolean
 }
+
+const TRIM_NEEDS_HEIGHT = new Set(['arm', 'bergere'])
 
 const DRAFT_KEY = 'pm-calc-upholstery'
 const RATES_KEY = 'pm-calc-upholstery-rates'
@@ -246,6 +251,7 @@ export default function Upholstery() {
     [draft],
   )
   const est = useMemo(() => estimate(input, rates), [input, rates])
+  const trimIn = trimInches(draft.typeId, parseInches(draft.width) ?? 0, parseInches(draft.depth) ?? 0, parseInches(draft.height) ?? 0)
   const erText = estimateRocketText({
     according: draft.according,
     service: est.service,
@@ -604,12 +610,36 @@ export default function Upholstery() {
               {
                 title: t('upholstery.item'),
                 dataIndex: 'name',
-                render: (name: string, u) => (
-                  <>
-                    <div>{name}</div>
-                    {u.note && <Typography.Text type="secondary" style={{ fontSize: 12 }}>{u.note}</Typography.Text>}
-                  </>
-                ),
+                render: (name: string, u) => {
+                  const trim = TRIM_UPCHARGES.includes(u.id)
+                  const qty = trimIn !== null ? trimQty(trimIn, u.unit) : null
+                  return (
+                    <>
+                      <div>{name}</div>
+                      {u.note && <Typography.Text type="secondary" style={{ fontSize: 12 }}>{u.note}</Typography.Text>}
+                      {trim &&
+                        (qty !== null ? (
+                          <div style={{ fontSize: 12 }}>
+                            <Typography.Text type="secondary">
+                              {t('upholstery.trimFromSize', { inches: Math.round(trimIn! * 100) / 100, qty, unit: t(`upholstery.trimUnit.${u.unit === 'Yard' ? 'yd' : 'ft'}`) })}
+                            </Typography.Text>{' '}
+                            <Button
+                              type="link"
+                              size="small"
+                              style={{ padding: 0, height: 'auto', fontSize: 12 }}
+                              onClick={() => set({ upcharges: { ...draft.upcharges, [u.id]: { price: draft.upcharges[u.id]?.price ?? null, qty } } })}
+                            >
+                              {t('upholstery.trimUse')}
+                            </Button>
+                          </div>
+                        ) : (
+                          <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+                            {t(TRIM_NEEDS_HEIGHT.has(draft.typeId) ? 'upholstery.trimNeedWDH' : 'upholstery.trimNeedWD')}
+                          </Typography.Text>
+                        ))}
+                    </>
+                  )
+                },
               },
               {
                 title: t('upholstery.price'),

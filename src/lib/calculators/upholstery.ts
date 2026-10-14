@@ -22,6 +22,36 @@ export const TYPES: FurnitureType[] = [
 /** Widest measurement covered by the base price; inches over it are charged. */
 export const OVERSIZE_LIMIT: Partial<Record<Kind, number>> = { chair: 32, love: 60, sofa: 72 }
 
+/**
+ * Trim length (gimp, double welt cord, nailheads) from the piece's size:
+ * width × w + depth × d + height × h + extra inches. From the workroom's trim sheet.
+ */
+export const TRIM_RULES: Record<string, { w: number; d: number; h: number; extra: number }> = {
+  parsons: { w: 2, d: 2, h: 0, extra: 0 },
+  slipper: { w: 2, d: 2, h: 0, extra: 0 },
+  arm: { w: 3, d: 4, h: 2, extra: 0 },
+  wing: { w: 2, d: 2, h: 0, extra: 36 },
+  frenchA: { w: 2, d: 2, h: 0, extra: 60 },
+  frenchW: { w: 2, d: 2, h: 0, extra: 96 },
+  bergere: { w: 3, d: 4, h: 2, extra: 36 },
+  ottoman: { w: 2, d: 2, h: 0, extra: 0 },
+  love: { w: 2, d: 2, h: 0, extra: 36 },
+  sofa: { w: 2, d: 2, h: 0, extra: 36 },
+}
+
+/** Upcharges priced by length, filled from TRIM_RULES. */
+export const TRIM_UPCHARGES = ['welt', 'gimp', 'nail']
+
+/** Trim inches for a piece, or null while a needed measurement is missing. */
+export function trimInches(typeId: string, w: number, d: number, h: number): number | null {
+  const r = TRIM_RULES[typeId]
+  if (!r || !(w > 0) || !(d > 0) || (r.h > 0 && !(h > 0))) return null
+  return r.w * w + r.d * d + r.h * h + r.extra
+}
+
+/** Trim inches as a quantity in the upcharge's unit, rounded up to a whole foot or yard. */
+export const trimQty = (inches: number, unit: string) => Math.ceil(inches / (unit === 'Yard' ? 36 : 12) - 1e-9)
+
 export type Upcharge = { id: string; name: string; price: number; unit: string; note: string }
 
 export const UPCHARGES: Upcharge[] = [
