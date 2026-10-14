@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Alert, Collapse, Typography } from 'antd'
 import type { HistoryRow } from '../../lib/calculators/upholsteryHistory'
-import { ACCOUNT_NAME, FLAG_PCT, WIDTH_WINDOW, erLink, gapFrom, historyCheck } from '../../lib/calculators/upholsteryHistoryCheck'
+import { ACCOUNT_CODE, FLAG_PCT, WIDTH_WINDOW, erLink, gapFrom, historyCheck } from '../../lib/calculators/upholsteryHistoryCheck'
 import { money } from '../../lib/calculators/upholstery'
 
 type Props = { typeId: string; service: 'up' | 'slip'; width: number; labor: number }
@@ -71,12 +71,13 @@ export default function UpholsteryHistoryCheck({ typeId, service, width, labor }
                     {check.examples.map((j) => (
                       <li key={j.ref + j.name + j.price} style={{ overflowWrap: 'anywhere' }}>
                         <a href={erLink(j)} target="_blank" rel="noreferrer">
-                          {money(j.price)} · {j.name}
-                        </a>
+                          {ACCOUNT_CODE[j.account]} {j.number}
+                        </a>{' '}
+                        · {money(j.price)} · {j.name}
                         <Typography.Text type="secondary">
                           {' '}
                           · {j.width > 0 ? `${j.width}" W · ` : ''}
-                          {j.date} · {ACCOUNT_NAME[j.account]}
+                          {j.date}
                         </Typography.Text>
                       </li>
                     ))}

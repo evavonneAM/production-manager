@@ -2,7 +2,7 @@
 // Pure functions so the screen stays simple and this can be tested on its own.
 import type { HistoryRow } from './upholsteryHistory'
 
-export type PastJob = { price: number; width: number; date: string; account: HistoryRow[5]; ref: string; name: string }
+export type PastJob = { price: number; width: number; date: string; account: HistoryRow[5]; ref: string; name: string; number: string }
 
 export type HistoryCheck = {
   n: number
@@ -25,7 +25,8 @@ export const FLAG_PCT = 0.2
 const MIN = 5
 
 const ER_HOST: Record<HistoryRow[5], string> = { am: 'alexandermatthews', hov: 'houseofvonne', rh: 'rhupholstery' }
-export const ACCOUNT_NAME: Record<HistoryRow[5], string> = { am: 'Alexander Matthews', hov: 'House of Vonne', rh: 'Raleigh Hills' }
+/** Short account codes used around the shop. */
+export const ACCOUNT_CODE: Record<HistoryRow[5], string> = { am: 'AM', hov: 'HOV', rh: 'RHU' }
 export const erLink = (j: PastJob) => `https://${ER_HOST[j.account]}.estimaterocket.com/projects/${j.ref}`
 
 function quantile(sorted: number[], q: number): number {
@@ -69,7 +70,7 @@ export function historyCheck(rows: HistoryRow[], typeId: string, service: 'up' |
       return b[4].localeCompare(a[4])
     })
     .slice(0, 6)
-    .map((r) => ({ price: r[2], width: r[3], date: r[4], account: r[5], ref: r[6], name: r[7] }))
+    .map((r) => ({ price: r[2], width: r[3], date: r[4], account: r[5], ref: r[6], name: r[7], number: r[8] }))
 
   return {
     n: prices.length,
