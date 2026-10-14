@@ -351,11 +351,11 @@ export default function Upholstery() {
                     optionLabelProp="title"
                     options={TYPES.map((x) => ({
                       value: x.id,
-                      title: `${x.name} — ${money(x.up)}`,
+                      title: x.name,
                       label: (
                         <Space>
                           <img src={FURNITURE_PHOTOS[x.id]} alt="" width={36} height={36} style={{ objectFit: 'contain', background: '#fff', borderRadius: 4 }} />
-                          {`${x.name} — ${money(x.up)}`}
+                          {x.name}
                         </Space>
                       ),
                     }))}
