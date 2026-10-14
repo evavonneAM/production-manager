@@ -9,14 +9,14 @@ export type FurnitureType = { id: string; name: string; up: number; slip: number
 export const TYPES: FurnitureType[] = [
   { id: 'parsons', name: 'Parsons Chair', up: 180, slip: null, yd: 2, kind: 'chair', note: 'Usually a dining chair. Common upcharge: decorative band.' },
   { id: 'slipper', name: 'Slipper Chair', up: 535, slip: 435, yd: 4, kind: 'chair', note: 'No arms. Common upcharges: cushions, skirts, decorative band.' },
-  { id: 'arm', name: 'Arm Chair', up: 700, slip: 600, yd: 6, kind: 'chair', note: 'Common upcharges: cushions, barrel chair upcharge, arm covers, skirts, decorative band.' },
-  { id: 'wing', name: 'Wingback Chair', up: 800, slip: 700, yd: 8, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band.' },
+  { id: 'arm', name: 'Arm Chair', up: 850, slip: 600, yd: 6, kind: 'chair', note: 'Common upcharges: cushions, barrel chair upcharge, arm covers, skirts, decorative band.' },
+  { id: 'wing', name: 'Wingback Chair', up: 1000, slip: 700, yd: 8, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band.' },
   { id: 'frenchA', name: 'French Chair (armless)', up: 400, slip: null, yd: 2, kind: 'chair', note: 'Armless. Common upcharges: gimp or double welt cord.' },
   { id: 'frenchW', name: 'French Chair (with arms)', up: 450, slip: null, yd: 3, kind: 'chair', note: 'With arms. Common upcharges: gimp or double welt cord.' },
   { id: 'bergere', name: 'Bergere Chair', up: 535, slip: null, yd: 5, kind: 'chair', note: 'A barrel chair with decorative wood. Common upcharges: cushions, gimp or double welt cord.' },
   { id: 'ottoman', name: 'Ottoman', up: 200, slip: 125, yd: 3, kind: 'ottoman', note: 'Common upcharges: cushions, skirts, decorative band.' },
-  { id: 'love', name: 'Love Seat', up: 900, slip: 750, yd: 12, kind: 'love', note: 'Base covers up to 60 in. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
-  { id: 'sofa', name: 'Sofa', up: 1100, slip: 950, yd: 12, kind: 'sofa', note: 'Base covers up to 72 in. Yardage: 6 ft 12, 7 ft 14, 9 ft 16. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
+  { id: 'love', name: 'Love Seat', up: 1400, slip: 750, yd: 12, kind: 'love', note: 'Base covers up to 60 in. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
+  { id: 'sofa', name: 'Sofa', up: 1800, slip: 950, yd: 12, kind: 'sofa', note: 'Base covers up to 72 in. Yardage: 6 ft 12, 7 ft 14, 9 ft 16. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
 ]
 
 /** Widest measurement covered by the base price; inches over it are charged. */
@@ -33,10 +33,10 @@ export const UPCHARGES: Upcharge[] = [
   { id: 'band', name: 'Decorative Banding', price: 6, unit: 'Foot', note: '' },
   { id: 'welt', name: 'Double welt cord', price: 20.4, unit: 'Foot', note: '' },
   { id: 'gimp', name: 'Gimp', price: 20.4, unit: 'Yard', note: '' },
-  { id: 'nail', name: 'Nailheads', price: 16.8, unit: 'Foot', note: '' },
-  { id: 'skirtC', name: 'Skirts - Chair or ottoman', price: 120, unit: 'Item', note: '' },
-  { id: 'skirtL', name: 'Skirts - Loveseat', price: 150, unit: 'Item', note: '' },
-  { id: 'skirtS', name: 'Skirts - Sofa', price: 200, unit: 'Item', note: '' },
+  { id: 'nail', name: 'Nailheads', price: 25, unit: 'Foot', note: '' },
+  { id: 'skirtC', name: 'Skirts - Chair or ottoman', price: 180, unit: 'Item', note: '' },
+  { id: 'skirtL', name: 'Skirts - Loveseat', price: 275, unit: 'Item', note: '' },
+  { id: 'skirtS', name: 'Skirts - Sofa', price: 370, unit: 'Item', note: '' },
   {
     id: 'biscuit',
     name: 'Tufting - Biscuit',
