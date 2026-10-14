@@ -7,46 +7,78 @@ export type Kind = 'chair' | 'ottoman' | 'love' | 'sofa'
 export type FurnitureType = { id: string; name: string; up: number; slip: number | null; yd: number; kind: Kind; note: string }
 
 export const TYPES: FurnitureType[] = [
-  { id: 'parsons', name: 'Parsons Chair', up: 180, slip: null, yd: 2, kind: 'chair', note: 'Usually a dining chair. Common upcharge: decorative band.' },
-  { id: 'slipper', name: 'Slipper Chair', up: 535, slip: 435, yd: 4, kind: 'chair', note: 'No arms. Common upcharges: cushions, skirts, decorative band.' },
-  { id: 'arm', name: 'Arm Chair', up: 700, slip: 600, yd: 10, kind: 'chair', note: 'Common upcharges: cushions, barrel chair upcharge, arm covers, skirts, decorative band.' },
-  { id: 'wing', name: 'Wingback Chair', up: 800, slip: 700, yd: 10, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band.' },
-  { id: 'frenchA', name: 'French Chair (armless)', up: 400, slip: null, yd: 1.5, kind: 'chair', note: 'Armless. Common upcharges: gimp or double welt cord.' },
-  { id: 'frenchW', name: 'French Chair (with arms)', up: 450, slip: null, yd: 4, kind: 'chair', note: 'With arms. Common upcharges: gimp or double welt cord.' },
-  { id: 'bergere', name: 'Bergere Chair', up: 535, slip: null, yd: 4, kind: 'chair', note: 'A barrel chair with decorative wood. Common upcharges: cushions, gimp or double welt cord.' },
-  { id: 'ottoman', name: 'Ottoman', up: 200, slip: 125, yd: 2.5, kind: 'ottoman', note: 'Common upcharges: cushions, skirts, decorative band.' },
-  { id: 'love', name: 'Love Seat', up: 900, slip: 750, yd: 12, kind: 'love', note: 'Base covers up to 60 in. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
-  { id: 'sofa', name: 'Sofa', up: 1100, slip: 950, yd: 12, kind: 'sofa', note: 'Base covers up to 72 in. Yardage: 6 ft 12, 7 ft 14, 9 ft 16. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
+  { id: 'parsons', name: 'Parsons Chair', up: 225, slip: null, yd: 2, kind: 'chair', note: 'Usually a dining chair. Common upcharge: decorative band.' },
+  { id: 'slipper', name: 'Slipper Chair', up: 670, slip: 545, yd: 4, kind: 'chair', note: 'No arms. Common upcharges: cushions, skirts, decorative band.' },
+  { id: 'arm', name: 'Arm Chair', up: 850, slip: 730, yd: 6, kind: 'chair', note: 'Common upcharges: cushions, barrel chair upcharge, arm covers, skirts, decorative band.' },
+  { id: 'wing', name: 'Wingback Chair', up: 1250, slip: 1095, yd: 8, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band.' },
+  { id: 'frenchA', name: 'French Chair (armless)', up: 500, slip: null, yd: 2, kind: 'chair', note: 'Armless. Common upcharges: gimp or double welt cord.' },
+  { id: 'frenchW', name: 'French Chair (with arms)', up: 565, slip: null, yd: 3, kind: 'chair', note: 'With arms. Common upcharges: gimp or double welt cord.' },
+  { id: 'bergere', name: 'Bergere Chair', up: 670, slip: null, yd: 5, kind: 'chair', note: 'A barrel chair with decorative wood. Common upcharges: cushions, gimp or double welt cord.' },
+  { id: 'ottoman', name: 'Ottoman', up: 425, slip: 272, yd: 3, kind: 'ottoman', note: 'Common upcharges: cushions, skirts, decorative band.' },
+  { id: 'love', name: 'Love Seat', up: 1750, slip: 1465, yd: 12, kind: 'love', note: 'Base covers up to 60 in. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
+  { id: 'sofa', name: 'Sofa', up: 2250, slip: 1945, yd: 12, kind: 'sofa', note: 'Base covers up to 72 in. Yardage: 6 ft 12, 7 ft 14, 9 ft 16. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
 ]
 
 /** Widest measurement covered by the base price; inches over it are charged. */
 export const OVERSIZE_LIMIT: Partial<Record<Kind, number>> = { chair: 32, love: 60, sofa: 72 }
 
+/**
+ * Trim length (gimp, double welt cord, nailheads) from the piece's size:
+ * width × w + depth × d + height × h + extra inches. From the workroom's trim sheet.
+ */
+export const TRIM_RULES: Record<string, { w: number; d: number; h: number; extra: number }> = {
+  parsons: { w: 2, d: 2, h: 0, extra: 0 },
+  slipper: { w: 2, d: 2, h: 0, extra: 0 },
+  arm: { w: 3, d: 4, h: 2, extra: 0 },
+  wing: { w: 2, d: 2, h: 0, extra: 36 },
+  frenchA: { w: 2, d: 2, h: 0, extra: 60 },
+  frenchW: { w: 2, d: 2, h: 0, extra: 96 },
+  bergere: { w: 3, d: 4, h: 2, extra: 36 },
+  ottoman: { w: 2, d: 2, h: 0, extra: 0 },
+  love: { w: 2, d: 2, h: 0, extra: 36 },
+  sofa: { w: 2, d: 2, h: 0, extra: 36 },
+}
+
+/** Decorative banding inches: ottoman all the way around, slipper chair front and sides, others across the front. */
+export function bandingInches(typeId: string, kind: Kind, w: number, d: number): number | null {
+  if (!(w > 0)) return null
+  if (kind === 'ottoman') return d > 0 ? 2 * w + 2 * d : null
+  if (typeId === 'slipper') return d > 0 ? w + 2 * d : null
+  return w
+}
+
+/** Upcharges priced by length, filled from TRIM_RULES. */
+export const TRIM_UPCHARGES = ['gimp', 'welt', 'nail']
+
+/** The skirt upcharge that fits a piece. */
+export const skirtFor = (kind: Kind) => (kind === 'sofa' ? 'skirtS' : kind === 'love' ? 'skirtL' : 'skirtC')
+
+/** Trim inches for a piece, or null while a needed measurement is missing. */
+export function trimInches(typeId: string, w: number, d: number, h: number): number | null {
+  const r = TRIM_RULES[typeId]
+  if (!r || !(w > 0) || !(d > 0) || (r.h > 0 && !(h > 0))) return null
+  return r.w * w + r.d * d + r.h * h + r.extra
+}
+
+/** Trim inches as a quantity in the upcharge's unit, rounded up to a whole foot or yard. */
+export const trimQty = (inches: number, unit: string) => Math.ceil(inches / (unit === 'Yard' ? 36 : 12) - 1e-9)
+
 export type Upcharge = { id: string; name: string; price: number; unit: string; note: string }
 
 export const UPCHARGES: Upcharge[] = [
-  { id: 'armcov', name: 'Arm Covers', price: 54, unit: 'Pair', note: '' },
-  { id: 'barrel', name: 'Barrel Chair upcharge', price: 144, unit: 'Item', note: '' },
-  { id: 'buttons', name: 'Buttons', price: 6.6, unit: 'Each', note: '' },
-  { id: 'channels', name: 'Channels', price: 30, unit: 'Each', note: '' },
-  { id: 'ties', name: 'Coordinating Ties', price: 36, unit: 'Pair', note: '' },
-  { id: 'band', name: 'Decorative Banding', price: 6, unit: 'Foot', note: '' },
-  { id: 'welt', name: 'Double welt cord', price: 20.4, unit: 'Foot', note: '' },
-  { id: 'gimp', name: 'Gimp', price: 20.4, unit: 'Yard', note: '' },
-  { id: 'nail', name: 'Nailheads', price: 16.8, unit: 'Foot', note: '' },
-  { id: 'skirtC', name: 'Skirts - Chair or ottoman', price: 120, unit: 'Item', note: '' },
-  { id: 'skirtL', name: 'Skirts - Loveseat', price: 150, unit: 'Item', note: '' },
-  { id: 'skirtS', name: 'Skirts - Sofa', price: 200, unit: 'Item', note: '' },
-  {
-    id: 'biscuit',
-    name: 'Tufting - Biscuit',
-    price: 12,
-    unit: 'Patch',
-    note: 'For an upholstered panel (biscuit tufted cushions have their own rate). Fabric is quilted and a button goes at each patch corner. Does not include button.',
-  },
-  { id: 'diamond', name: 'Tufting - Diamond', price: 24, unit: 'Each', note: 'Does not include button.' },
+  { id: 'armcov', name: 'Arm Covers', price: 67.5, unit: 'Pair', note: '' },
+  { id: 'barrel', name: 'Barrel Chair upcharge', price: 180, unit: 'Item', note: '' },
+  { id: 'buttons', name: 'Buttons', price: 8.25, unit: 'Each', note: '' },
+  { id: 'ties', name: 'Coordinating Ties', price: 45, unit: 'Pair', note: '' },
+  { id: 'band', name: 'Decorative Banding', price: 7.5, unit: 'Foot', note: '' },
+  { id: 'welt', name: 'Double welt cord', price: 25.5, unit: 'Foot', note: '' },
+  { id: 'gimp', name: 'Gimp', price: 25.5, unit: 'Yard', note: '' },
+  { id: 'nail', name: 'Nailheads', price: 31.25, unit: 'Foot', note: '' },
+  { id: 'skirtC', name: 'Skirts - Chair or ottoman', price: 225, unit: 'Item', note: '' },
+  { id: 'skirtL', name: 'Skirts - Loveseat', price: 345, unit: 'Item', note: '' },
+  { id: 'skirtS', name: 'Skirts - Sofa', price: 465, unit: 'Item', note: '' },
   { id: 'biotick', name: 'Celeste Bio Tick (outdoor insert)', price: 10, unit: 'Piece', note: 'Add per insert piece.' },
-  { id: 'preshrink', name: 'Preshrinking - For Slipcovers', price: 10, unit: 'Yard', note: '' },
+  { id: 'preshrink', name: 'Preshrinking - For Slipcovers', price: 12.5, unit: 'Yard', note: '' },
 ]
 
 export type Rates = {
@@ -64,6 +96,8 @@ export type Rates = {
   overUp: number
   overSlip: number
   pct: number
+  channelsPct: number
+  tuftingPct: number
 }
 
 export const DEFAULT_RATES: Rates = {
@@ -78,9 +112,11 @@ export const DEFAULT_RATES: Rates = {
   pillow: 125,
   welt: 10,
   supplies: 15,
-  overUp: 12,
-  overSlip: 10,
+  overUp: 15,
+  overSlip: 12.5,
   pct: 20,
+  channelsPct: 15,
+  tuftingPct: 30,
 }
 
 export type CushionStyle = 'clean' | 'cleanFoam' | 'french' | 'frenchFoam' | 'pillow'
@@ -129,9 +165,12 @@ export type EstimateInput = {
   yards: number | null
   fabricPerYard: number
   com: boolean
-  cushionYards: boolean
   mohair: boolean
   white: boolean
+  channels: boolean
+  tufting: boolean
+  /** Preshrink every yard of fabric (slipcovers). */
+  preshrink: boolean
   upcharges: Record<string, { qty: number; price: number }>
 }
 
@@ -253,7 +292,8 @@ export function estimate(s: EstimateInput, R: Rates): Estimate {
   }
 
   const pieceYards = s.yards ?? (t.kind === 'sofa' ? sofaYards(w) : t.yd)
-  const yards = wholeYards(pieceYards + (s.cushionYards ? cushYd : 0))
+  // The chart's yardage is for the frame only; cushion fabric is always added.
+  const yards = wholeYards(pieceYards + cushYd)
   let fabric = 0
   let supplies = 0
   if (yards > 0) {
@@ -261,9 +301,26 @@ export function estimate(s: EstimateInput, R: Rates): Estimate {
     supplies = add('Supplies', 'Upholstery Supplies', 'Standard supplies, qty = yardage', yards, R.supplies, false)
   }
 
+  if (s.preshrink && yards > 0) {
+    const p = s.upcharges.preshrink?.price ?? UPCHARGES.find((u) => u.id === 'preshrink')!.price
+    add('Upcharges', 'Upholstery Labor', 'Preshrinking (yard)', yards, p, true)
+  }
   for (const u of UPCHARGES) {
     const v = s.upcharges[u.id]
-    if (v && v.qty > 0) add('Upcharges', 'Upholstery Labor', `${u.name} (${u.unit.toLowerCase()})`, v.qty, v.price, true)
+    if (u.id !== 'preshrink' && v && v.qty > 0) add('Upcharges', 'Upholstery Labor', `${u.name} (${u.unit.toLowerCase()})`, v.qty, v.price, true)
+  }
+
+  // Channels and tufting are a percentage of the base labor (piece + oversize).
+  const baseLabor = lines.filter((l) => l.section === 'Base labor').reduce((n, l) => n + l.amount, 0)
+  for (const [on, name, pct] of [
+    [s.channels, 'Channels', R.channelsPct],
+    [s.tufting, 'Tufting', R.tuftingPct],
+  ] as const) {
+    if (on) {
+      const a = (baseLabor * pct) / 100
+      lines.push({ section: 'Upcharges', item: 'Upholstery Labor', desc: `${name} – ${q(pct)}% of base labor`, qty: 1, rate: a, amount: a })
+      labor += a
+    }
   }
 
   const base = labor

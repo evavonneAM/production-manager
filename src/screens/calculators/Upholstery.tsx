@@ -32,6 +32,11 @@ import {
   STYLE_NAMES,
   TYPES,
   UPCHARGES,
+  TRIM_UPCHARGES,
+  trimInches,
+  trimQty,
+  skirtFor,
+  bandingInches,
   estimate,
   money,
   estimateRocketText,
@@ -41,6 +46,7 @@ import {
   type Rates,
 } from '../../lib/calculators/upholstery'
 import { INSERT_NAMES as ER_INSERTS, SEWING_STYLES } from '../../lib/calculators/cushionPricing'
+import UpholsteryHistoryCheck from './UpholsteryHistoryCheck'
 
 type CushionRow = {
   id: number
@@ -65,9 +71,13 @@ type Draft = {
   yards: number | null
   fabricPerYard: number | null
   com: boolean
-  cushionYards: boolean
   mohair: boolean
   white: boolean
+  channels: boolean
+  tufting: boolean
+  preshrink: boolean
+  /** Checkbox extras: trim, skirt, arm covers, barrel. */
+  extras: Record<string, boolean>
   upcharges: Record<string, { qty: number | null; price: number | null }>
   fabric: string
   direction: 'tbd' | 'upTheRoll' | 'railroaded'
@@ -86,8 +96,76 @@ type Draft = {
   quotedRailroaded: boolean
 }
 
+const TRIM_NEEDS_HEIGHT = new Set(['arm', 'bergere'])
+/** Pieces with arms (arm covers apply). */
+const ARMED = new Set(['arm', 'wing', 'frenchW', 'bergere', 'love', 'sofa'])
+/** Extras priced by a count the estimator types in. */
+const COUNTED: [string, 'each' | 'pair' | 'ft' | 'piece'][] = [
+  ['buttons', 'each'],
+  ['ties', 'pair'],
+  ['biotick', 'piece'],
+]
+
+/** How many of an upcharge the draft asks for: checkboxes become quantities. */
+function extraQty(d: Draft, id: string): number {
+  if (COUNTED.some(([c]) => c === id)) return d.upcharges[id]?.qty ?? 0
+  const kind = (TYPES.find((x) => x.id === d.typeId) ?? TYPES[2]).kind
+  if (TRIM_UPCHARGES.includes(id)) {
+    const inches = trimInches(d.typeId, parseInches(d.width) ?? 0, parseInches(d.depth) ?? 0, parseInches(d.height) ?? 0)
+    return d.extras[id] && inches !== null ? trimQty(inches, UPCHARGES.find((u) => u.id === id)!.unit) : 0
+  }
+  if (id === skirtFor(kind)) return d.extras.skirt ? 1 : 0
+  if (id === 'band') {
+    const inches = bandingInches(d.typeId, kind, parseInches(d.width) ?? 0, parseInches(d.depth) ?? 0)
+    return d.extras.band && inches !== null ? trimQty(inches, 'Foot') : 0
+  }
+  if (id === 'armcov') return d.extras.armcov && ARMED.has(d.typeId) ? 1 : 0
+  if (id === 'barrel') return d.extras.barrel && kind === 'chair' ? 1 : 0
+  return 0
+}
+
+/** One checkbox line in step 4: name and detail on the left, price on the right. */
+function ExtraRow({
+  checked,
+  disabled,
+  onChange,
+  label,
+  detail,
+  amount,
+}: {
+  checked: boolean
+  disabled?: boolean
+  onChange: (on: boolean) => void
+  label: string
+  detail?: string
+  amount?: number
+}) {
+  return (
+    <label
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '8px 0',
+        borderTop: '1px solid rgba(5,5,5,0.06)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+      }}
+    >
+      <Checkbox checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        {label}
+        {detail && <Typography.Text type="secondary">{` · ${detail}`}</Typography.Text>}
+      </span>
+      {amount !== undefined && <Typography.Text strong={checked}>{money(amount)}</Typography.Text>}
+    </label>
+  )
+}
+
 const DRAFT_KEY = 'pm-calc-upholstery'
-const RATES_KEY = 'pm-calc-upholstery-rates'
+// v2: prices moved to $125/hr. Only rates changed from the defaults are saved,
+// so new default prices reach everyone.
+const RATES_KEY = 'pm-calc-upholstery-rates-v2'
 let nextId = 1
 
 const blankCushion = (prev?: CushionRow): CushionRow => ({
@@ -113,9 +191,12 @@ const blankDraft = (): Draft => ({
   yards: null,
   fabricPerYard: null,
   com: false,
-  cushionYards: true,
   mohair: false,
   white: false,
+  channels: false,
+  tufting: false,
+  preshrink: false,
+  extras: {},
   upcharges: {},
   fabric: '',
   direction: 'tbd',
@@ -203,13 +284,16 @@ export default function Upholstery() {
   useEffect(() => {
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
-      localStorage.setItem(RATES_KEY, JSON.stringify(rates))
+      localStorage.setItem(RATES_KEY, JSON.stringify(Object.fromEntries(Object.entries(rates).filter(([k, v]) => DEFAULT_RATES[k as keyof Rates] !== v))))
     } catch {
       // Saving is a convenience only.
     }
   }, [draft, rates])
 
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }))
+  const setExtra = (id: string, on: boolean) => setDraft((d) => ({ ...d, extras: { ...d.extras, [id]: on } }))
+  const upcharge = (id: string) => UPCHARGES.find((u) => u.id === id)!
+  const priceOf = (id: string) => draft.upcharges[id]?.price ?? upcharge(id).price
   const setCushion = (id: number, patch: Partial<CushionRow>) =>
     setDraft((d) => ({ ...d, cushions: d.cushions.map((c) => (c.id === id ? { ...c, ...patch } : c)) }))
 
@@ -233,16 +317,19 @@ export default function Upholstery() {
           yards: draft.yards,
           fabricPerYard: draft.fabricPerYard ?? 0,
           com: draft.com,
-          cushionYards: draft.cushionYards,
           mohair: draft.mohair,
           white: draft.white,
+          channels: draft.channels,
+          tufting: draft.tufting,
+          preshrink: draft.service === 'slip' && draft.preshrink,
           upcharges: Object.fromEntries(
-            UPCHARGES.map((u) => [u.id, { qty: draft.upcharges[u.id]?.qty ?? 0, price: draft.upcharges[u.id]?.price ?? u.price }]),
+            UPCHARGES.map((u) => [u.id, { qty: extraQty(draft, u.id), price: draft.upcharges[u.id]?.price ?? u.price }]),
           ),
     }),
     [draft],
   )
   const est = useMemo(() => estimate(input, rates), [input, rates])
+  const trimIn = trimInches(draft.typeId, parseInches(draft.width) ?? 0, parseInches(draft.depth) ?? 0, parseInches(draft.height) ?? 0)
   const erText = estimateRocketText({
     according: draft.according,
     service: est.service,
@@ -298,6 +385,8 @@ export default function Upholstery() {
     ['overUp', 'Oversize upholstery ($ / inch)'],
     ['overSlip', 'Oversize slipcover ($ / inch)'],
     ['pct', 'Mohair / white fabric (%)'],
+    ['channelsPct', 'Channels (% of base labor)'],
+    ['tuftingPct', 'Tufting (% of base labor)'],
   ]
 
   // Group estimate lines under section headers.
@@ -346,11 +435,11 @@ export default function Upholstery() {
                     optionLabelProp="title"
                     options={TYPES.map((x) => ({
                       value: x.id,
-                      title: `${x.name} — ${money(x.up)}`,
+                      title: x.name,
                       label: (
                         <Space>
                           <img src={FURNITURE_PHOTOS[x.id]} alt="" width={36} height={36} style={{ objectFit: 'contain', background: '#fff', borderRadius: 4 }} />
-                          {`${x.name} — ${money(x.up)}`}
+                          {x.name}
                         </Space>
                       ),
                     }))}
@@ -504,10 +593,6 @@ export default function Upholstery() {
             <Checkbox checked={draft.com} onChange={(e) => set({ com: e.target.checked })}>
               {t('upholstery.com')}
             </Checkbox>
-            <Checkbox checked={draft.cushionYards} onChange={(e) => set({ cushionYards: e.target.checked })}>
-              {t('upholstery.cushionYards')}
-            </Checkbox>
-            <Alert type="warning" showIcon title={t('upholstery.cushionYardsWarn')} />
           </Space>
         </Step>
 
@@ -520,7 +605,7 @@ export default function Upholstery() {
                   htmlFor="u-yards"
                   extra={t('upholstery.yardsHint', {
                     piece: est.pieceYards,
-                    cushions: draft.cushionYards ? Math.round(est.cushionYards * 100) / 100 : 0,
+                    cushions: Math.round(est.cushionYards * 100) / 100,
                     total: est.yards,
                   })}
                   style={{ marginBottom: 16 }}
@@ -593,63 +678,94 @@ export default function Upholstery() {
         </Step>
 
         <Step n={4} title={t('upholstery.s4')}>
-          <Table
-            size="small"
-            pagination={false}
-            rowKey="id"
-            scroll={{ x: true }}
-            dataSource={UPCHARGES}
-            columns={[
-              {
-                title: t('upholstery.item'),
-                dataIndex: 'name',
-                render: (name: string, u) => (
-                  <>
-                    <div>{name}</div>
-                    {u.note && <Typography.Text type="secondary" style={{ fontSize: 12 }}>{u.note}</Typography.Text>}
-                  </>
-                ),
-              },
-              {
-                title: t('upholstery.price'),
-                key: 'price',
-                width: 120,
-                render: (_: unknown, u) => (
-                  <InputNumber
-                    aria-label={`${u.name} price`}
-                    min={0}
-                    value={draft.upcharges[u.id]?.price ?? u.price}
-                    onChange={(v) => set({ upcharges: { ...draft.upcharges, [u.id]: { qty: draft.upcharges[u.id]?.qty ?? null, price: v } } })}
-                    style={{ width: '100%' }}
-                  />
-                ),
-              },
-              { title: t('upholstery.unit'), dataIndex: 'unit', width: 70 },
-              {
-                title: t('cushionCut.qty'),
-                key: 'qty',
-                width: 90,
-                render: (_: unknown, u) => (
-                  <InputNumber
-                    aria-label={`${u.name} quantity`}
-                    min={0}
-                    value={draft.upcharges[u.id]?.qty ?? null}
-                    placeholder="0"
-                    onChange={(v) => set({ upcharges: { ...draft.upcharges, [u.id]: { price: draft.upcharges[u.id]?.price ?? null, qty: v } } })}
-                    style={{ width: '100%' }}
-                  />
-                ),
-              },
-            ]}
+          <Typography.Title level={5} style={{ marginTop: 0 }}>
+            {t('upholstery.trimTitle')}
+          </Typography.Title>
+          {trimIn === null && (
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 8 }}
+              title={t(TRIM_NEEDS_HEIGHT.has(draft.typeId) ? 'upholstery.trimNeedWDH' : 'upholstery.trimNeedWD')}
+            />
+          )}
+          {TRIM_UPCHARGES.map((id) => {
+            const u = upcharge(id)
+            const qty = trimIn !== null ? trimQty(trimIn, u.unit) : null
+            return (
+              <ExtraRow
+                key={id}
+                checked={qty !== null && !!draft.extras[id]}
+                disabled={qty === null}
+                onChange={(on) => setExtra(id, on)}
+                label={u.name}
+                detail={qty !== null ? `${qty} ${t(`upholstery.trimUnit.${u.unit === 'Yard' ? 'yd' : 'ft'}`)}` : undefined}
+                amount={qty !== null ? qty * priceOf(id) : undefined}
+              />
+            )
+          })}
+
+          {(() => {
+            const inches = bandingInches(draft.typeId, type.kind, parseInches(draft.width) ?? 0, parseInches(draft.depth) ?? 0)
+            const qty = inches !== null ? trimQty(inches, 'Foot') : null
+            return (
+              <ExtraRow
+                checked={qty !== null && !!draft.extras.band}
+                disabled={qty === null}
+                onChange={(on) => setExtra('band', on)}
+                label={upcharge('band').name}
+                detail={qty !== null ? `${qty} ${t('upholstery.trimUnit.ft')}` : undefined}
+                amount={qty !== null ? qty * priceOf('band') : undefined}
+              />
+            )
+          })()}
+
+          <Typography.Title level={5}>{t('upholstery.addOnsTitle')}</Typography.Title>
+          <ExtraRow
+            checked={!!draft.extras.skirt}
+            onChange={(on) => setExtra('skirt', on)}
+            label={upcharge(skirtFor(type.kind)).name}
+            amount={priceOf(skirtFor(type.kind))}
           />
-          <Space orientation="vertical" style={{ marginTop: 16 }}>
-            <Checkbox checked={draft.mohair} onChange={(e) => set({ mohair: e.target.checked })}>
-              {t('upholstery.mohair', { pct: rates.pct })}
-            </Checkbox>
-            <Checkbox checked={draft.white} onChange={(e) => set({ white: e.target.checked })}>
-              {t('upholstery.white', { pct: rates.pct })}
-            </Checkbox>
-          </Space>
+          {ARMED.has(draft.typeId) && (
+            <ExtraRow checked={!!draft.extras.armcov} onChange={(on) => setExtra('armcov', on)} label={t('upholstery.armCovers')} amount={priceOf('armcov')} />
+          )}
+          {type.kind === 'chair' && (
+            <ExtraRow checked={!!draft.extras.barrel} onChange={(on) => setExtra('barrel', on)} label={upcharge('barrel').name} amount={priceOf('barrel')} />
+          )}
+          {est.service === 'slip' && (
+            <ExtraRow
+              checked={draft.preshrink}
+              onChange={(on) => set({ preshrink: on })}
+              label={t('upholstery.preshrink')}
+              detail={`${est.yards} ${t('upholstery.trimUnit.yd')}`}
+              amount={est.yards * priceOf('preshrink')}
+            />
+          )}
+          <ExtraRow checked={draft.channels} onChange={(on) => set({ channels: on })} label={t('upholstery.channelsShort')} detail={t('upholstery.pctBase', { pct: rates.channelsPct })} />
+          <ExtraRow checked={draft.tufting} onChange={(on) => set({ tufting: on })} label={t('upholstery.tuftingShort')} detail={t('upholstery.pctBase', { pct: rates.tuftingPct })} />
+          <ExtraRow checked={draft.mohair} onChange={(on) => set({ mohair: on })} label={t('upholstery.mohairShort')} detail={t('upholstery.pctLabor', { pct: rates.pct })} />
+          <ExtraRow checked={draft.white} onChange={(on) => set({ white: on })} label={t('upholstery.whiteShort')} detail={t('upholstery.pctLabor', { pct: rates.pct })} />
+
+          <Typography.Title level={5}>{t('upholstery.countTitle')}</Typography.Title>
+          {COUNTED.map(([id, unitKey]) => (
+            <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 0', borderTop: '1px solid rgba(5,5,5,0.06)' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div>{upcharge(id).name}</div>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {money(priceOf(id))} / {t(`upholstery.per.${unitKey}`)}
+                </Typography.Text>
+              </div>
+              <InputNumber
+                aria-label={`${upcharge(id).name} ${t('cushionCut.qty')}`}
+                min={0}
+                placeholder="0"
+                value={draft.upcharges[id]?.qty ?? null}
+                onChange={(v) => set({ upcharges: { ...draft.upcharges, [id]: { price: draft.upcharges[id]?.price ?? null, qty: v } } })}
+                style={{ width: 90 }}
+              />
+            </div>
+          ))}
         </Step>
 
         <Collapse
@@ -667,9 +783,33 @@ export default function Upholstery() {
                       </Col>
                     ))}
                   </Row>
+                  <Typography.Title level={5} style={{ marginTop: 20 }}>
+                    {t('upholstery.extraPrices')}
+                  </Typography.Title>
+                  <Row gutter={[12, 12]}>
+                    {UPCHARGES.map((u) => (
+                      <Col xs={24} sm={12} key={u.id}>
+                        <Typography.Text>
+                          {u.name} ($ / {u.unit.toLowerCase()})
+                        </Typography.Text>
+                        <InputNumber
+                          min={0}
+                          value={priceOf(u.id)}
+                          onChange={(v) => set({ upcharges: { ...draft.upcharges, [u.id]: { qty: draft.upcharges[u.id]?.qty ?? null, price: v } } })}
+                          style={{ width: '100%', marginTop: 4 }}
+                        />
+                      </Col>
+                    ))}
+                  </Row>
                   <Space style={{ marginTop: 12 }} wrap>
                     <Typography.Text type="secondary">{t('upholstery.ratesHelp')}</Typography.Text>
-                    <Button size="small" onClick={() => setRates({ ...DEFAULT_RATES })}>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setRates({ ...DEFAULT_RATES })
+                        set({ upcharges: Object.fromEntries(Object.entries(draft.upcharges).map(([k, v]) => [k, { ...v, price: null }])) })
+                      }}
+                    >
                       {t('upholstery.ratesReset')}
                     </Button>
                   </Space>
@@ -780,6 +920,7 @@ export default function Upholstery() {
               <Statistic title={t('upholstery.total')} value={money(est.total)} valueStyle={{ fontSize: 22, fontWeight: 700 }} />
             </Col>
           </Row>
+          <UpholsteryHistoryCheck typeId={draft.typeId} service={est.service} width={parseInches(draft.width) ?? 0} labor={est.labor} />
           <Collapse
             style={{ marginTop: 16 }}
             items={[
