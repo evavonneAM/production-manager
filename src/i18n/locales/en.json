@@ -454,6 +454,10 @@
       "leafBag": {
         "name": "Leaf Bag",
         "desc": "Paste client sizes, get the cut list and labels"
+      },
+      "floorplan": {
+        "name": "Floorplan Measure",
+        "desc": "Open a floor plan PDF or photo, set the scale, measure lengths and areas"
       }
     },
     "adminOnlyTitle": "Admins only",

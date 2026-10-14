@@ -453,6 +453,10 @@
       "leafBag": {
         "name": "Bolsa de hojas",
         "desc": "Pega las medidas del cliente y obtén la lista de cortes y etiquetas"
+      },
+      "floorplan": {
+        "name": "Medir planos",
+        "desc": "Abra un plano en PDF o foto, fije la escala y mida largos y áreas"
       }
     },
     "adminOnlyTitle": "Solo administradores",

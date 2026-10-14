@@ -78,6 +78,14 @@ export const TOOLS: Tool[] = [
     keywords: 'leaf bag cut list labels',
     icon: <path d="M6 21c0-9 5-15 14-17-1 9-7 14-14 14M6 21l7-8" />,
   },
+  {
+    id: 'floorplan',
+    group: 'other',
+    route: '/tools/floorplan-measure',
+    url: 'https://floorplan-measure.vercel.app',
+    keywords: 'floorplan floor plan measure pdf scale length area square feet room',
+    icon: <path d="M3 3h18v18H3zM3 12h7v9M14 3v8h7M10 16h4" />,
+  },
 ]
 
 export const TOOL_GROUPS: ToolGroup[] = ['drapery', 'cushions', 'other']
