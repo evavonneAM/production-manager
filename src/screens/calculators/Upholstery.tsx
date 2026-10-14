@@ -67,6 +67,8 @@ type Draft = {
   com: boolean
   mohair: boolean
   white: boolean
+  channels: boolean
+  tufting: boolean
   upcharges: Record<string, { qty: number | null; price: number | null }>
   fabric: string
   direction: 'tbd' | 'upTheRoll' | 'railroaded'
@@ -114,6 +116,8 @@ const blankDraft = (): Draft => ({
   com: false,
   mohair: false,
   white: false,
+  channels: false,
+  tufting: false,
   upcharges: {},
   fabric: '',
   direction: 'tbd',
@@ -233,6 +237,8 @@ export default function Upholstery() {
           com: draft.com,
           mohair: draft.mohair,
           white: draft.white,
+          channels: draft.channels,
+          tufting: draft.tufting,
           upcharges: Object.fromEntries(
             UPCHARGES.map((u) => [u.id, { qty: draft.upcharges[u.id]?.qty ?? 0, price: draft.upcharges[u.id]?.price ?? u.price }]),
           ),
@@ -295,6 +301,8 @@ export default function Upholstery() {
     ['overUp', 'Oversize upholstery ($ / inch)'],
     ['overSlip', 'Oversize slipcover ($ / inch)'],
     ['pct', 'Mohair / white fabric (%)'],
+    ['channelsPct', 'Channels (% of base labor)'],
+    ['tuftingPct', 'Tufting (% of base labor)'],
   ]
 
   // Group estimate lines under section headers.
@@ -636,6 +644,12 @@ export default function Upholstery() {
             ]}
           />
           <Space orientation="vertical" style={{ marginTop: 16 }}>
+            <Checkbox checked={draft.channels} onChange={(e) => set({ channels: e.target.checked })}>
+              {t('upholstery.channels', { pct: rates.channelsPct })}
+            </Checkbox>
+            <Checkbox checked={draft.tufting} onChange={(e) => set({ tufting: e.target.checked })}>
+              {t('upholstery.tufting', { pct: rates.tuftingPct })}
+            </Checkbox>
             <Checkbox checked={draft.mohair} onChange={(e) => set({ mohair: e.target.checked })}>
               {t('upholstery.mohair', { pct: rates.pct })}
             </Checkbox>

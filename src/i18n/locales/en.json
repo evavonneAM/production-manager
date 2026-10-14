@@ -715,6 +715,8 @@
     "item": "Item",
     "price": "Price",
     "unit": "Unit",
+    "channels": "Channels: add {{pct}}% to base labor",
+    "tufting": "Tufting (biscuit or diamond): add {{pct}}% to base labor",
     "mohair": "Mohair: add {{pct}}% to total labor",
     "white": "White fabric: add {{pct}}% to total labor",
     "rates": "Rates (show and edit)",

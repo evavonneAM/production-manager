@@ -714,6 +714,8 @@
     "item": "Concepto",
     "price": "Precio",
     "unit": "Unidad",
+    "channels": "Canales: sumar {{pct}}% a la mano de obra base",
+    "tufting": "Capitoné (biscuit o diamante): sumar {{pct}}% a la mano de obra base",
     "mohair": "Mohair: sumar {{pct}}% a la mano de obra",
     "white": "Tela blanca: sumar {{pct}}% a la mano de obra",
     "rates": "Tarifas (ver y editar)",

@@ -28,7 +28,6 @@ export const UPCHARGES: Upcharge[] = [
   { id: 'armcov', name: 'Arm Covers', price: 54, unit: 'Pair', note: '' },
   { id: 'barrel', name: 'Barrel Chair upcharge', price: 144, unit: 'Item', note: '' },
   { id: 'buttons', name: 'Buttons', price: 6.6, unit: 'Each', note: '' },
-  { id: 'channels', name: 'Channels', price: 30, unit: 'Each', note: '' },
   { id: 'ties', name: 'Coordinating Ties', price: 36, unit: 'Pair', note: '' },
   { id: 'band', name: 'Decorative Banding', price: 6, unit: 'Foot', note: '' },
   { id: 'welt', name: 'Double welt cord', price: 20.4, unit: 'Foot', note: '' },
@@ -37,14 +36,6 @@ export const UPCHARGES: Upcharge[] = [
   { id: 'skirtC', name: 'Skirts - Chair or ottoman', price: 180, unit: 'Item', note: '' },
   { id: 'skirtL', name: 'Skirts - Loveseat', price: 275, unit: 'Item', note: '' },
   { id: 'skirtS', name: 'Skirts - Sofa', price: 370, unit: 'Item', note: '' },
-  {
-    id: 'biscuit',
-    name: 'Tufting - Biscuit',
-    price: 12,
-    unit: 'Patch',
-    note: 'For an upholstered panel (biscuit tufted cushions have their own rate). Fabric is quilted and a button goes at each patch corner. Does not include button.',
-  },
-  { id: 'diamond', name: 'Tufting - Diamond', price: 24, unit: 'Each', note: 'Does not include button.' },
   { id: 'biotick', name: 'Celeste Bio Tick (outdoor insert)', price: 10, unit: 'Piece', note: 'Add per insert piece.' },
   { id: 'preshrink', name: 'Preshrinking - For Slipcovers', price: 10, unit: 'Yard', note: '' },
 ]
@@ -64,6 +55,8 @@ export type Rates = {
   overUp: number
   overSlip: number
   pct: number
+  channelsPct: number
+  tuftingPct: number
 }
 
 export const DEFAULT_RATES: Rates = {
@@ -81,6 +74,8 @@ export const DEFAULT_RATES: Rates = {
   overUp: 12,
   overSlip: 10,
   pct: 20,
+  channelsPct: 15,
+  tuftingPct: 30,
 }
 
 export type CushionStyle = 'clean' | 'cleanFoam' | 'french' | 'frenchFoam' | 'pillow'
@@ -131,6 +126,8 @@ export type EstimateInput = {
   com: boolean
   mohair: boolean
   white: boolean
+  channels: boolean
+  tufting: boolean
   upcharges: Record<string, { qty: number; price: number }>
 }
 
@@ -264,6 +261,19 @@ export function estimate(s: EstimateInput, R: Rates): Estimate {
   for (const u of UPCHARGES) {
     const v = s.upcharges[u.id]
     if (v && v.qty > 0) add('Upcharges', 'Upholstery Labor', `${u.name} (${u.unit.toLowerCase()})`, v.qty, v.price, true)
+  }
+
+  // Channels and tufting are a percentage of the base labor (piece + oversize).
+  const baseLabor = lines.filter((l) => l.section === 'Base labor').reduce((n, l) => n + l.amount, 0)
+  for (const [on, name, pct] of [
+    [s.channels, 'Channels', R.channelsPct],
+    [s.tufting, 'Tufting', R.tuftingPct],
+  ] as const) {
+    if (on) {
+      const a = (baseLabor * pct) / 100
+      lines.push({ section: 'Upcharges', item: 'Upholstery Labor', desc: `${name} – ${q(pct)}% of base labor`, qty: 1, rate: a, amount: a })
+      labor += a
+    }
   }
 
   const base = labor
