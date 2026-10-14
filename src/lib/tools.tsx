@@ -67,7 +67,7 @@ export const TOOLS: Tool[] = [
     adminOnly: true,
     route: '/tools/upholstery',
     url: null,
-    keywords: 'upholstery estimate labor quickbooks',
+    keywords: 'upholstery estimate labor estimate rocket',
     icon: <path d="M4 18v-6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v6M4 14h16M6 18v2M18 18v2" />,
   },
   {
@@ -77,6 +77,14 @@ export const TOOLS: Tool[] = [
     url: 'https://leaf-bag-calculator.vercel.app',
     keywords: 'leaf bag cut list labels',
     icon: <path d="M6 21c0-9 5-15 14-17-1 9-7 14-14 14M6 21l7-8" />,
+  },
+  {
+    id: 'floorplan',
+    group: 'other',
+    route: '/tools/floorplan-measure',
+    url: 'https://floorplan-measure.vercel.app',
+    keywords: 'floorplan floor plan measure pdf scale length area square feet room',
+    icon: <path d="M3 3h18v18H3zM3 12h7v9M14 3v8h7M10 16h4" />,
   },
 ]
 

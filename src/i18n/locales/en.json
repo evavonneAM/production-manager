@@ -445,15 +445,19 @@
       },
       "cushionPricing": {
         "name": "Cushion Pricing",
-        "desc": "Cushion and foam prices, plus inch and yard conversions"
+        "desc": "Cushion and foam prices, ready for Estimate Rocket"
       },
       "upholstery": {
         "name": "Upholstery Estimate",
-        "desc": "Labor, cushions, yardage and extras, ready for QuickBooks"
+        "desc": "Labor, cushions, yardage and extras, ready for Estimate Rocket"
       },
       "leafBag": {
         "name": "Leaf Bag",
         "desc": "Paste client sizes, get the cut list and labels"
+      },
+      "floorplan": {
+        "name": "Floorplan Measure",
+        "desc": "Open a floor plan PDF or photo, set the scale, measure lengths and areas"
       }
     },
     "adminOnlyTitle": "Admins only",

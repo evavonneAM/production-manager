@@ -444,15 +444,19 @@
       },
       "cushionPricing": {
         "name": "Precios de cojines",
-        "desc": "Precios de cojines y espuma, y conversión de pulgadas y yardas"
+        "desc": "Precios de cojines y espuma, listo para Estimate Rocket"
       },
       "upholstery": {
         "name": "Presupuesto de tapicería",
-        "desc": "Mano de obra, cojines, yardaje y extras, listo para QuickBooks"
+        "desc": "Mano de obra, cojines, yardaje y extras, listo para Estimate Rocket"
       },
       "leafBag": {
         "name": "Bolsa de hojas",
         "desc": "Pega las medidas del cliente y obtén la lista de cortes y etiquetas"
+      },
+      "floorplan": {
+        "name": "Medir planos",
+        "desc": "Abra un plano en PDF o foto, fije la escala y mida largos y áreas"
       }
     },
     "adminOnlyTitle": "Solo administradores",
