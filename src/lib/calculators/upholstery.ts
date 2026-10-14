@@ -7,16 +7,16 @@ export type Kind = 'chair' | 'ottoman' | 'love' | 'sofa'
 export type FurnitureType = { id: string; name: string; up: number; slip: number | null; yd: number; kind: Kind; note: string }
 
 export const TYPES: FurnitureType[] = [
-  { id: 'parsons', name: 'Parsons Chair', up: 180, slip: null, yd: 2, kind: 'chair', note: 'Usually a dining chair. Common upcharge: decorative band.' },
-  { id: 'slipper', name: 'Slipper Chair', up: 535, slip: 435, yd: 4, kind: 'chair', note: 'No arms. Common upcharges: cushions, skirts, decorative band.' },
-  { id: 'arm', name: 'Arm Chair', up: 850, slip: 730, yd: 6, kind: 'chair', note: 'Common upcharges: cushions, barrel chair upcharge, arm covers, skirts, decorative band.' },
-  { id: 'wing', name: 'Wingback Chair', up: 1000, slip: 875, yd: 8, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band.' },
-  { id: 'frenchA', name: 'French Chair (armless)', up: 400, slip: null, yd: 2, kind: 'chair', note: 'Armless. Common upcharges: gimp or double welt cord.' },
-  { id: 'frenchW', name: 'French Chair (with arms)', up: 450, slip: null, yd: 3, kind: 'chair', note: 'With arms. Common upcharges: gimp or double welt cord.' },
-  { id: 'bergere', name: 'Bergere Chair', up: 535, slip: null, yd: 5, kind: 'chair', note: 'A barrel chair with decorative wood. Common upcharges: cushions, gimp or double welt cord.' },
-  { id: 'ottoman', name: 'Ottoman', up: 200, slip: 125, yd: 3, kind: 'ottoman', note: 'Common upcharges: cushions, skirts, decorative band.' },
-  { id: 'love', name: 'Love Seat', up: 1400, slip: 1170, yd: 12, kind: 'love', note: 'Base covers up to 60 in. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
-  { id: 'sofa', name: 'Sofa', up: 1800, slip: 1555, yd: 12, kind: 'sofa', note: 'Base covers up to 72 in. Yardage: 6 ft 12, 7 ft 14, 9 ft 16. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
+  { id: 'parsons', name: 'Parsons Chair', up: 225, slip: null, yd: 2, kind: 'chair', note: 'Usually a dining chair. Common upcharge: decorative band.' },
+  { id: 'slipper', name: 'Slipper Chair', up: 670, slip: 545, yd: 4, kind: 'chair', note: 'No arms. Common upcharges: cushions, skirts, decorative band.' },
+  { id: 'arm', name: 'Arm Chair', up: 1065, slip: 915, yd: 6, kind: 'chair', note: 'Common upcharges: cushions, barrel chair upcharge, arm covers, skirts, decorative band.' },
+  { id: 'wing', name: 'Wingback Chair', up: 1250, slip: 1095, yd: 8, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band.' },
+  { id: 'frenchA', name: 'French Chair (armless)', up: 500, slip: null, yd: 2, kind: 'chair', note: 'Armless. Common upcharges: gimp or double welt cord.' },
+  { id: 'frenchW', name: 'French Chair (with arms)', up: 565, slip: null, yd: 3, kind: 'chair', note: 'With arms. Common upcharges: gimp or double welt cord.' },
+  { id: 'bergere', name: 'Bergere Chair', up: 670, slip: null, yd: 5, kind: 'chair', note: 'A barrel chair with decorative wood. Common upcharges: cushions, gimp or double welt cord.' },
+  { id: 'ottoman', name: 'Ottoman', up: 250, slip: 160, yd: 3, kind: 'ottoman', note: 'Common upcharges: cushions, skirts, decorative band.' },
+  { id: 'love', name: 'Love Seat', up: 1750, slip: 1465, yd: 12, kind: 'love', note: 'Base covers up to 60 in. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
+  { id: 'sofa', name: 'Sofa', up: 2250, slip: 1945, yd: 12, kind: 'sofa', note: 'Base covers up to 72 in. Yardage: 6 ft 12, 7 ft 14, 9 ft 16. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
 ]
 
 /** Widest measurement covered by the base price; inches over it are charged. */
@@ -66,19 +66,19 @@ export const trimQty = (inches: number, unit: string) => Math.ceil(inches / (uni
 export type Upcharge = { id: string; name: string; price: number; unit: string; note: string }
 
 export const UPCHARGES: Upcharge[] = [
-  { id: 'armcov', name: 'Arm Covers', price: 54, unit: 'Pair', note: '' },
-  { id: 'barrel', name: 'Barrel Chair upcharge', price: 144, unit: 'Item', note: '' },
-  { id: 'buttons', name: 'Buttons', price: 6.6, unit: 'Each', note: '' },
-  { id: 'ties', name: 'Coordinating Ties', price: 36, unit: 'Pair', note: '' },
-  { id: 'band', name: 'Decorative Banding', price: 6, unit: 'Foot', note: '' },
-  { id: 'welt', name: 'Double welt cord', price: 20.4, unit: 'Foot', note: '' },
-  { id: 'gimp', name: 'Gimp', price: 20.4, unit: 'Yard', note: '' },
-  { id: 'nail', name: 'Nailheads', price: 25, unit: 'Foot', note: '' },
-  { id: 'skirtC', name: 'Skirts - Chair or ottoman', price: 180, unit: 'Item', note: '' },
-  { id: 'skirtL', name: 'Skirts - Loveseat', price: 275, unit: 'Item', note: '' },
-  { id: 'skirtS', name: 'Skirts - Sofa', price: 370, unit: 'Item', note: '' },
+  { id: 'armcov', name: 'Arm Covers', price: 67.5, unit: 'Pair', note: '' },
+  { id: 'barrel', name: 'Barrel Chair upcharge', price: 180, unit: 'Item', note: '' },
+  { id: 'buttons', name: 'Buttons', price: 8.25, unit: 'Each', note: '' },
+  { id: 'ties', name: 'Coordinating Ties', price: 45, unit: 'Pair', note: '' },
+  { id: 'band', name: 'Decorative Banding', price: 7.5, unit: 'Foot', note: '' },
+  { id: 'welt', name: 'Double welt cord', price: 25.5, unit: 'Foot', note: '' },
+  { id: 'gimp', name: 'Gimp', price: 25.5, unit: 'Yard', note: '' },
+  { id: 'nail', name: 'Nailheads', price: 31.25, unit: 'Foot', note: '' },
+  { id: 'skirtC', name: 'Skirts - Chair or ottoman', price: 225, unit: 'Item', note: '' },
+  { id: 'skirtL', name: 'Skirts - Loveseat', price: 345, unit: 'Item', note: '' },
+  { id: 'skirtS', name: 'Skirts - Sofa', price: 465, unit: 'Item', note: '' },
   { id: 'biotick', name: 'Celeste Bio Tick (outdoor insert)', price: 10, unit: 'Piece', note: 'Add per insert piece.' },
-  { id: 'preshrink', name: 'Preshrinking - For Slipcovers', price: 10, unit: 'Yard', note: '' },
+  { id: 'preshrink', name: 'Preshrinking - For Slipcovers', price: 12.5, unit: 'Yard', note: '' },
 ]
 
 export type Rates = {
@@ -112,8 +112,8 @@ export const DEFAULT_RATES: Rates = {
   pillow: 125,
   welt: 10,
   supplies: 15,
-  overUp: 12,
-  overSlip: 10,
+  overUp: 15,
+  overSlip: 12.5,
   pct: 20,
   channelsPct: 15,
   tuftingPct: 30,

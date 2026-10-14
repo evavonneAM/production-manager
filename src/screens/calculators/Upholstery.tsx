@@ -162,7 +162,9 @@ function ExtraRow({
 }
 
 const DRAFT_KEY = 'pm-calc-upholstery'
-const RATES_KEY = 'pm-calc-upholstery-rates'
+// v2: prices moved to $125/hr. Only rates changed from the defaults are saved,
+// so new default prices reach everyone.
+const RATES_KEY = 'pm-calc-upholstery-rates-v2'
 let nextId = 1
 
 const blankCushion = (prev?: CushionRow): CushionRow => ({
@@ -281,7 +283,7 @@ export default function Upholstery() {
   useEffect(() => {
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
-      localStorage.setItem(RATES_KEY, JSON.stringify(rates))
+      localStorage.setItem(RATES_KEY, JSON.stringify(Object.fromEntries(Object.entries(rates).filter(([k, v]) => DEFAULT_RATES[k as keyof Rates] !== v))))
     } catch {
       // Saving is a convenience only.
     }
