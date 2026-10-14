@@ -445,11 +445,11 @@
       },
       "cushionPricing": {
         "name": "Cushion Pricing",
-        "desc": "Cushion and foam prices, plus inch and yard conversions"
+        "desc": "Cushion and foam prices, ready for Estimate Rocket"
       },
       "upholstery": {
         "name": "Upholstery Estimate",
-        "desc": "Labor, cushions, yardage and extras, ready for QuickBooks"
+        "desc": "Labor, cushions, yardage and extras, ready for Estimate Rocket"
       },
       "leafBag": {
         "name": "Leaf Bag",
