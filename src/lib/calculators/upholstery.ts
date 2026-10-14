@@ -40,7 +40,10 @@ export const TRIM_RULES: Record<string, { w: number; d: number; h: number; extra
 }
 
 /** Upcharges priced by length, filled from TRIM_RULES. */
-export const TRIM_UPCHARGES = ['welt', 'gimp', 'nail']
+export const TRIM_UPCHARGES = ['gimp', 'welt', 'nail']
+
+/** The skirt upcharge that fits a piece. */
+export const skirtFor = (kind: Kind) => (kind === 'sofa' ? 'skirtS' : kind === 'love' ? 'skirtL' : 'skirtC')
 
 /** Trim inches for a piece, or null while a needed measurement is missing. */
 export function trimInches(typeId: string, w: number, d: number, h: number): number | null {
@@ -158,6 +161,8 @@ export type EstimateInput = {
   white: boolean
   channels: boolean
   tufting: boolean
+  /** Preshrink every yard of fabric (slipcovers). */
+  preshrink: boolean
   upcharges: Record<string, { qty: number; price: number }>
 }
 
@@ -288,9 +293,13 @@ export function estimate(s: EstimateInput, R: Rates): Estimate {
     supplies = add('Supplies', 'Upholstery Supplies', 'Standard supplies, qty = yardage', yards, R.supplies, false)
   }
 
+  if (s.preshrink && yards > 0) {
+    const p = s.upcharges.preshrink?.price ?? UPCHARGES.find((u) => u.id === 'preshrink')!.price
+    add('Upcharges', 'Upholstery Labor', 'Preshrinking (yard)', yards, p, true)
+  }
   for (const u of UPCHARGES) {
     const v = s.upcharges[u.id]
-    if (v && v.qty > 0) add('Upcharges', 'Upholstery Labor', `${u.name} (${u.unit.toLowerCase()})`, v.qty, v.price, true)
+    if (u.id !== 'preshrink' && v && v.qty > 0) add('Upcharges', 'Upholstery Labor', `${u.name} (${u.unit.toLowerCase()})`, v.qty, v.price, true)
   }
 
   // Channels and tufting are a percentage of the base labor (piece + oversize).
