@@ -51,6 +51,11 @@ type Row = {
   part: 'seat' | 'back'
   labor: string
   insert: string
+  /** Seat with a matching back cushion on the same line (same length). */
+  withBack: boolean
+  backDepth: string
+  backThickness: string
+  backInsert: string
   // Estimate Rocket text
   erConfirmed: boolean
   erStyle: string
@@ -82,6 +87,10 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   part: 'seat',
   labor: 'cleanSeam',
   insert: 'foam',
+  withBack: false,
+  backDepth: '',
+  backThickness: '',
+  backInsert: 'foam',
   erConfirmed: false,
   erStyle: 'To Be Determined',
   erReversible: true,
@@ -167,6 +176,18 @@ function toSection(r: Row): Section | null {
   return { length, qty: Math.max(1, r.qty || 1), d, h }
 }
 
+/** The matching back cushion of a seat + back set, or null. */
+function toBackSection(r: Row): Section | null {
+  if (r.part !== 'seat' || !r.withBack) return null
+  return toSection({ ...r, depth: r.backDepth, thickness: r.backThickness })
+}
+
+/** Yards for a cushion, plus its matching back when it has one. */
+const setYards = (f: (length: number) => number, s: Section, r: Row) => {
+  const b = toBackSection(r)
+  return f(s.length) + (b ? f(b.length) : 0)
+}
+
 const priceFor = (o: PriceOption, s: Section) => o.price(s.length, s.d, s.h)
 
 function InchField({ id, label, value, onChange, help }: { id: string; label: string; value: string; onChange: (v: string) => void; help?: string }) {
@@ -216,11 +237,29 @@ function PriceTable({ section, group }: { section: Section; group: PriceGroup })
   )
 }
 
+/** Price table for a cushion, or for the seat and back of a set. */
+function SetTables({ seat, back, group }: { seat: Section; back: Section | null; group: PriceGroup }) {
+  const { t } = useTranslation()
+  if (!back) return <PriceTable section={seat} group={group} />
+  return (
+    <>
+      <Typography.Text strong>{t('cushionPricing.seat')}</Typography.Text>
+      <PriceTable section={seat} group={group} />
+      <Typography.Text strong style={{ display: 'block', marginTop: 12 }}>
+        {t('cushionPricing.ib')}
+      </Typography.Text>
+      <PriceTable section={back} group={group} />
+    </>
+  )
+}
+
 /** Estimate Rocket description for one cushion part, ready to copy. */
 function EstimateRocket({ row, section, update }: { row: Row; section: Section; update: (patch: Partial<Row>) => void }) {
   const { t } = useTranslation()
   const [msg, ctx] = message.useMessage()
-  const yards = row.erReversible ? yardageReversible(section.length) : yardageNonReversible(section.length)
+  const backSection = toBackSection(row)
+  const pieceYards = (x: Section) => (row.erReversible ? yardageReversible(x.length) : yardageNonReversible(x.length))
+  const yards = pieceYards(section) + (backSection ? pieceYards(backSection) : 0)
 
   const copy = async (text: string) => {
     try {
@@ -310,6 +349,7 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
           center: row.erCenter,
           contrastWelt: row.erContrastWelt,
           weltFabric: row.erWeltFabric,
+          back: backSection ? { depth: formatInches(backSection.d), height: formatInches(backSection.h), insert: row.backInsert } : undefined,
         })
         return (
           <Card
@@ -394,15 +434,17 @@ export default function CushionPricing() {
     const lines = rows.flatMap((r, i) => {
       const s = sections[i]
       if (!s) return []
-      const labor = price(r.labor, s)
-      const insert = price(r.insert, s)
-      const addOns = sectionAddOns(r, labor)
+      const b = toBackSection(r)
+      const pieceYards = (x: Section) => (r.erReversible ? yardageReversible(x.length) : yardageNonReversible(x.length))
+      const labor = price(r.labor, s) + (b ? price(r.labor, b) : 0)
+      const insert = price(r.insert, s) + (b ? price(r.backInsert, b) : 0)
+      const addOns = sectionAddOns(r, price(r.labor, s)) + (b ? sectionAddOns(r, price(r.labor, b)) : 0)
       const eachPrice = labor + insert + addOns
-      const yardsEach = wholeYards(r.erReversible ? yardageReversible(s.length) : yardageNonReversible(s.length))
+      const yardsEach = wholeYards(pieceYards(s) + (b ? pieceYards(b) : 0))
       return [
         {
           key: r.id,
-          name: r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 }),
+          name: (r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 })) + (b ? ` (${t('cushionPricing.seatAndBack')})` : ''),
           qty: s.qty,
           labor,
           insert,
@@ -534,6 +576,28 @@ export default function CushionPricing() {
                   <Col xs={12} sm={8}>
                     <InchField id={`h-${r.id}`} label={t('cushionPricing.thickness')} value={r.thickness} onChange={(v) => update(r.id, { thickness: v })} />
                   </Col>
+                  {r.part === 'seat' && (
+                    <Col xs={24}>
+                      <Checkbox checked={r.withBack} onChange={(e) => update(r.id, { withBack: e.target.checked })} style={{ marginBottom: 16 }}>
+                        {t('cushionPricing.withBack')}
+                      </Checkbox>
+                    </Col>
+                  )}
+                  {r.part === 'seat' && r.withBack && (
+                    <>
+                      <Col xs={12} sm={8}>
+                        <InchField id={`bd-${r.id}`} label={t('cushionPricing.backHeight')} value={r.backDepth} onChange={(v) => update(r.id, { backDepth: v })} />
+                      </Col>
+                      <Col xs={12} sm={8}>
+                        <InchField id={`bh-${r.id}`} label={t('cushionPricing.backThickness')} value={r.backThickness} onChange={(v) => update(r.id, { backThickness: v })} />
+                      </Col>
+                      <Col xs={24} sm={8}>
+                        <Form.Item label={t('cushionPricing.backInsert')} htmlFor={`bins-${r.id}`} style={{ marginBottom: 16 }}>
+                          <Select id={`bins-${r.id}`} size="large" value={r.backInsert} onChange={(v) => update(r.id, { backInsert: v })} options={insertOptions} />
+                        </Form.Item>
+                      </Col>
+                    </>
+                  )}
                 </Row>
                 <Row gutter={12}>
                   <Col xs={24} sm={12}>
@@ -551,7 +615,7 @@ export default function CushionPricing() {
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
-                    <Form.Item label={t('cushionPricing.insert')} htmlFor={`ins-${r.id}`} style={{ marginBottom: 16 }}>
+                    <Form.Item label={t(r.part === 'seat' && r.withBack ? 'cushionPricing.seatInsert' : 'cushionPricing.insert')} htmlFor={`ins-${r.id}`} style={{ marginBottom: 16 }}>
                       <Select id={`ins-${r.id}`} size="large" value={r.insert} onChange={(v) => update(r.id, { insert: v })} options={insertOptions} />
                     </Form.Item>
                   </Col>
@@ -579,23 +643,23 @@ export default function CushionPricing() {
                 <Tabs
                   size="small"
                   items={[
-                    { key: 'labor', label: t('cushionPricing.tabLabor'), children: <PriceTable section={s} group="labor" /> },
-                    { key: 'insert', label: t('cushionPricing.tabInserts'), children: <PriceTable section={s} group="insert" /> },
+                    { key: 'labor', label: t('cushionPricing.tabLabor'), children: <SetTables seat={s} back={toBackSection(r)} group="labor" /> },
+                    { key: 'insert', label: t('cushionPricing.tabInserts'), children: <SetTables seat={s} back={toBackSection(r)} group="insert" /> },
                     {
                       key: 'yards',
                       label: t('cushionPricing.tabYardage'),
                       children: (
                         <Row gutter={16}>
                           <Col span={12}>
-                            <Statistic title={t('cushionPricing.reversible')} value={wholeYards(yardageReversible(s.length)) * s.qty} suffix={t('calc.yd')} />
+                            <Statistic title={t('cushionPricing.reversible')} value={wholeYards(setYards(yardageReversible, s, r)) * s.qty} suffix={t('calc.yd')} />
                             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                              {t('cushionPricing.yardsEach', { n: wholeYards(yardageReversible(s.length)), exact: yardageReversible(s.length).toFixed(2) })}
+                              {t('cushionPricing.yardsEach', { n: wholeYards(setYards(yardageReversible, s, r)), exact: setYards(yardageReversible, s, r).toFixed(2) })}
                             </Typography.Text>
                           </Col>
                           <Col span={12}>
-                            <Statistic title={t('cushionPricing.nonReversible')} value={wholeYards(yardageNonReversible(s.length)) * s.qty} suffix={t('calc.yd')} />
+                            <Statistic title={t('cushionPricing.nonReversible')} value={wholeYards(setYards(yardageNonReversible, s, r)) * s.qty} suffix={t('calc.yd')} />
                             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                              {t('cushionPricing.yardsEach', { n: wholeYards(yardageNonReversible(s.length)), exact: yardageNonReversible(s.length).toFixed(2) })}
+                              {t('cushionPricing.yardsEach', { n: wholeYards(setYards(yardageNonReversible, s, r)), exact: setYards(yardageNonReversible, s, r).toFixed(2) })}
                             </Typography.Text>
                           </Col>
                         </Row>

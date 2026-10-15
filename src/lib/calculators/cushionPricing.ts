@@ -106,6 +106,8 @@ export type EstimateRocketInput = {
   center: string
   contrastWelt: boolean
   weltFabric: string
+  /** A matching back cushion on the same line (seat + back set). */
+  back?: { depth: string; height: string; insert: string }
 }
 
 const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up the Roll', railroaded: 'Railroaded' } as const
@@ -124,14 +126,20 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     '____',
     '#### Plan:',
     '* **Custom Sewn**',
-    `* **Dimensions:** QTY ${e.qty} @ ${e.width}W x ${e.depth}D x ${e.height}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`,
+    ...(e.back
+      ? [
+          `* **Seat Dimensions:** QTY ${e.qty} @ ${e.width}W x ${e.depth}D x ${e.height}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`,
+          `* **Back Dimensions:** QTY ${e.qty} @ ${e.width}W x ${e.back.depth}D x ${e.back.height}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`,
+        ]
+      : [`* **Dimensions:** QTY ${e.qty} @ ${e.width}W x ${e.depth}D x ${e.height}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`]),
     '',
     '#### Style:',
     `* **Sewing Style:** ${e.sewingStyle}`,
     '* **Zipper:** Standard',
     '',
     '#### Fill:',
-    `* **${e.insertLabel}:** ${INSERT_NAMES[e.insert] ?? e.insert}`,
+    `* **${e.back ? 'Seat Insert' : e.insertLabel}:** ${INSERT_NAMES[e.insert] ?? e.insert}`,
+    ...(e.back ? [`* **Back Insert:** ${INSERT_NAMES[e.back.insert] ?? e.back.insert}`] : []),
     '',
     '#### Fabric:',
     `* **Body Yardage:** ${wholeYards(e.yardsPerItem) * e.qty} Yards of Fabric Required in TOTAL (${wholeYards(e.yardsPerItem)} Yards Per Item)`,
