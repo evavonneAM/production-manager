@@ -636,7 +636,6 @@
     "seatInsert": "Relleno del asiento",
     "seatAndBack": "asiento + respaldo",
     "backFabric": "Tela del respaldo",
-    "backFabricHelp": "La tela del asiento está en Estimate Rocket. El yardaje de cada tela se calcula por separado.",
     "seatFabric": "Tela del asiento",
     "ydSeat": "Asiento {{n}} yd",
     "ydBack": "Respaldo {{n}} yd",

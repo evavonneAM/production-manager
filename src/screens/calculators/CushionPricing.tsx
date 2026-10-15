@@ -316,11 +316,6 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item label={t(backSection ? 'cushionPricing.seatFabric' : 'cushionPricing.erFabric')} htmlFor={`er-fab-${row.id}`} style={{ marginBottom: 12 }}>
-              <Input id={`er-fab-${row.id}`} allowClear value={row.erFabric} onChange={(e) => update({ erFabric: e.target.value })} placeholder="To Be Determined (Price Not Included)" />
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={12}>
             <Form.Item label={t('cushionPricing.erDirection')} style={{ marginBottom: 12 }}>
               <Segmented
                 block
@@ -630,19 +625,34 @@ export default function CushionPricing() {
                           <Select id={`bins-${r.id}`} size="large" value={r.backInsert} onChange={(v) => update(r.id, { backInsert: v })} options={insertOptions} />
                         </Form.Item>
                       </Col>
-                      <Col xs={24}>
-                        <Form.Item label={t('cushionPricing.backFabric')} htmlFor={`bfab-${r.id}`} extra={t('cushionPricing.backFabricHelp')} style={{ marginBottom: 16 }}>
-                          <Input
-                            id={`bfab-${r.id}`}
-                            size="large"
-                            allowClear
-                            value={r.backFabric}
-                            onChange={(e) => update(r.id, { backFabric: e.target.value })}
-                            placeholder="To Be Determined (Price Not Included)"
-                          />
-                        </Form.Item>
-                      </Col>
+
                     </>
+                  )}
+                  <Col xs={24} sm={12}>
+                    <Form.Item label={t(r.part === 'seat' && r.withBack ? 'cushionPricing.seatFabric' : 'cushionPricing.erFabric')} htmlFor={`er-fab-${r.id}`} style={{ marginBottom: 16 }}>
+                      <Input
+                        id={`er-fab-${r.id}`}
+                        size="large"
+                        allowClear
+                        value={r.erFabric}
+                        onChange={(e) => update(r.id, { erFabric: e.target.value })}
+                        placeholder="To Be Determined (Price Not Included)"
+                      />
+                    </Form.Item>
+                  </Col>
+                  {r.part === 'seat' && r.withBack && (
+                    <Col xs={24} sm={12}>
+                      <Form.Item label={t('cushionPricing.backFabric')} htmlFor={`bfab-${r.id}`} style={{ marginBottom: 16 }}>
+                        <Input
+                          id={`bfab-${r.id}`}
+                          size="large"
+                          allowClear
+                          value={r.backFabric}
+                          onChange={(e) => update(r.id, { backFabric: e.target.value })}
+                          placeholder="To Be Determined (Price Not Included)"
+                        />
+                      </Form.Item>
+                    </Col>
                   )}
                 </Row>
                 <Row gutter={12}>
