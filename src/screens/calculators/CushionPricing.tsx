@@ -25,8 +25,10 @@ import {
 } from 'antd'
 import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { formatInches, parseInches } from '../../lib/calculators/inches'
+import { FOAM_TYPES } from '../../lib/foamTypes'
 import {
   ADD_ONS,
+  FOAM_INSERTS,
   PRICE_OPTIONS,
   SEWING_STYLES,
   estimateRocketText,
@@ -51,11 +53,16 @@ type Row = {
   part: 'seat' | 'back'
   labor: string
   insert: string
+  /** Foam type for inserts with foam; empty = not picked yet. */
+  foamType: string
+  /** Custom sewn, or upholstered to plywood (adds plywood). */
+  plan: 'sewn' | 'plywood'
   /** Seat with a matching back cushion on the same line (same length). */
   withBack: boolean
   backDepth: string
   backThickness: string
   backInsert: string
+  backFoamType: string
   backFabric: string
   // Estimate Rocket text
   erConfirmed: boolean
@@ -88,10 +95,13 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   part: 'seat',
   labor: 'cleanSeam',
   insert: 'foam',
+  foamType: '',
+  plan: 'sewn',
   withBack: false,
   backDepth: '',
   backThickness: '',
   backInsert: 'foam',
+  backFoamType: '',
   backFabric: '',
   erConfirmed: false,
   erStyle: 'To Be Determined',
@@ -366,11 +376,14 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
           center: row.erCenter,
           contrastWelt: row.erContrastWelt,
           weltFabric: row.erWeltFabric,
+          plan: row.plan,
+          foamType: row.foamType,
           back: backSection
             ? {
                 depth: formatInches(backSection.d),
                 height: formatInches(backSection.h),
                 insert: row.backInsert,
+                foamType: row.backFoamType,
                 yardsPerItem: pieceYardsFor(row, backSection),
                 fabric: row.backFabric,
               }
@@ -461,7 +474,9 @@ export default function CushionPricing() {
       if (!s) return []
       const b = toBackSection(r)
       const labor = price(r.labor, s) + (b ? price(r.labor, b) : 0)
-      const insert = price(r.insert, s) + (b ? price(r.backInsert, b) : 0)
+      // Upholstered to plywood: the plywood board is added for each cushion.
+      const ply = (x: Section) => (r.plan === 'plywood' ? price('plywood', x) : 0)
+      const insert = price(r.insert, s) + ply(s) + (b ? price(r.backInsert, b) + ply(b) : 0)
       const addOns = sectionAddOns(r, price(r.labor, s)) + (b ? sectionAddOns(r, price(r.labor, b)) : 0)
       const eachPrice = labor + insert + addOns
       // Seat and back round up separately: they can be different fabrics.
@@ -500,6 +515,7 @@ export default function CushionPricing() {
   }
 
   const optionLabel = (o: PriceOption) => t(`cushionPricing.opt_${o.id}`)
+  const foamOptions = FOAM_TYPES.map((v) => ({ value: v, label: v }))
   const insertOptions = [
     { value: 'tbd', label: t('cushionPricing.insertTbd') },
     { value: 'existing', label: t('cushionPricing.insertExisting') },
@@ -625,9 +641,18 @@ export default function CushionPricing() {
                           <Select id={`bins-${r.id}`} size="large" value={r.backInsert} onChange={(v) => update(r.id, { backInsert: v })} options={insertOptions} />
                         </Form.Item>
                       </Col>
+                      {FOAM_INSERTS.includes(r.backInsert) && (
+                        <Col xs={24} sm={8}>
+                          <Form.Item label={t('cushionPricing.backFoamType')} htmlFor={`bfoam-${r.id}`} style={{ marginBottom: 16 }}>
+                            <Select id={`bfoam-${r.id}`} size="large" allowClear placeholder={t('cushionPricing.foamTbd')} value={r.backFoamType || undefined} onChange={(v) => update(r.id, { backFoamType: v ?? '' })} options={foamOptions} />
+                          </Form.Item>
+                        </Col>
+                      )}
 
                     </>
                   )}
+                </Row>
+                <Row gutter={12}>
                   <Col xs={24} sm={12}>
                     <Form.Item label={t(r.part === 'seat' && r.withBack ? 'cushionPricing.seatFabric' : 'cushionPricing.erFabric')} htmlFor={`er-fab-${r.id}`} style={{ marginBottom: 16 }}>
                       <Input
@@ -656,6 +681,20 @@ export default function CushionPricing() {
                   )}
                 </Row>
                 <Row gutter={12}>
+                  <Col xs={24}>
+                    <Form.Item label={t('cushionPricing.plan')} style={{ marginBottom: 16 }}>
+                      <Segmented
+                        block
+                        size="large"
+                        value={r.plan}
+                        onChange={(v) => update(r.id, { plan: v as Row['plan'] })}
+                        options={[
+                          { value: 'sewn', label: t('cushionPricing.planSewn') },
+                          { value: 'plywood', label: t('cushionPricing.planPlywood') },
+                        ]}
+                      />
+                    </Form.Item>
+                  </Col>
                   <Col xs={24} sm={12}>
                     <Form.Item label={t('cushionPricing.tabLabor')} htmlFor={`labor-${r.id}`} style={{ marginBottom: 16 }}>
                       <Select
@@ -675,6 +714,20 @@ export default function CushionPricing() {
                       <Select id={`ins-${r.id}`} size="large" value={r.insert} onChange={(v) => update(r.id, { insert: v })} options={insertOptions} />
                     </Form.Item>
                   </Col>
+                  {FOAM_INSERTS.includes(r.insert) && (
+                    <Col xs={24} sm={12}>
+                      <Form.Item label={t(r.part === 'seat' && r.withBack ? 'cushionPricing.seatFoamType' : 'cushionPricing.foamType')} htmlFor={`foam-${r.id}`} style={{ marginBottom: 16 }}>
+                        <Select id={`foam-${r.id}`} size="large" allowClear placeholder={t('cushionPricing.foamTbd')} value={r.foamType || undefined} onChange={(v) => update(r.id, { foamType: v ?? '' })} options={foamOptions} />
+                      </Form.Item>
+                    </Col>
+                  )}
+                  {r.plan === 'plywood' && (
+                    <Col xs={24}>
+                      <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+                        {t('cushionPricing.plywoodNote')}
+                      </Typography.Text>
+                    </Col>
+                  )}
                   <Col xs={24}>
                     <Form.Item label={t('cushionPricing.addOnsLabel')} extra={t('cushionPricing.addOnsHelp')} style={{ marginBottom: 16 }}>
                       <Space wrap size={[24, 8]}>

@@ -90,6 +90,13 @@ export const INSERT_NAMES: Record<string, string> = {
   plywood: 'Plywood',
 }
 
+/** Inserts that have foam in them, so a foam type can be picked. */
+export const FOAM_INSERTS = ['foam', 'celesteEnv', 'wgEnv', 'gooseEnv', 'bolster']
+
+/** Insert name for the estimate, with the foam type when one is picked. */
+export const insertName = (insert: string, foamType = '') =>
+  (INSERT_NAMES[insert] ?? insert) + (foamType && FOAM_INSERTS.includes(insert) ? ` (${foamType})` : '')
+
 export type EstimateRocketInput = {
   qty: number
   width: string
@@ -107,7 +114,10 @@ export type EstimateRocketInput = {
   contrastWelt: boolean
   weltFabric: string
   /** A matching back cushion on the same line (seat + back set). */
-  back?: { depth: string; height: string; insert: string; yardsPerItem: number; fabric: string }
+  back?: { depth: string; height: string; insert: string; foamType: string; yardsPerItem: number; fabric: string }
+  foamType: string
+  /** Custom sewn, or upholstered to plywood (plywood is added to the price). */
+  plan: 'sewn' | 'plywood'
 }
 
 const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up the Roll', railroaded: 'Railroaded' } as const
@@ -132,7 +142,7 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     '<center>_According To Design Specifications_</center>',
     '____',
     '#### Plan:',
-    '* **Custom Sewn**',
+    e.plan === 'plywood' ? '* **Custom Upholstered to Plywood**' : '* **Custom Sewn**',
     ...(e.back
       ? [
           `* **Seat Dimensions:** QTY ${e.qty} @ ${e.width}W x ${e.depth}D x ${e.height}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`,
@@ -145,8 +155,8 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     '* **Zipper:** Standard',
     '',
     '#### Fill:',
-    `* **${e.back ? 'Seat Insert' : e.insertLabel}:** ${INSERT_NAMES[e.insert] ?? e.insert}`,
-    ...(e.back ? [`* **Back Insert:** ${INSERT_NAMES[e.back.insert] ?? e.back.insert}`] : []),
+    `* **${e.back ? 'Seat Insert' : e.insertLabel}:** ${insertName(e.insert, e.foamType)}`,
+    ...(e.back ? [`* **Back Insert:** ${insertName(e.back.insert, e.back.foamType)}`] : []),
     '',
     '#### Fabric:',
     ...fabricLines(e.back ? 'Seat' : 'Body', e.qty, e.yardsPerItem, e.fabric),

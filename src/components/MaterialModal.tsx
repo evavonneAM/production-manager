@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createMaterial, updateMaterial, type MaterialCategory } from '../lib/data'
+import { FOAM_TYPES } from '../lib/foamTypes'
 import type { Material } from '../lib/types'
 
 // Vendor/option catalogs straight from the owner's sketches (2026-07-28).
@@ -25,10 +26,6 @@ const INSERT_BLENDS = [
   'Other',
 ]
 const FOAM_VENDORS = ['Use Inventory', 'Rex Pegg', 'Perfect Fit', 'Other']
-const FOAM_TYPES = [
-  'Soft HDR Foam', 'Medium HDR Foam', 'Medium Firm HDR Foam', 'Firm HDR Foam', 'Xtra Firm HDR Foam',
-  '1818 HDR Foam', '2521 HDR Foam', '2528 HDR Foam', '2535 HDR Foam', '2550 HDR Foam', '2570 HDR Foam', '2740 HDR Foam', 'Other',
-]
 const HARDWARE_VENDORS = [
   'Use Inventory', 'COM', 'Rex Pegg', 'Perfect Fit', 'Forest Drapery Hardware', 'Iron Art by Orion',
   'Rejuvenation', 'Ronco', 'Miami Corp', 'Keystone', 'Flexco', 'Amazon', 'Trivantage',
