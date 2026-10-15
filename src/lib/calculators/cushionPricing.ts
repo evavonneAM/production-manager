@@ -107,7 +107,7 @@ export type EstimateRocketInput = {
   contrastWelt: boolean
   weltFabric: string
   /** A matching back cushion on the same line (seat + back set). */
-  back?: { depth: string; height: string; insert: string }
+  back?: { depth: string; height: string; insert: string; yardsPerItem: number; fabric: string }
 }
 
 const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up the Roll', railroaded: 'Railroaded' } as const
@@ -118,6 +118,13 @@ function directionLine(direction: EstimateRocketInput['direction'], center: stri
   return c ? `${DIRECTION_TEXT[direction]} - Centered: ${c}` : DIRECTION_TEXT[direction]
 }
 
+
+function fabricLines(label: string, qty: number, yardsPerItem: number, fabric: string): string[] {
+  return [
+    `* **${label} Yardage:** ${wholeYards(yardsPerItem) * qty} Yards of Fabric Required in TOTAL (${wholeYards(yardsPerItem)} Yards Per Item)`,
+    `* **${label} Fabric:** ${fabric.trim() || 'To Be Determined (Price Not Included)'}`,
+  ]
+}
 
 export function estimateRocketText(e: EstimateRocketInput): string {
   return [
@@ -142,8 +149,8 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     ...(e.back ? [`* **Back Insert:** ${INSERT_NAMES[e.back.insert] ?? e.back.insert}`] : []),
     '',
     '#### Fabric:',
-    `* **Body Yardage:** ${wholeYards(e.yardsPerItem) * e.qty} Yards of Fabric Required in TOTAL (${wholeYards(e.yardsPerItem)} Yards Per Item)`,
-    `* **Body Fabric:** ${e.fabric.trim() || 'To Be Determined (Price Not Included)'}`,
+    ...fabricLines(e.back ? 'Seat' : 'Body', e.qty, e.yardsPerItem, e.fabric),
+    ...(e.back ? fabricLines('Back', e.qty, e.back.yardsPerItem, e.back.fabric) : []),
     `* **Body Fabric Direction/Center:** ${directionLine(e.direction, e.center)}`,
     ...(e.contrastWelt ? [`* **Contrast Welt:** ${e.weltFabric.trim() || 'To Be Determined (Price Not Included)'}`] : []),
   ].join('\n')
