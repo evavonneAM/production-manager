@@ -438,6 +438,10 @@
         "name": "Pliegues de cortina",
         "desc": "Ancho de pliegues y espacios, con PDF de orden de trabajo"
       },
+      "workOrder": {
+        "name": "Creador de órdenes de trabajo",
+        "desc": "Cortinas, persianas romanas y cenefas: medidas, yardaje, precio y las líneas para Estimate Rocket"
+      },
       "cushionCut": {
         "name": "Medidas de corte de cojines",
         "desc": "Medida terminada; cortes de tapa, boxing, cierre y cordón"
