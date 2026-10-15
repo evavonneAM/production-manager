@@ -18,11 +18,10 @@ export type PriceOption = {
 
 const foam = (w: number, d: number, h: number) => ((w * d * h) / 144) * 7 + 30
 
+// Labor is the cover only; foam and every other fill is picked as the insert, so it is never charged twice.
 export const PRICE_OPTIONS: PriceOption[] = [
   { id: 'cleanSeam', group: 'labor', formula: 'W × $7', price: (w) => w * 7 },
-  { id: 'customFoam', group: 'labor', formula: 'W × $6 + foam', price: (w, d, h) => w * 6 + foam(w, d, h) },
   { id: 'frenchCover', group: 'labor', formula: 'W × $18', price: (w) => w * 18 },
-  { id: 'frenchFoam', group: 'labor', formula: 'W × $13 + (W×D×H)/144 × $6 + $25', price: (w, d, h) => w * 13 + ((w * d * h) / 144) * 6 + 25 },
 
   { id: 'foam', group: 'insert', formula: '(W×D×H)/144 × $7 + $30', price: foam },
   { id: 'celesteSolid', group: 'insert', formula: '(W×D) ÷ 4', maxBox: 6, price: (w, d) => (w * d) / 4 },

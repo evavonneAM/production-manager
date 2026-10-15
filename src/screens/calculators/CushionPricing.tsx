@@ -80,8 +80,8 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   depth: '',
   thickness: '',
   part: 'seat',
-  labor: 'customFoam',
-  insert: 'tbd',
+  labor: 'cleanSeam',
+  insert: 'foam',
   erConfirmed: false,
   erStyle: 'To Be Determined',
   erReversible: true,
@@ -105,6 +105,12 @@ function loadDraft(): Row[] {
         const fix = (r: Row) => {
           if (!['tbd', 'upTheRoll', 'railroaded'].includes(r.erDirection)) r.erDirection = 'tbd'
           if (r.com !== 'com15') r.com = 'none'
+          // Labor used to include foam; now it is the cover only and foam is the insert.
+          const cover = ({ customFoam: 'cleanSeam', frenchFoam: 'frenchCover' } as Record<string, string>)[r.labor]
+          if (cover) {
+            r.labor = cover
+            if (!r.insert || r.insert === 'tbd') r.insert = 'foam'
+          }
           return r
         }
         if (seatD === undefined && ibD === undefined) return [fix({ ...blank(), ...rest, id: nextId++ })]
