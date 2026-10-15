@@ -35,6 +35,15 @@ export const TOOLS: Tool[] = [
     icon: <path d="M3 4h18M6 4v4l-1 12M10 4v4l1 12M14 4v4l-1 12M18 4v4l1 12M5 8h15" />,
   },
   {
+    id: 'workOrder',
+    group: 'drapery',
+    adminOnly: true,
+    route: '/tools/work-order',
+    url: null,
+    keywords: 'work order drapery roman shade top treatment cornice valance yardage price estimate rocket',
+    icon: <path d="M5 3h14v18H5zM8 7h8M8 11h8M8 15h5" />,
+  },
+  {
     id: 'cushionCut',
     group: 'cushions',
     route: '/tools/cushion-cut',

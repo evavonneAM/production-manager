@@ -439,6 +439,10 @@
         "name": "Drapery Pleat",
         "desc": "Pleat and space widths, with a work-order PDF"
       },
+      "workOrder": {
+        "name": "Work Order Builder",
+        "desc": "Drapery, roman shades and top treatments: measure, yardage, price and the Estimate Rocket lines"
+      },
       "cushionCut": {
         "name": "Cushion Cut Dimensions",
         "desc": "Finished size in; plate, boxing, zipper and cording cuts out"
