@@ -175,8 +175,8 @@ const blankCushion = (prev?: CushionRow): CushionRow => ({
   w: prev?.w ?? '',
   d: prev?.d ?? '',
   h: prev?.h ?? '',
-  style: prev?.style ?? 'cleanFoam',
-  insert: '',
+  style: prev?.style ?? 'clean',
+  insert: prev?.insert ?? 'foam',
   reversible: prev?.reversible ?? false,
   welt: false,
   attached: false,
@@ -225,7 +225,19 @@ function load<T extends object>(key: string, fallback: T): T {
 
 function loadDraft(): Draft {
   const d = load(DRAFT_KEY, blankDraft())
-  return { ...d, cushions: (d.cushions ?? []).map((c) => ({ ...blankCushion(), ...c, id: nextId++ })) }
+  return {
+    ...d,
+    cushions: (d.cushions ?? []).map((c) => {
+      const row = { ...blankCushion(), ...c, id: nextId++ }
+      // Styles "with foam" are gone: labor is the cover only and foam is the insert.
+      const style = row.style as string
+      if (style === 'cleanFoam' || style === 'frenchFoam') {
+        row.style = style === 'cleanFoam' ? 'clean' : 'french'
+        if (!row.insert) row.insert = 'foam'
+      }
+      return row
+    }),
+  }
 }
 
 function InchField({ id, label, value, onChange, help }: { id: string; label: string; value: string; onChange: (v: string) => void; help?: string }) {
@@ -372,13 +384,9 @@ export default function Upholstery() {
 
   const rateFields: [keyof Rates, string][] = [
     ['clean', 'Clean seam cover ($ / in of W)'],
-    ['cleanFoam', 'Clean seam with foam ($ / in of W)'],
     ['french', 'French mattress cover ($ / in of W)'],
-    ['frenchFoam', 'French mattress with foam ($ / in of W)'],
     ['foamRate', 'Foam ($ / board ft)'],
     ['foamFee', 'Foam fee ($ / cushion)'],
-    ['frenchFoamRate', 'French foam ($ / board ft)'],
-    ['frenchFoamFee', 'French foam fee ($ / cushion)'],
     ['pillow', 'Throw pillow ($ each)'],
     ['welt', 'Welting ($ / piece)'],
     ['supplies', 'Upholstery supplies ($ / yard)'],

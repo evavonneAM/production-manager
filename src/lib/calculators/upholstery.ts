@@ -83,13 +83,9 @@ export const UPCHARGES: Upcharge[] = [
 
 export type Rates = {
   clean: number
-  cleanFoam: number
   french: number
-  frenchFoam: number
   foamRate: number
   foamFee: number
-  frenchFoamRate: number
-  frenchFoamFee: number
   pillow: number
   welt: number
   supplies: number
@@ -102,13 +98,9 @@ export type Rates = {
 
 export const DEFAULT_RATES: Rates = {
   clean: 7,
-  cleanFoam: 6,
   french: 18,
-  frenchFoam: 13,
   foamRate: 7,
   foamFee: 30,
-  frenchFoamRate: 6,
-  frenchFoamFee: 25,
   pillow: 125,
   welt: 10,
   supplies: 15,
@@ -119,14 +111,13 @@ export const DEFAULT_RATES: Rates = {
   tuftingPct: 30,
 }
 
-export type CushionStyle = 'clean' | 'cleanFoam' | 'french' | 'frenchFoam' | 'pillow'
+/** Cushion labor is the cover only; foam and other fills are chosen as the insert. */
+export type CushionStyle = 'clean' | 'french' | 'pillow'
 export type CushionInsert = '' | 'foam' | 'celeste' | 'celesteEnv' | 'wg' | 'wgEnv' | 'goose' | 'gooseEnv' | 'bolster' | 'ply'
 
 export const STYLE_NAMES: Record<CushionStyle, string> = {
   clean: 'Clean seam, cover only',
-  cleanFoam: 'Clean seam with foam',
   french: 'French mattress, cover only',
-  frenchFoam: 'French mattress with foam',
   pillow: 'Throw pillow',
 }
 
@@ -226,11 +217,9 @@ export function estimate(s: EstimateInput, R: Rates): Estimate {
   }
 
   // Cushions — formulas from the Cushion Pricing Calculator.
-  const STY: Record<Exclude<CushionStyle, 'pillow'>, [string, number, 0 | 1 | 2]> = {
-    clean: [STYLE_NAMES.clean, R.clean, 0],
-    cleanFoam: [STYLE_NAMES.cleanFoam, R.cleanFoam, 1],
-    french: [STYLE_NAMES.french, R.french, 0],
-    frenchFoam: [STYLE_NAMES.frenchFoam, R.frenchFoam, 2],
+  const STY: Record<Exclude<CushionStyle, 'pillow'>, [string, number]> = {
+    clean: [STYLE_NAMES.clean, R.clean],
+    french: [STYLE_NAMES.french, R.french],
   }
   let foam = 0
   let cushYd = 0
@@ -245,13 +234,6 @@ export function estimate(s: EstimateInput, R: Rates): Estimate {
     } else {
       const st = STY[c.style] ?? STY.clean
       add('Cushions', 'Cushion Labor', `${nm} – ${st[0]} (qty = inches of W)`, n * W, st[1], true)
-      if (st[2]) {
-        const rate = st[2] === 1 ? R.foamRate : R.frenchFoamRate
-        const fee = st[2] === 1 ? R.foamFee : R.frenchFoamFee
-        foam += n * (bd * rate + fee)
-        foamBd += n * bd
-        foamN += n
-      }
     }
     const A = W * D
     const fp = (((H - 1) * A) / 144) * R.foamRate + R.foamFee
