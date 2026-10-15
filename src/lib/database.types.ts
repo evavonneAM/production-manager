@@ -96,6 +96,42 @@ export type Database = {
           },
         ]
       }
+      clients: {
+        Row: {
+          address: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           created_at: string
@@ -137,6 +173,125 @@ export type Database = {
             columns: ["lead_user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimate_counters: {
+        Row: {
+          next_number: number
+          store: string
+        }
+        Insert: {
+          next_number: number
+          store: string
+        }
+        Update: {
+          next_number?: number
+          store?: string
+        }
+        Relationships: []
+      }
+      estimate_lines: {
+        Row: {
+          created_at: string
+          description: string | null
+          estimate_id: string
+          id: string
+          name: string
+          position: number
+          quantity: number
+          section: string | null
+          source: string | null
+          total: number
+          unit: string | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          estimate_id: string
+          id?: string
+          name?: string
+          position?: number
+          quantity?: number
+          section?: string | null
+          source?: string | null
+          unit?: string | null
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          estimate_id?: string
+          id?: string
+          name?: string
+          position?: number
+          quantity?: number
+          section?: string | null
+          source?: string | null
+          unit?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_lines_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimates: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          estimate_date: string
+          id: string
+          notes: string | null
+          number: number
+          status: string
+          store: string
+          terms: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimate_date?: string
+          id?: string
+          notes?: string | null
+          number?: number
+          status?: string
+          store: string
+          terms?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimate_date?: string
+          id?: string
+          notes?: string | null
+          number?: number
+          status?: string
+          store?: string
+          terms?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]

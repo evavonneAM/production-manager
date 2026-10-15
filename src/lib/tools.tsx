@@ -71,6 +71,15 @@ export const TOOLS: Tool[] = [
     icon: <path d="M4 18v-6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v6M4 14h16M6 18v2M18 18v2" />,
   },
   {
+    id: 'estimates',
+    group: 'other',
+    adminOnly: true,
+    route: '/estimates',
+    url: null,
+    keywords: 'estimate estimates quote proposal client pdf price am hov rhu',
+    icon: <path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" />,
+  },
+  {
     id: 'leafBag',
     group: 'other',
     route: '/tools/leaf-bag',
