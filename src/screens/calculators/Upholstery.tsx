@@ -21,6 +21,8 @@ import {
   Typography,
   message,
 } from 'antd'
+import { cents, erToPlain, type NewLine } from '../../lib/estimates'
+import { AddToEstimate } from '../../components/AddToEstimate'
 import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { parseInches } from '../../lib/calculators/inches'
 import { FURNITURE_PHOTOS } from '../../assets/furniture'
@@ -368,6 +370,21 @@ export default function Upholstery() {
     } catch {
       msg.error(t('cushionPricing.copyFailed'))
     }
+  }
+
+  // Every priced line, grouped under the piece; the first carries the
+  // Estimate Rocket write-up (made plain) for the client.
+  const estimateLines = (): NewLine[] => {
+    const piece = `${type.name} – ${est.service === 'slip' ? 'Slipcover' : 'Upholstery'}`
+    return est.lines.map((l, i) => ({
+      section: piece,
+      name: l.item,
+      description: i === 0 ? `${l.desc}\n\n${erToPlain(erText)}` : l.desc,
+      quantity: Math.round(l.qty * 100) / 100,
+      unit: null,
+      unit_price: cents(l.rate),
+      source: 'upholstery',
+    }))
   }
 
   const rateFields: [keyof Rates, string][] = [
@@ -868,9 +885,12 @@ export default function Upholstery() {
           n={6}
           title={t('upholstery.s5')}
           extra={
-            <Button type="primary" icon={<CopyOutlined />} onClick={copy}>
-              {t('upholstery.copy')}
-            </Button>
+            <Space wrap>
+              <AddToEstimate lines={estimateLines} disabled={est.lines.length === 0} />
+              <Button type="primary" icon={<CopyOutlined />} onClick={copy}>
+                {t('upholstery.copy')}
+              </Button>
+            </Space>
           }
         >
           <Table

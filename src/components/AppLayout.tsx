@@ -143,6 +143,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <TabIcon icon={I.tools} />
             {t('nav.tools')}
           </NavLink>
+          {profile?.role === 'admin' && (
+            <NavLink
+              to="/estimates"
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  isActive ? 'bg-amber-600/15 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                }`
+              }
+            >
+              <TabIcon icon={<path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" />} />
+              {t('estimates.title')}
+            </NavLink>
+          )}
           <NavLink
             to="/priority"
             className={({ isActive }) =>
@@ -226,6 +239,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
           >
             {[
               { to: '/tools', label: t('nav.tools'), icon: I.tools, badge: 0 },
+              ...(profile?.role === 'admin'
+                ? [{ to: '/estimates', label: t('estimates.title'), icon: <path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" />, badge: 0 }]
+                : []),
               { to: '/priority', label: t('priority.title'), icon: <path d="M4 6h16M7 12h13M10 18h10" />, badge: 0 },
               { to: '/inbox', label: t('inbox.title'), icon: <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9m-4.7 13a2 2 0 0 1-3.4 0" />, badge: counts.unread },
               { to: '/reports', label: t('reports.title'), icon: <path d="M4 20V10m6 10V4m6 16v-7m4 7H2" />, badge: 0 },
@@ -282,7 +298,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           type="button"
           onClick={() => setMoreOpen((v) => !v)}
           className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium ${
-            moreOpen || ['/tools', '/priority', '/inbox', '/reports', '/ordering', '/profile'].some((p) => location.pathname.startsWith(p))
+            moreOpen || ['/tools', '/estimates', '/priority', '/inbox', '/reports', '/ordering', '/profile'].some((p) => location.pathname.startsWith(p))
               ? 'text-amber-400'
               : 'text-slate-500'
           }`}

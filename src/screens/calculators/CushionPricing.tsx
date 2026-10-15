@@ -37,6 +37,8 @@ import {
   type PriceGroup,
   type PriceOption,
 } from '../../lib/calculators/cushionPricing'
+import { cents, erToPlain, type NewLine } from '../../lib/estimates'
+import { AddToEstimate } from '../../components/AddToEstimate'
 
 type Row = {
   id: number
@@ -210,12 +212,30 @@ function PriceTable({ section, group }: { section: Section; group: PriceGroup })
   )
 }
 
+/** The Estimate Rocket description for one cushion card. */
+function erTextFor(row: Row, section: Section): string {
+  return estimateRocketText({
+    qty: section.qty,
+    width: formatInches(section.length),
+    depth: formatInches(section.d),
+    height: formatInches(section.h),
+    confirmed: row.erConfirmed,
+    sewingStyle: row.erStyle,
+    insertLabel: row.part === 'back' ? 'Back Insert' : 'Seat Insert',
+    insert: row.insert,
+    yardsPerItem: row.erReversible ? yardageReversible(section.length) : yardageNonReversible(section.length),
+    fabric: row.erFabric,
+    direction: row.erDirection,
+    center: row.erCenter,
+    contrastWelt: row.erContrastWelt,
+    weltFabric: row.erWeltFabric,
+  })
+}
+
 /** Estimate Rocket description for one cushion part, ready to copy. */
 function EstimateRocket({ row, section, update }: { row: Row; section: Section; update: (patch: Partial<Row>) => void }) {
   const { t } = useTranslation()
   const [msg, ctx] = message.useMessage()
-  const yards = row.erReversible ? yardageReversible(section.length) : yardageNonReversible(section.length)
-
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -289,22 +309,7 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
         </Row>
       </Form>
       {[row.part].map((key) => {
-        const text = estimateRocketText({
-          qty: section.qty,
-          width: formatInches(section.length),
-          depth: formatInches(section.d),
-          height: formatInches(section.h),
-          confirmed: row.erConfirmed,
-          sewingStyle: row.erStyle,
-          insertLabel: key === 'back' ? 'Back Insert' : 'Seat Insert',
-          insert: row.insert,
-          yardsPerItem: yards,
-          fabric: row.erFabric,
-          direction: row.erDirection,
-          center: row.erCenter,
-          contrastWelt: row.erContrastWelt,
-          weltFabric: row.erWeltFabric,
-        })
+        const text = erTextFor(row, section)
         return (
           <Card
             key={key}
@@ -414,6 +419,26 @@ export default function CushionPricing() {
     const addOns = lines.reduce((n, l) => n + l.addOns * l.qty, 0)
     return { lines, labor, insert, addOns, total: sum('total'), yards: sum('yards') }
   }, [rows, sections, t])
+
+  // Every priced cushion as one estimate line, with its Estimate Rocket text
+  // (made plain) as the client-facing description.
+  const estimateLines = (): NewLine[] =>
+    rows.flatMap((r, i) => {
+      const s = sections[i]
+      const l = quote.lines.find((x) => x.key === r.id)
+      if (!s || !l) return []
+      return [
+        {
+          section: 'Cushions',
+          name: `${l.name} – ${r.part === 'back' ? 'Back cushion' : 'Seat cushion'}`,
+          description: erToPlain(erTextFor(r, s)),
+          quantity: l.qty,
+          unit: 'ea',
+          unit_price: cents(l.each),
+          source: 'cushionPricing',
+        },
+      ]
+    })
 
   const addPasted = () => {
     const pasted = parsePasted(paste)
@@ -613,7 +638,7 @@ export default function CushionPricing() {
           {t('cushionPricing.add')}
         </Button>
 
-        <Card title={t('cushionPricing.quoteTitle')}>
+        <Card title={t('cushionPricing.quoteTitle')} extra={<AddToEstimate lines={estimateLines} disabled={quote.lines.length === 0} />}>
           <Typography.Paragraph type="secondary">{t('cushionPricing.quoteHelp')}</Typography.Paragraph>
           {quote.lines.length > 0 && (
             <Table
