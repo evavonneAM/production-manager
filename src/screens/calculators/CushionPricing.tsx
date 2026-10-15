@@ -56,6 +56,7 @@ type Row = {
   backDepth: string
   backThickness: string
   backInsert: string
+  backFabric: string
   // Estimate Rocket text
   erConfirmed: boolean
   erStyle: string
@@ -91,6 +92,7 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   backDepth: '',
   backThickness: '',
   backInsert: 'foam',
+  backFabric: '',
   erConfirmed: false,
   erStyle: 'To Be Determined',
   erReversible: true,
@@ -182,10 +184,31 @@ function toBackSection(r: Row): Section | null {
   return toSection({ ...r, depth: r.backDepth, thickness: r.backThickness })
 }
 
-/** Yards for a cushion, plus its matching back when it has one. */
-const setYards = (f: (length: number) => number, s: Section, r: Row) => {
-  const b = toBackSection(r)
-  return f(s.length) + (b ? f(b.length) : 0)
+/** Yards for one cushion, reversible or not. */
+const pieceYardsFor = (r: Row, x: Section) => (r.erReversible ? yardageReversible(x.length) : yardageNonReversible(x.length))
+
+/** Reversible and non-reversible yards for one cushion (seat or back). */
+function YardStats({ s, title }: { s: Section; title?: string }) {
+  const { t } = useTranslation()
+  const kinds = [
+    ['reversible', yardageReversible(s.length)],
+    ['nonReversible', yardageNonReversible(s.length)],
+  ] as const
+  return (
+    <>
+      {title && <Typography.Text strong>{title}</Typography.Text>}
+      <Row gutter={16} style={{ marginBottom: 12 }}>
+        {kinds.map(([k, y]) => (
+          <Col span={12} key={k}>
+            <Statistic title={t(`cushionPricing.${k}`)} value={wholeYards(y) * s.qty} suffix={t('calc.yd')} />
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {t('cushionPricing.yardsEach', { n: wholeYards(y), exact: y.toFixed(2) })}
+            </Typography.Text>
+          </Col>
+        ))}
+      </Row>
+    </>
+  )
 }
 
 const priceFor = (o: PriceOption, s: Section) => o.price(s.length, s.d, s.h)
@@ -258,8 +281,7 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
   const { t } = useTranslation()
   const [msg, ctx] = message.useMessage()
   const backSection = toBackSection(row)
-  const pieceYards = (x: Section) => (row.erReversible ? yardageReversible(x.length) : yardageNonReversible(x.length))
-  const yards = pieceYards(section) + (backSection ? pieceYards(backSection) : 0)
+  const yards = pieceYardsFor(row, section)
 
   const copy = async (text: string) => {
     try {
@@ -291,11 +313,6 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
               <Checkbox checked={row.erConfirmed} onChange={(e) => update({ erConfirmed: e.target.checked })}>
                 {t('cushionPricing.erConfirmed')}
               </Checkbox>
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={12}>
-            <Form.Item label={t('cushionPricing.erFabric')} htmlFor={`er-fab-${row.id}`} style={{ marginBottom: 12 }}>
-              <Input id={`er-fab-${row.id}`} allowClear value={row.erFabric} onChange={(e) => update({ erFabric: e.target.value })} placeholder="To Be Determined (Price Not Included)" />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
@@ -349,7 +366,15 @@ function EstimateRocket({ row, section, update }: { row: Row; section: Section; 
           center: row.erCenter,
           contrastWelt: row.erContrastWelt,
           weltFabric: row.erWeltFabric,
-          back: backSection ? { depth: formatInches(backSection.d), height: formatInches(backSection.h), insert: row.backInsert } : undefined,
+          back: backSection
+            ? {
+                depth: formatInches(backSection.d),
+                height: formatInches(backSection.h),
+                insert: row.backInsert,
+                yardsPerItem: pieceYardsFor(row, backSection),
+                fabric: row.backFabric,
+              }
+            : undefined,
         })
         return (
           <Card
@@ -435,12 +460,14 @@ export default function CushionPricing() {
       const s = sections[i]
       if (!s) return []
       const b = toBackSection(r)
-      const pieceYards = (x: Section) => (r.erReversible ? yardageReversible(x.length) : yardageNonReversible(x.length))
       const labor = price(r.labor, s) + (b ? price(r.labor, b) : 0)
       const insert = price(r.insert, s) + (b ? price(r.backInsert, b) : 0)
       const addOns = sectionAddOns(r, price(r.labor, s)) + (b ? sectionAddOns(r, price(r.labor, b)) : 0)
       const eachPrice = labor + insert + addOns
-      const yardsEach = wholeYards(pieceYards(s) + (b ? pieceYards(b) : 0))
+      // Seat and back round up separately: they can be different fabrics.
+      const seatYards = wholeYards(pieceYardsFor(r, s))
+      const backYards = b ? wholeYards(pieceYardsFor(r, b)) : 0
+      const yardsEach = seatYards + backYards
       return [
         {
           key: r.id,
@@ -453,6 +480,8 @@ export default function CushionPricing() {
           total: eachPrice * s.qty,
           yardsEach,
           yards: yardsEach * s.qty,
+          seatYards,
+          backYards,
         },
       ]
     })
@@ -596,7 +625,34 @@ export default function CushionPricing() {
                           <Select id={`bins-${r.id}`} size="large" value={r.backInsert} onChange={(v) => update(r.id, { backInsert: v })} options={insertOptions} />
                         </Form.Item>
                       </Col>
+
                     </>
+                  )}
+                  <Col xs={24} sm={12}>
+                    <Form.Item label={t(r.part === 'seat' && r.withBack ? 'cushionPricing.seatFabric' : 'cushionPricing.erFabric')} htmlFor={`er-fab-${r.id}`} style={{ marginBottom: 16 }}>
+                      <Input
+                        id={`er-fab-${r.id}`}
+                        size="large"
+                        allowClear
+                        value={r.erFabric}
+                        onChange={(e) => update(r.id, { erFabric: e.target.value })}
+                        placeholder="To Be Determined (Price Not Included)"
+                      />
+                    </Form.Item>
+                  </Col>
+                  {r.part === 'seat' && r.withBack && (
+                    <Col xs={24} sm={12}>
+                      <Form.Item label={t('cushionPricing.backFabric')} htmlFor={`bfab-${r.id}`} style={{ marginBottom: 16 }}>
+                        <Input
+                          id={`bfab-${r.id}`}
+                          size="large"
+                          allowClear
+                          value={r.backFabric}
+                          onChange={(e) => update(r.id, { backFabric: e.target.value })}
+                          placeholder="To Be Determined (Price Not Included)"
+                        />
+                      </Form.Item>
+                    </Col>
                   )}
                 </Row>
                 <Row gutter={12}>
@@ -649,20 +705,10 @@ export default function CushionPricing() {
                       key: 'yards',
                       label: t('cushionPricing.tabYardage'),
                       children: (
-                        <Row gutter={16}>
-                          <Col span={12}>
-                            <Statistic title={t('cushionPricing.reversible')} value={wholeYards(setYards(yardageReversible, s, r)) * s.qty} suffix={t('calc.yd')} />
-                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                              {t('cushionPricing.yardsEach', { n: wholeYards(setYards(yardageReversible, s, r)), exact: setYards(yardageReversible, s, r).toFixed(2) })}
-                            </Typography.Text>
-                          </Col>
-                          <Col span={12}>
-                            <Statistic title={t('cushionPricing.nonReversible')} value={wholeYards(setYards(yardageNonReversible, s, r)) * s.qty} suffix={t('calc.yd')} />
-                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                              {t('cushionPricing.yardsEach', { n: wholeYards(setYards(yardageNonReversible, s, r)), exact: setYards(yardageNonReversible, s, r).toFixed(2) })}
-                            </Typography.Text>
-                          </Col>
-                        </Row>
+                        <>
+                          <YardStats s={s} title={toBackSection(r) ? t('cushionPricing.seat') : undefined} />
+                          {toBackSection(r) && <YardStats s={toBackSection(r)!} title={t('cushionPricing.ib')} />}
+                        </>
                       ),
                     },
                     {
@@ -706,14 +752,20 @@ export default function CushionPricing() {
                   title: t('cushionPricing.fabric'),
                   key: 'yards',
                   align: 'right',
-                  render: (_: unknown, l: { yardsEach: number; yards: number }) => (
-                    <>
-                      <div>{t('cushionPricing.ydEach', { n: l.yardsEach })}</div>
-                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                        {t('cushionPricing.ydTotal', { n: l.yards })}
-                      </Typography.Text>
-                    </>
-                  ),
+                  render: (_: unknown, l: { yardsEach: number; yards: number; qty: number; seatYards: number; backYards: number }) =>
+                    l.backYards ? (
+                      <>
+                        <div>{t('cushionPricing.ydSeat', { n: l.seatYards * l.qty })}</div>
+                        <div>{t('cushionPricing.ydBack', { n: l.backYards * l.qty })}</div>
+                      </>
+                    ) : (
+                      <>
+                        <div>{t('cushionPricing.ydEach', { n: l.yardsEach })}</div>
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                          {t('cushionPricing.ydTotal', { n: l.yards })}
+                        </Typography.Text>
+                      </>
+                    ),
                 },
               ]}
             />
