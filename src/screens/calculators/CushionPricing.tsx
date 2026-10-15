@@ -23,7 +23,7 @@ import {
   Typography,
   message,
 } from 'antd'
-import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, FilePdfOutlined, PlusOutlined } from '@ant-design/icons'
 import { formatInches, parseInches } from '../../lib/calculators/inches'
 import { FOAM_TYPES } from '../../lib/foamTypes'
 import { SHEET_L, SHEET_PRICE, SHEET_W, fitsSheet, planPlywood, type Board, type Sheet } from '../../lib/calculators/plywoodNesting'
@@ -433,7 +433,19 @@ function sectionAddOns(r: Row, labor: number): number {
 function PlywoodSheets({ plan }: { plan: ReturnType<typeof planPlywood> }) {
   const { t } = useTranslation()
   return (
-    <Card size="small" type="inner" title={t('cushionPricing.plywoodTitle')} style={{ marginTop: 16 }}>
+    <Card
+      size="small"
+      type="inner"
+      title={t('cushionPricing.plywoodTitle')}
+      extra={
+        plan.sheets.length > 0 && (
+          <Button icon={<FilePdfOutlined />} onClick={() => void import('../../lib/calculators/plywoodPdf').then((m) => m.downloadPlywoodPdf(plan))}>
+            {t('cushionPricing.plywoodPdf')}
+          </Button>
+        )
+      }
+      style={{ marginTop: 16 }}
+    >
       <Typography.Paragraph style={{ marginBottom: 8 }}>
         {t('cushionPricing.plywoodSummary', { sheets: plan.sheets.length, pieces: plan.pieces, price: money(SHEET_PRICE), cost: money(plan.cost) })}
       </Typography.Paragraph>

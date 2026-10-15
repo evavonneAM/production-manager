@@ -653,6 +653,7 @@
     "plywoodStat": "Triplay ({{n}} hojas)",
     "sheetN": "Hoja {{n}} de {{of}} · {{pct}}% usada",
     "plywoodCardTooBig": "Demasiado largo para una hoja de 4 × 8. Confirme las divisiones con el cliente e ingrese cada sección como un cojín aparte.",
+    "plywoodPdf": "Descargar PDF",
     "opt_cleanSeam": "Costura limpia (solo funda)",
     "opt_frenchCover": "Colchón francés (solo funda)",
     "opt_foam": "Espuma",

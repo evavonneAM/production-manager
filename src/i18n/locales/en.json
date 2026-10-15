@@ -654,6 +654,7 @@
     "plywoodStat": "Plywood ({{n}} sheets)",
     "sheetN": "Sheet {{n}} of {{of}} · {{pct}}% used",
     "plywoodCardTooBig": "Too long for one 4 × 8 sheet. Confirm seat breaks with the client and enter each section as its own cushion.",
+    "plywoodPdf": "Download PDF",
     "opt_cleanSeam": "Custom sewn clean seam (cover only)",
     "opt_frenchCover": "French mattress (cover only)",
     "opt_foam": "Foam",
