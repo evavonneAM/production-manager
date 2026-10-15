@@ -26,6 +26,7 @@ import {
 import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { formatInches, parseInches } from '../../lib/calculators/inches'
 import { FOAM_TYPES } from '../../lib/foamTypes'
+import { SHEET_L, SHEET_PRICE, SHEET_W, planPlywood, type Board, type Sheet } from '../../lib/calculators/plywoodNesting'
 import {
   ADD_ONS,
   FOAM_INSERTS,
@@ -428,6 +429,63 @@ function sectionAddOns(r: Row, labor: number): number {
   )
 }
 
+/** Plywood sheets for the job: count, cost and a layout of each 4 × 8 sheet. */
+function PlywoodSheets({ plan }: { plan: ReturnType<typeof planPlywood> }) {
+  const { t } = useTranslation()
+  return (
+    <Card size="small" type="inner" title={t('cushionPricing.plywoodTitle')} style={{ marginTop: 16 }}>
+      <Typography.Paragraph style={{ marginBottom: 8 }}>
+        {t('cushionPricing.plywoodSummary', { sheets: plan.sheets.length, pieces: plan.pieces, price: money(SHEET_PRICE), cost: money(plan.cost) })}
+      </Typography.Paragraph>
+      {plan.split.map((x) => (
+        <Typography.Paragraph type="secondary" key={x.name} style={{ marginBottom: 4, fontSize: 13 }}>
+          {t('cushionPricing.plywoodSplit', { name: x.name, length: formatInches(x.length), parts: x.parts, each: formatInches(x.length / x.parts) })}
+        </Typography.Paragraph>
+      ))}
+      {plan.tooDeep.length > 0 && (
+        <Alert type="warning" showIcon style={{ marginBottom: 8 }} title={t('cushionPricing.plywoodTooDeep', { names: plan.tooDeep.join(', ') })} />
+      )}
+      <Row gutter={[12, 12]}>
+        {plan.sheets.map((sh, i) => (
+          <Col xs={12} sm={6} key={i}>
+            <SheetDiagram sheet={sh} n={i + 1} of={plan.sheets.length} />
+          </Col>
+        ))}
+      </Row>
+    </Card>
+  )
+}
+
+function SheetDiagram({ sheet, n, of }: { sheet: Sheet; n: number; of: number }) {
+  const { t } = useTranslation()
+  return (
+    <div>
+      <Typography.Text strong style={{ fontSize: 12 }}>
+        {t('cushionPricing.sheetN', { n, of, pct: Math.round(sheet.used * 100) })}
+      </Typography.Text>
+      <svg viewBox={`-1 -1 ${SHEET_W + 2} ${SHEET_L + 2}`} style={{ width: '100%', maxHeight: 220, display: 'block' }} role="img" aria-label={`Sheet ${n}`}>
+        <rect x={0} y={0} width={SHEET_W} height={SHEET_L} fill="#eef0f3" stroke="#555" strokeWidth={0.5} />
+        {sheet.pieces.map((p, k) => (
+          <g key={k}>
+            <rect x={p.x} y={p.y} width={p.w} height={p.h} fill="#d4e3f2" stroke="#1677ff" strokeWidth={0.5} />
+            <text
+              x={p.x + p.w / 2}
+              y={p.y + p.h / 2}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize={Math.max(2, Math.min(4, Math.min(p.w, p.h) / 4, Math.max(p.w, p.h) / 10))}
+              fill="#222"
+              transform={p.h > p.w ? `rotate(-90 ${p.x + p.w / 2} ${p.y + p.h / 2})` : undefined}
+            >
+              {formatInches(Math.max(p.w, p.h))} × {formatInches(Math.min(p.w, p.h))}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  )
+}
+
 /** Small feet → inches and inches → yards helpers from the original page. */
 function Converters() {
   const { t } = useTranslation()
@@ -483,9 +541,7 @@ export default function CushionPricing() {
       if (!s) return []
       const b = toBackSection(r)
       const labor = price(r.labor, s) + (b ? price(r.labor, b) : 0)
-      // Upholstered to plywood: the plywood board is added for each cushion.
-      const ply = (x: Section) => (r.plan === 'plywood' ? price('plywood', x) : 0)
-      const insert = price(r.insert, s) + ply(s) + (b ? price(r.backInsert, b) + ply(b) : 0)
+      const insert = price(r.insert, s) + (b ? price(r.backInsert, b) : 0)
       const addOns = sectionAddOns(r, price(r.labor, s)) + (b ? sectionAddOns(r, price(r.labor, b)) : 0)
       const eachPrice = labor + insert + addOns
       // Seat and back round up separately: they can be different fabrics.
@@ -509,11 +565,23 @@ export default function CushionPricing() {
         },
       ]
     })
+    // Upholstered to plywood: every board for the job is nested onto full sheets, charged per sheet.
+    const boards: Board[] = rows.flatMap((r, i) => {
+      const s = sections[i]
+      if (!s || r.plan !== 'plywood') return []
+      const name = r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 })
+      const b = toBackSection(r)
+      return [
+        { name, qty: s.qty, length: s.length, depth: s.d },
+        ...(b ? [{ name: `${name} (${t('cushionPricing.ib').toLowerCase()})`, qty: b.qty, length: b.length, depth: b.d }] : []),
+      ]
+    })
+    const plywood = planPlywood(boards)
     const sum = (k: 'total' | 'yards') => lines.reduce((n, l) => n + l[k], 0)
     const labor = lines.reduce((n, l) => n + l.labor * l.qty, 0)
     const insert = lines.reduce((n, l) => n + l.insert * l.qty, 0)
     const addOns = lines.reduce((n, l) => n + l.addOns * l.qty, 0)
-    return { lines, labor, insert, addOns, total: sum('total'), yards: sum('yards') }
+    return { lines, labor, insert, addOns, plywood, total: sum('total') + plywood.cost, yards: sum('yards') }
   }, [rows, sections, t])
 
   const addPasted = () => {
@@ -733,7 +801,7 @@ export default function CushionPricing() {
                   {r.plan === 'plywood' && (
                     <Col xs={24}>
                       <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-                        {t('cushionPricing.plywoodNote')}
+                        {t('cushionPricing.plywoodNote', { price: money(SHEET_PRICE) })}
                       </Typography.Text>
                     </Col>
                   )}
@@ -832,6 +900,7 @@ export default function CushionPricing() {
               ]}
             />
           )}
+          {quote.plywood.pieces > 0 && <PlywoodSheets plan={quote.plywood} />}
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col xs={12} sm={6}>
               <Statistic title={t('cushionPricing.tabLabor')} value={money(quote.labor)} />
@@ -842,6 +911,11 @@ export default function CushionPricing() {
             <Col xs={12} sm={6}>
               <Statistic title={t('cushionPricing.addOnsCol')} value={money(quote.addOns)} />
             </Col>
+            {quote.plywood.pieces > 0 && (
+              <Col xs={12} sm={6}>
+                <Statistic title={t('cushionPricing.plywoodStat', { n: quote.plywood.sheets.length })} value={money(quote.plywood.cost)} />
+              </Col>
+            )}
             <Col xs={12} sm={6}>
               <Statistic title={t('cushionPricing.total')} value={money(quote.total)} valueStyle={{ fontWeight: 700 }} />
             </Col>
