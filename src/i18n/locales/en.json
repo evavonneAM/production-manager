@@ -605,7 +605,7 @@
     "feet": "Feet",
     "inches": "Inches",
     "pasteTitle": "Paste rows from the spreadsheet",
-    "pasteHelp": "Copy the rows (Name, Qty, Length, Depth/Height, Thickness), paste them here, then press Add rows. Old rows with inside back columns become a seat and a back cushion.",
+    "pasteHelp": "Copy the rows (Name, Qty, Length, Depth, Thickness, and for a matching back: Back height, Back thickness, Seat fabric, Back fabric), paste them here, then press Add rows. Columns can be tab-separated or separated by |.",
     "remove": "Remove cushion",
     "name": "Name",
     "length": "Length",

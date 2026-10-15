@@ -161,23 +161,32 @@ function loadDraft(): Row[] {
 }
 
 /**
- * Rows copied from the spreadsheet: Name, Qty, Length, Depth, Thickness
- * (tab-separated). The old 7-column layout (with inside back height and
- * thickness) becomes a seat cushion plus a back cushion.
+ * Rows copied from the spreadsheet: Name, Qty, Length, Depth, Thickness,
+ * then optionally Back height, Back thickness, Seat fabric, Back fabric.
+ * Columns are tab-separated (or separated by |). A row with back sizes
+ * becomes one seat + matching back cushion.
  */
 function parsePasted(text: string): Row[] {
   return text
     .replace(/\r/g, '')
     .split('\n')
-    .map((l) => l.split('\t').map((c) => c.trim()))
+    .map((l) => (l.includes('\t') ? l.split('\t') : l.split('|')).map((c) => c.trim()))
     .filter((cells) => cells.some(Boolean))
     .filter((cells) => cells.slice(2).some((c) => parseInches(c) !== null))
-    .flatMap(([name = '', qty = '', length = '', d = '', h = '', ibD = '', ibH = '']) => {
-      const base = { name, qty: Math.max(1, parseInt(qty) || 1), length }
-      const out = [blank({ ...base, depth: d, thickness: h })]
-      if (ibD || ibH) out.push(blank({ ...base, name: name ? `${name} back` : '', part: 'back', depth: ibD, thickness: ibH }))
-      return out
-    })
+    .map(([name = '', qty = '', length = '', d = '', h = '', backD = '', backH = '', fabric = '', backFabric = '']) =>
+      blank({
+        name,
+        qty: Math.max(1, parseInt(qty) || 1),
+        length,
+        depth: d,
+        thickness: h,
+        withBack: !!(backD || backH),
+        backDepth: backD,
+        backThickness: backH,
+        erFabric: fabric,
+        backFabric,
+      }),
+    )
 }
 
 function toSection(r: Row): Section | null {

@@ -604,7 +604,7 @@
     "feet": "Pies",
     "inches": "Pulgadas",
     "pasteTitle": "Pegar filas de la hoja de cálculo",
-    "pasteHelp": "Copia las filas (Nombre, Cant., Largo, Fondo/Alto, Grosor), pégalas aquí y presiona Agregar filas. Las filas viejas con columnas de respaldo se vuelven un cojín de asiento y uno de respaldo.",
+    "pasteHelp": "Copie las filas (Nombre, Cant., Largo, Profundidad, Grosor y, para un respaldo a juego: Alto del respaldo, Grosor del respaldo, Tela del asiento, Tela del respaldo), péguelas aquí y presione Agregar filas. Las columnas pueden ir separadas por tabulación o por |.",
     "remove": "Quitar cojín",
     "name": "Nombre",
     "length": "Largo",
