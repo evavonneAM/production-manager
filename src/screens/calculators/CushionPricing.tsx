@@ -26,7 +26,7 @@ import {
 import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { formatInches, parseInches } from '../../lib/calculators/inches'
 import { FOAM_TYPES } from '../../lib/foamTypes'
-import { SHEET_L, SHEET_PRICE, SHEET_W, planPlywood, type Board, type Sheet } from '../../lib/calculators/plywoodNesting'
+import { SHEET_L, SHEET_PRICE, SHEET_W, fitsSheet, planPlywood, type Board, type Sheet } from '../../lib/calculators/plywoodNesting'
 import {
   ADD_ONS,
   FOAM_INSERTS,
@@ -437,13 +437,22 @@ function PlywoodSheets({ plan }: { plan: ReturnType<typeof planPlywood> }) {
       <Typography.Paragraph style={{ marginBottom: 8 }}>
         {t('cushionPricing.plywoodSummary', { sheets: plan.sheets.length, pieces: plan.pieces, price: money(SHEET_PRICE), cost: money(plan.cost) })}
       </Typography.Paragraph>
-      {plan.split.map((x) => (
-        <Typography.Paragraph type="secondary" key={x.name} style={{ marginBottom: 4, fontSize: 13 }}>
-          {t('cushionPricing.plywoodSplit', { name: x.name, length: formatInches(x.length), parts: x.parts, each: formatInches(x.length / x.parts) })}
-        </Typography.Paragraph>
-      ))}
-      {plan.tooDeep.length > 0 && (
-        <Alert type="warning" showIcon style={{ marginBottom: 8 }} title={t('cushionPricing.plywoodTooDeep', { names: plan.tooDeep.join(', ') })} />
+      {plan.tooBig.length > 0 && (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 8 }}
+          title={t('cushionPricing.plywoodTooBig')}
+          description={
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {plan.tooBig.map((x) => (
+                <li key={x.name}>
+                  {x.name}: {formatInches(x.length)} × {formatInches(x.depth)}
+                </li>
+              ))}
+            </ul>
+          }
+        />
       )}
       <Row gutter={[12, 12]}>
         {plan.sheets.map((sh, i) => (
@@ -803,6 +812,9 @@ export default function CushionPricing() {
                       <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
                         {t('cushionPricing.plywoodNote', { price: money(SHEET_PRICE) })}
                       </Typography.Text>
+                      {[sections[i], toBackSection(r)].some((x) => x && !fitsSheet(x.length, x.d)) && (
+                        <Alert type="warning" showIcon style={{ marginBottom: 16 }} title={t('cushionPricing.plywoodCardTooBig')} />
+                      )}
                     </Col>
                   )}
                   <Col xs={24}>
@@ -900,7 +912,7 @@ export default function CushionPricing() {
               ]}
             />
           )}
-          {quote.plywood.pieces > 0 && <PlywoodSheets plan={quote.plywood} />}
+          {(quote.plywood.pieces > 0 || quote.plywood.tooBig.length > 0) && <PlywoodSheets plan={quote.plywood} />}
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col xs={12} sm={6}>
               <Statistic title={t('cushionPricing.tabLabor')} value={money(quote.labor)} />

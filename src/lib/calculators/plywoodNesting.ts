@@ -1,7 +1,8 @@
 // Plywood for cushions upholstered to plywood: nest every board for the job onto
 // full sheets (MaxRects, same method as the Plywood Seat Nesting page) and charge
-// per sheet. Every piece stays whole on one sheet; a board longer than a sheet is
-// cut into equal lengths that each fit.
+// per sheet. Every board stays whole on one sheet. Boards are never spliced: one
+// bigger than a sheet is left out and flagged, so seat breaks get confirmed with
+// the client and entered as separate cushions.
 
 export const SHEET_W = 48
 export const SHEET_L = 96
@@ -14,12 +15,15 @@ const EPS = 1e-6
 const USABLE_W = SHEET_W - 2 * TRIM
 const USABLE_L = SHEET_L - 2 * TRIM
 
+/** Does a board fit whole on one sheet (either way round)? */
+export const fitsSheet = (length: number, depth: number) =>
+  Math.min(length, depth) <= USABLE_W + EPS && Math.max(length, depth) <= USABLE_L + EPS
+
 export type Board = { name: string; qty: number; length: number; depth: number }
-/** One board as cut: `of` > 1 when a long board was cut into equal lengths. */
-export type Piece = { name: string; length: number; depth: number; of: number }
+export type Piece = { name: string; length: number; depth: number }
 export type PlacedPiece = Piece & { x: number; y: number; w: number; h: number }
 export type Sheet = { pieces: PlacedPiece[]; used: number }
-export type PlywoodPlan = { sheets: Sheet[]; pieces: number; cost: number; split: { name: string; length: number; parts: number }[]; tooDeep: string[] }
+export type PlywoodPlan = { sheets: Sheet[]; pieces: number; cost: number; tooBig: { name: string; length: number; depth: number }[] }
 
 type Item = Piece & { w: number; h: number; area: number }
 type Free = { x: number; y: number; w: number; h: number }
@@ -93,22 +97,16 @@ function packOnce(items: Item[], BW: number, BH: number, score: 'bssf' | 'baf' |
 /** Nest the boards onto 4 × 8 sheets, trying several orders and keep the fewest sheets. */
 export function planPlywood(boards: Board[]): PlywoodPlan {
   const items: Item[] = []
-  const split: PlywoodPlan['split'] = []
-  const tooDeep: string[] = []
+  const tooBig: PlywoodPlan['tooBig'] = []
   for (const b of boards) {
     if (!(b.qty > 0 && b.length > 0 && b.depth > 0)) continue
     const short = Math.min(b.length, b.depth)
     const long = Math.max(b.length, b.depth)
-    if (short > USABLE_W + EPS) {
-      tooDeep.push(b.name)
+    if (short > USABLE_W + EPS || long > USABLE_L + EPS) {
+      tooBig.push({ name: b.name, length: long, depth: short })
       continue
     }
-    const parts = Math.ceil(long / USABLE_L - EPS)
-    if (parts > 1) split.push({ name: b.name, length: long, parts })
-    const len = long / parts
-    for (let q = 0; q < b.qty; q++)
-      for (let k = 0; k < parts; k++)
-        items.push({ name: b.name, length: len, depth: short, of: parts, w: short + KERF, h: len + KERF, area: len * short })
+    for (let q = 0; q < b.qty; q++) items.push({ name: b.name, length: long, depth: short, w: short + KERF, h: long + KERF, area: long * short })
   }
   const orders: ((a: Item, b: Item) => number)[] = [
     (a, b) => b.area - a.area,
@@ -131,7 +129,7 @@ export function planPlywood(boards: Board[]): PlywoodPlan {
       }
   const sheets: Sheet[] = (best ?? []).map((b) => ({
     used: b.used / (SHEET_W * SHEET_L),
-    pieces: b.placed.map((p) => ({ name: p.name, length: p.length, depth: p.depth, of: p.of, x: TRIM + p.x, y: TRIM + p.y, w: p.pw - KERF, h: p.ph - KERF })),
+    pieces: b.placed.map((p) => ({ name: p.name, length: p.length, depth: p.depth, x: TRIM + p.x, y: TRIM + p.y, w: p.pw - KERF, h: p.ph - KERF })),
   }))
-  return { sheets, pieces: items.length, cost: sheets.length * SHEET_PRICE, split, tooDeep }
+  return { sheets, pieces: items.length, cost: sheets.length * SHEET_PRICE, tooBig }
 }
