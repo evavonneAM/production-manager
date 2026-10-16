@@ -989,9 +989,25 @@ export default function CushionPricing() {
           )
         })}
 
-        <Button type="dashed" block size="large" icon={<PlusOutlined />} onClick={() => setRows((rs) => [...rs, blank()])}>
-          {t('cushionPricing.add')}
-        </Button>
+        <Row gutter={[12, 12]}>
+          <Col xs={24} sm={12}>
+            <Button type="dashed" block size="large" icon={<PlusOutlined />} onClick={() => setRows((rs) => [...rs, blank()])}>
+              {t('cushionPricing.add')}
+            </Button>
+          </Col>
+          <Col xs={24} sm={12}>
+            {/* Same specs as the last cushion; only the name is cleared, so just the quantity and sizes need changing. */}
+            <Button
+              block
+              size="large"
+              icon={<CopyOutlined />}
+              disabled={!rows.length}
+              onClick={() => setRows((rs) => (rs.length ? [...rs, { ...rs[rs.length - 1], id: nextId++, name: '' }] : rs))}
+            >
+              {t('cushionPricing.duplicateLast')}
+            </Button>
+          </Col>
+        </Row>
 
         {anyPlywood && <PlywoodSheets plan={quote.plywood} />}
 
