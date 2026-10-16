@@ -71,6 +71,19 @@ export const TOOLS: Tool[] = [
     ),
   },
   {
+    id: 'fabricYardage',
+    group: 'cushions',
+    route: '/tools/fabric-yardage',
+    url: null,
+    keywords: 'fabric yardage yards roll nesting layout railroaded up the roll cushion',
+    icon: (
+      <>
+        <path d="M4 5h12v14H4z" />
+        <path d="M16 7c2 0 4 1 4 5s-2 5-4 5M7 9h6M7 13h4" />
+      </>
+    ),
+  },
+  {
     id: 'upholstery',
     group: 'other',
     adminOnly: true,
