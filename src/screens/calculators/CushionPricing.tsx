@@ -224,7 +224,14 @@ function InchField({ id, label, value, onChange, help }: { id: string; label: st
   const { t } = useTranslation()
   const bad = value.trim() !== '' && parseInches(value) === null
   return (
-    <Form.Item label={label} htmlFor={id} validateStatus={bad ? 'error' : undefined} help={bad ? t('calc.badInches') : undefined} extra={help} style={{ marginBottom: 16 }}>
+    <Form.Item
+      label={label}
+      htmlFor={id}
+      validateStatus={bad ? 'error' : undefined}
+      help={bad ? t('calc.badInches') : undefined}
+      extra={help}
+      style={{ marginBottom: 16 }}
+    >
       <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} inputMode="decimal" suffix={t('calc.in')} size="large" />
     </Form.Item>
   )
@@ -235,11 +242,7 @@ function InchField({ id, label, value, onChange, help }: { id: string; label: st
 const isWelted = (style: string) => /welt/i.test(style)
 
 function sectionAddOns(r: Row, labor: number, welted: boolean): number {
-  return (
-    (welted ? ADD_ONS.welting : 0) +
-    (r.addTick ? ADD_ONS.outdoorTick : 0) +
-    (r.com === 'com15' ? labor * (ADD_ONS.com15 - 1) : 0)
-  )
+  return (welted ? ADD_ONS.welting : 0) + (r.addTick ? ADD_ONS.outdoorTick : 0) + (r.com === 'com15' ? labor * (ADD_ONS.com15 - 1) : 0)
 }
 
 /** Plywood sheets for the job: count, cost and a layout of each 4 × 8 sheet. */
@@ -338,7 +341,9 @@ function Converters() {
         <Typography.Text strong>{t('cushionPricing.inToYd')}</Typography.Text>
         <Space wrap style={{ display: 'flex', marginTop: 6 }}>
           <InputNumber aria-label={t('cushionPricing.inches')} min={0} value={inches} onChange={setInches} addonAfter="in" style={{ width: 140 }} />
-          <Typography.Text strong>= {inches === null ? '—' : (inches / 36).toFixed(3)} {t('calc.yd')}</Typography.Text>
+          <Typography.Text strong>
+            = {inches === null ? '—' : (inches / 36).toFixed(3)} {t('calc.yd')}
+          </Typography.Text>
         </Space>
       </Col>
     </Row>
@@ -403,8 +408,7 @@ export default function CushionPricing() {
   const update = (id: number, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)))
   const sections = useMemo(() => rows.map(toSection), [rows])
   const optionLabel = (id: string) => (id === 'none' ? t('cushionPricing.none') : t(`cushionPricing.opt_${id}`))
-  const insertLabel = (id: string) =>
-    id === 'tbd' ? t('cushionPricing.insertTbd') : id === 'existing' ? t('cushionPricing.insertExisting') : optionLabel(id)
+  const insertLabel = (id: string) => (id === 'tbd' ? t('cushionPricing.insertTbd') : id === 'existing' ? t('cushionPricing.insertExisting') : optionLabel(id))
 
   const quote = useMemo(() => {
     const price = (id: string, s: Section) => {
@@ -525,34 +529,116 @@ export default function CushionPricing() {
     const P = t(back ? 'cushionPricing.partBack' : 'cushionPricing.partSeat')
     const id = (k: string) => `${k}-${side}-${r.id}`
     const v = back
-      ? { labor: r.backLabor, style: r.backStyle, insert: r.backInsert, foam: r.backFoamType, fabric: r.backFabric, dir: r.backDirection, center: r.backCenter, welt: r.backWeltFabric }
-      : { labor: r.labor, style: r.erStyle, insert: r.insert, foam: r.foamType, fabric: r.erFabric, dir: r.erDirection, center: r.erCenter, welt: r.erWeltFabric }
+      ? {
+          labor: r.backLabor,
+          style: r.backStyle,
+          insert: r.backInsert,
+          foam: r.backFoamType,
+          fabric: r.backFabric,
+          dir: r.backDirection,
+          center: r.backCenter,
+          welt: r.backWeltFabric,
+        }
+      : {
+          labor: r.labor,
+          style: r.erStyle,
+          insert: r.insert,
+          foam: r.foamType,
+          fabric: r.erFabric,
+          dir: r.erDirection,
+          center: r.erCenter,
+          welt: r.erWeltFabric,
+        }
     const set = (k: keyof typeof v, val: string) => {
       const map = back
-        ? { labor: 'backLabor', style: 'backStyle', insert: 'backInsert', foam: 'backFoamType', fabric: 'backFabric', dir: 'backDirection', center: 'backCenter', welt: 'backWeltFabric' }
-        : { labor: 'labor', style: 'erStyle', insert: 'insert', foam: 'foamType', fabric: 'erFabric', dir: 'erDirection', center: 'erCenter', welt: 'erWeltFabric' }
+        ? {
+            labor: 'backLabor',
+            style: 'backStyle',
+            insert: 'backInsert',
+            foam: 'backFoamType',
+            fabric: 'backFabric',
+            dir: 'backDirection',
+            center: 'backCenter',
+            welt: 'backWeltFabric',
+          }
+        : {
+            labor: 'labor',
+            style: 'erStyle',
+            insert: 'insert',
+            foam: 'foamType',
+            fabric: 'erFabric',
+            dir: 'erDirection',
+            center: 'erCenter',
+            welt: 'erWeltFabric',
+          }
       update(r.id, { [map[k]]: val } as Partial<Row>)
     }
     return {
-      labor: field(id('labor'), t('cushionPricing.fLabor', { part: P }), <Select id={id('labor')} size="large" value={v.labor} onChange={(x) => set('labor', x)} options={laborOptions} />),
-      style: field(id('style'), t('cushionPricing.fStyle', { part: P }), <Select id={id('style')} size="large" showSearch value={v.style} onChange={(x) => set('style', x)} options={styleOptions} />),
-      insert: field(id('insert'), t('cushionPricing.fInsert', { part: P }), <Select id={id('insert')} size="large" value={v.insert} onChange={(x) => set('insert', x)} options={insertOptions} />),
+      labor: field(
+        id('labor'),
+        t('cushionPricing.fLabor', { part: P }),
+        <Select id={id('labor')} size="large" value={v.labor} onChange={(x) => set('labor', x)} options={laborOptions} />,
+      ),
+      style: field(
+        id('style'),
+        t('cushionPricing.fStyle', { part: P }),
+        <Select id={id('style')} size="large" showSearch value={v.style} onChange={(x) => set('style', x)} options={styleOptions} />,
+      ),
+      insert: field(
+        id('insert'),
+        t('cushionPricing.fInsert', { part: P }),
+        <Select id={id('insert')} size="large" value={v.insert} onChange={(x) => set('insert', x)} options={insertOptions} />,
+      ),
       foam: FOAM_INSERTS.includes(v.insert)
         ? field(
             id('foam'),
             t('cushionPricing.fFoam', { part: P }),
-            <Select id={id('foam')} size="large" allowClear placeholder={t('cushionPricing.foamTbd')} value={v.foam || undefined} onChange={(x) => set('foam', x ?? '')} options={foamOptions} />,
+            <Select
+              id={id('foam')}
+              size="large"
+              allowClear
+              placeholder={t('cushionPricing.foamTbd')}
+              value={v.foam || undefined}
+              onChange={(x) => set('foam', x ?? '')}
+              options={foamOptions}
+            />,
           )
         : null,
-      fabric: field(id('fabric'), t('cushionPricing.fFabric', { part: P }), <Input id={id('fabric')} size="large" allowClear value={v.fabric} onChange={(e) => set('fabric', e.target.value)} placeholder={tbd} />),
-      dir: field(id('dir'), t('cushionPricing.fDirection', { part: P }), <Select id={id('dir')} size="large" value={v.dir} onChange={(x) => set('dir', x)} options={directionOptions} />),
+      fabric: field(
+        id('fabric'),
+        t('cushionPricing.fFabric', { part: P }),
+        <Input id={id('fabric')} size="large" allowClear value={v.fabric} onChange={(e) => set('fabric', e.target.value)} placeholder={tbd} />,
+      ),
+      dir: field(
+        id('dir'),
+        t('cushionPricing.fDirection', { part: P }),
+        <Select id={id('dir')} size="large" value={v.dir} onChange={(x) => set('dir', x)} options={directionOptions} />,
+      ),
       center: field(
         id('center'),
         t('cushionPricing.fCenter', { part: P }),
-        <Input id={id('center')} size="large" allowClear value={v.center} onChange={(e) => set('center', e.target.value)} placeholder={t('cushionPricing.erCenterPlaceholder')} />,
+        <Input
+          id={id('center')}
+          size="large"
+          allowClear
+          value={v.center}
+          onChange={(e) => set('center', e.target.value)}
+          placeholder={t('cushionPricing.erCenterPlaceholder')}
+        />,
       ),
       welt: isWelted(v.style)
-        ? field(id('welt'), t('cushionPricing.fWelt', { part: P }), <Input id={id('welt')} size="large" allowClear value={v.welt} onChange={(e) => set('welt', e.target.value)} placeholder={t('cushionPricing.weltSame')} />)
+        ? field(
+            id('welt'),
+            t('cushionPricing.fWelt', { part: P }),
+            <Input
+              id={id('welt')}
+              size="large"
+              allowClear
+              value={v.welt}
+              onChange={(e) => set('welt', e.target.value)}
+              placeholder={t('cushionPricing.weltSame')}
+            />,
+          )
         : null,
     }
   }
@@ -636,7 +722,13 @@ export default function CushionPricing() {
               title={r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 })}
               extra={
                 rows.length > 1 && (
-                  <Button type="text" danger icon={<DeleteOutlined />} aria-label={t('cushionPricing.remove')} onClick={() => setRows((rs) => rs.filter((x) => x.id !== r.id))} />
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    aria-label={t('cushionPricing.remove')}
+                    onClick={() => setRows((rs) => rs.filter((x) => x.id !== r.id))}
+                  />
                 )
               }
             >
@@ -644,7 +736,14 @@ export default function CushionPricing() {
                 <Row gutter={12}>
                   <Col xs={24} sm={8}>
                     <Form.Item label={t('cushionPricing.name')} htmlFor={`name-${r.id}`} style={{ marginBottom: 8 }}>
-                      <Input id={`name-${r.id}`} size="large" allowClear value={r.name} onChange={(e) => update(r.id, { name: e.target.value })} placeholder="3A" />
+                      <Input
+                        id={`name-${r.id}`}
+                        size="large"
+                        allowClear
+                        value={r.name}
+                        onChange={(e) => update(r.id, { name: e.target.value })}
+                        placeholder="3A"
+                      />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
@@ -663,7 +762,15 @@ export default function CushionPricing() {
                   </Col>
                   <Col xs={24} sm={8}>
                     <Form.Item label={t('cushionCut.howMany')} htmlFor={`qty-${r.id}`} style={{ marginBottom: 8 }}>
-                      <InputNumber id={`qty-${r.id}`} size="large" min={1} precision={0} value={r.qty} onChange={(v) => update(r.id, { qty: v ?? 1 })} style={{ width: '100%' }} />
+                      <InputNumber
+                        id={`qty-${r.id}`}
+                        size="large"
+                        min={1}
+                        precision={0}
+                        value={r.qty}
+                        onChange={(v) => update(r.id, { qty: v ?? 1 })}
+                        style={{ width: '100%' }}
+                      />
                     </Form.Item>
                   </Col>
                   <Col xs={24}>
@@ -672,10 +779,22 @@ export default function CushionPricing() {
                     </Checkbox>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <InchField id={`len-${r.id}`} label={t('cushionPricing.length')} help={t('cushionPricing.lengthHelp')} value={r.length} onChange={(v) => update(r.id, { length: v })} />
+                    <InchField
+                      id={`len-${r.id}`}
+                      label={t('cushionPricing.length')}
+                      help={t('cushionPricing.lengthHelp')}
+                      value={r.length}
+                      onChange={(v) => update(r.id, { length: v })}
+                    />
                   </Col>
                   <Col xs={12} sm={8}>
-                    <InchField id={`d-${r.id}`} label={t('cushionPricing.depth')} help={t('cushionPricing.depthHelp')} value={r.depth} onChange={(v) => update(r.id, { depth: v })} />
+                    <InchField
+                      id={`d-${r.id}`}
+                      label={t('cushionPricing.depth')}
+                      help={t('cushionPricing.depthHelp')}
+                      value={r.depth}
+                      onChange={(v) => update(r.id, { depth: v })}
+                    />
                   </Col>
                   <Col xs={12} sm={8}>
                     <InchField id={`h-${r.id}`} label={t('cushionPricing.thickness')} value={r.thickness} onChange={(v) => update(r.id, { thickness: v })} />
@@ -690,10 +809,20 @@ export default function CushionPricing() {
                   {set && (
                     <>
                       <Col xs={12} sm={{ span: 8, offset: 8 }}>
-                        <InchField id={`bd-${r.id}`} label={t('cushionPricing.backHeight')} value={r.backDepth} onChange={(v) => update(r.id, { backDepth: v })} />
+                        <InchField
+                          id={`bd-${r.id}`}
+                          label={t('cushionPricing.backHeight')}
+                          value={r.backDepth}
+                          onChange={(v) => update(r.id, { backDepth: v })}
+                        />
                       </Col>
                       <Col xs={12} sm={8}>
-                        <InchField id={`bh-${r.id}`} label={t('cushionPricing.backThickness')} value={r.backThickness} onChange={(v) => update(r.id, { backThickness: v })} />
+                        <InchField
+                          id={`bh-${r.id}`}
+                          label={t('cushionPricing.backThickness')}
+                          value={r.backThickness}
+                          onChange={(v) => update(r.id, { backThickness: v })}
+                        />
                       </Col>
                     </>
                   )}
@@ -865,10 +994,7 @@ export default function CushionPricing() {
             title={t('cushionPricing.erTitle')}
             extra={
               quote.lines.length > 1 && (
-                <Button
-                  icon={<CopyOutlined />}
-                  onClick={() => copy(rows.flatMap((r, i) => (sections[i] ? [erTextFor(r, sections[i]!)] : [])).join('\n\n'))}
-                >
+                <Button icon={<CopyOutlined />} onClick={() => copy(rows.flatMap((r, i) => (sections[i] ? [erTextFor(r, sections[i]!)] : [])).join('\n\n'))}>
                   {t('cushionPricing.copyAll')}
                 </Button>
               )
@@ -899,7 +1025,12 @@ export default function CushionPricing() {
           </Card>
         )}
 
-        <Popconfirm title={t('cushionPricing.clearConfirm')} okText={t('cushionCut.clear')} cancelText={t('common.cancel')} onConfirm={() => setRows([blank()])}>
+        <Popconfirm
+          title={t('cushionPricing.clearConfirm')}
+          okText={t('cushionCut.clear')}
+          cancelText={t('common.cancel')}
+          onConfirm={() => setRows([blank()])}
+        >
           <Button size="large" danger>
             {t('cushionCut.clear')}
           </Button>
