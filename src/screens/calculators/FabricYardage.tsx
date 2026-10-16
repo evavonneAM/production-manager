@@ -23,6 +23,7 @@ import {
 } from 'antd'
 import { ArrowLeftOutlined, DeleteOutlined, ImportOutlined, PlusOutlined } from '@ant-design/icons'
 import {
+  boardCuts,
   cushionCuts,
   DEFAULT_HEIGHT_DEDUCTION,
   DEFAULT_LENGTH_DEDUCTION,
@@ -52,7 +53,7 @@ import {
 } from '../../lib/calculators/fabricNesting'
 import { RollDiagram } from '../../components/FabricRollDiagram'
 
-type Shape = 'box' | 'wedge'
+type Shape = 'box' | 'wedge' | 'board'
 
 type Cushion = {
   id: number
@@ -154,7 +155,7 @@ function loadCutDraft(): {
         ...blank(),
         label: String(r.label ?? ''),
         fabric: String(r.fabric ?? ''),
-        shape: r.shape === 'wedge' ? 'wedge' : 'box',
+        shape: r.shape === 'wedge' || r.shape === 'board' ? r.shape : 'box',
         qty: Number(r.qty) || 1,
         front: String(r.front ?? ''),
         sides: String(r.sides ?? ''),
@@ -178,6 +179,7 @@ function cutsFor(c: Cushion): AnyCuts | null {
   const height = parseInches(c.height)
   const qty = Math.max(1, c.qty || 1)
   if (front === null || sides === null || height === null || height <= 0 || front <= 0 || sides <= 0) return null
+  if (c.shape === 'board') return boardCuts({ qty, width: front, depth: sides, height, cording: c.cording })
   if (c.shape === 'wedge') {
     const top = parseInches(c.topDepth)
     if (top === null || top <= 0 || top > sides || front <= c.lengthDeduction) return null
@@ -416,11 +418,29 @@ function FabricYardageScreen() {
                         options={[
                           { value: 'box', label: t('fabricYardage.box') },
                           { value: 'wedge', label: t('fabricYardage.wedge') },
+                          { value: 'board', label: t('fabricYardage.board') },
                         ]}
                       />
                     </Form.Item>
                   </Col>
-                  {c.shape === 'box' ? (
+                  {c.shape === 'board' ? (
+                    <>
+                      <Col xs={8}>
+                        <InchField id={`front-${c.id}`} label={t('fabricYardage.front')} value={c.front} onChange={(v) => update(c.id, { front: v })} />
+                      </Col>
+                      <Col xs={8}>
+                        <InchField id={`sides-${c.id}`} label={t('fabricYardage.sides')} value={c.sides} onChange={(v) => update(c.id, { sides: v })} />
+                      </Col>
+                      <Col xs={8}>
+                        <InchField id={`height-${c.id}`} label={t('fabricYardage.height')} value={c.height} onChange={(v) => update(c.id, { height: v })} />
+                      </Col>
+                      <Col xs={24} sm={16}>
+                        <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+                          {t('fabricYardage.boardHelp')}
+                        </Typography.Paragraph>
+                      </Col>
+                    </>
+                  ) : c.shape === 'box' ? (
                     <>
                       <Col xs={8}>
                         <InchField id={`front-${c.id}`} label={t('fabricYardage.front')} value={c.front} onChange={(v) => update(c.id, { front: v })} />
