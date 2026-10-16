@@ -569,7 +569,19 @@
     "wedgeSide": "Side pieces",
     "wedgeSideSize": "{{h}} tall, {{top}} top, {{bottom}} bottom",
     "wedgeZipper": "Zipper (length)",
-    "wedgeFoam": "Foam (L × H × bottom/top)"
+    "wedgeFoam": "Foam (L × H × bottom/top)",
+    "shape_board": "Board-mounted",
+    "shape_boardHelp": "Upholstered to plywood: one plate on top, one boxing strip that wraps under the board, no zipper.",
+    "boardZipperHelp": "Board-mounted: stapled to the plywood, no zipper.",
+    "boardSizeHelp": "Finished size, no deduction",
+    "boardHeightHelp": "Finished height (board + foam)",
+    "boardFinishes": "Finished {{size}} on plywood · no deduction",
+    "boardPlate": "Plate (W × D)",
+    "boardBoxing": "Boxing, all the way around (L × W)",
+    "boardBoard": "Plywood board",
+    "fabricTitle": "Fabric layout",
+    "fabricYards": "{{n}} yd",
+    "fabricHelpLayout": "Every cushion in the same fabric (and direction) is laid out together on a 54\" roll, with one spare plate and the bias cording block, the same as the Fabric Yardage tool."
   },
   "leafBag": {
     "intro": "Enter each job's finished bag size. The cuts update as you type.",
@@ -861,7 +873,9 @@
     "offCenter_one": "{{count}} piece can't land centered on a motif across the roll and is placed off center. Check with the designer.",
     "offCenter_other": "{{count}} pieces can't land centered on a motif across the roll and are placed off center. Check with the designer.",
     "heldAtPlain": "This pattern packs tighter than the plain-fabric layout, so the estimate is held at the plain yardage.",
-    "motifLegend": "Dots mark the motif each piece is centered on."
+    "motifLegend": "Dots mark the motif each piece is centered on.",
+    "board": "Board",
+    "boardHelp": "Board-mounted: finished sizes, one plate and one boxing strip that wraps under the board, no zipper."
   },
   "upholstery": {
     "intro": "Follows \"How to price upholstery labor\": base labor, cushions, foam, yardage, supplies, then upcharges. The estimate at the bottom copies straight into Estimate Rocket.",

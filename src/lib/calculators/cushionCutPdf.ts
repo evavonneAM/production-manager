@@ -164,7 +164,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
   doc.setFontSize(14)
   const title = `${c.name || `Cushion ${i + 1}`}   x ${c.qty}`
   doc.text(clean(title), M + 12, y + 2)
-  const chips = [c.cuts.kind === 'wedge' ? 'Wedge' : STYLE_TEXT[c.style], DIRECTION_TEXT[c.direction]].filter(Boolean)
+  const chips = [c.cuts.kind === 'wedge' ? 'Wedge' : c.cuts.kind === 'board' ? 'Board-mounted' : STYLE_TEXT[c.style], DIRECTION_TEXT[c.direction]].filter(Boolean)
   doc.setFontSize(9)
   let cx = PW - M
   chips
@@ -194,7 +194,8 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
   } else {
     // Plan and side views share one scale so they read true to each other.
     const sc = Math.min((drawW - 100) / c.width, (150 - 48) / c.depth, (50 - 10) / c.height)
-    drawPlan(doc, c, c.cuts, M + 12, y + 6, drawW, sc)
+    if (c.cuts.kind === 'board') drawBoardPlan(doc, c, M + 12, y + 6, drawW, sc)
+    else drawPlan(doc, c, c.cuts, M + 12, y + 6, drawW, sc)
     drawSide(doc, c, c.cuts, M + 12, y + 186, drawW, sc)
   }
 
@@ -216,6 +217,9 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
   if (c.cuts.kind === 'wedge') {
     spec('ORDERED SIZE (L x H, BOTTOM / TOP)', `${f(c.width)} x ${f(c.height)},  ${f(c.depth)} / ${f(c.top)}`)
     spec('FINISHED LENGTH', `${f(c.cuts.finishedLength)}  (length -${f(c.cuts.deduction)})`)
+  } else if (c.cuts.kind === 'board') {
+    spec('FINISHED SIZE (W x D x H)', `${f(c.width)} x ${f(c.depth)} x ${f(c.height)}`)
+    spec('PLYWOOD BOARD (W x D)', `${f(c.cuts.board.width)} x ${f(c.cuts.board.depth)}  (no deduction)`)
   } else {
     spec('ORDERED SIZE (W x D x H)', `${f(c.width)} x ${f(c.depth)} x ${f(c.height)}`)
     spec(
@@ -248,7 +252,14 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
           ...cordingRow,
           ['Foam (W x D x H)', String(k.foam.qty), `${f(k.foam.width)} x ${f(k.foam.depth)} x ${f(k.foam.height)}`],
         ]
-      : [
+      : k.kind === 'board'
+        ? [
+            ['Plate (W x D)', String(k.plate.qty), `${f(k.plate.width)} x ${f(k.plate.depth)}`],
+            ['Boxing (around x Z)', String(k.boxing.qty), `${f(k.boxing.x)} x ${f(k.boxing.z)}`],
+            ...cordingRow,
+            ['Foam (W x D x H)', String(k.foam.qty), `${f(k.foam.width)} x ${f(k.foam.depth)} x ${f(k.foam.height)}`],
+          ]
+        : [
           ['Main panel (W x H)', String(k.panel.qty), `${f(k.panel.width)} x ${f(k.panel.height)}`],
           ['Sides (H x top/bot)', String(k.side.qty), `${f(k.side.height)} x ${f(k.side.top)} / ${f(k.side.bottom)}`],
           ['Zipper (length)', String(k.zipper.qty), f(k.zipper.length)],
@@ -346,8 +357,41 @@ function drawPlan(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number
   doc.text(clean(`${formatInches(cuts.finishedDepth)} D`), rx + 5, y + d / 2 + 3)
 }
 
+/** Plan (top) view of a board-mounted cushion: no zipper, the boxing wraps under the board. */
+function drawBoardPlan(doc: JsPDF, c: WorkOrderCushion, x0: number, y0: number, boxW: number, sc: number) {
+  const w = c.width * sc
+  const d = c.depth * sc
+  const x = x0 + (boxW - w) / 2
+  const y = y0 + 22
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7.5)
+  doc.setTextColor(...MUTED)
+  doc.text('PLAN VIEW - FINISHED (ON PLYWOOD)', x0, y0)
+  doc.setDrawColor(...INK)
+  doc.setFillColor(241, 246, 251)
+  doc.setLineWidth(1.2)
+  doc.roundedRect(x, y, w, d, 4, 4, 'FD')
+  doc.setLineWidth(1)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7.5)
+  doc.setTextColor(...MUTED)
+  doc.text('BACK - NO ZIPPER', x + w / 2, y + 12, { align: 'center' })
+  doc.text('FRONT', x + w / 2, y + d + 11, { align: 'center' })
+  dim(doc, x, y - 7, x + w, y - 7, `${formatInches(c.width)} W`)
+  const rx = x + w + 10
+  doc.setDrawColor(...INK)
+  doc.setLineWidth(0.6)
+  doc.line(rx, y, rx, y + d)
+  doc.line(rx - 3, y, rx + 3, y)
+  doc.line(rx - 3, y + d, rx + 3, y + d)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(...INK)
+  doc.text(clean(`${formatInches(c.depth)} D`), rx + 5, y + d / 2 + 3)
+}
+
 /** Side view: width across, ordered vs finished boxing height. */
-function drawSide(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number, y0: number, boxW: number, sc: number) {
+function drawSide(doc: JsPDF, c: WorkOrderCushion, cuts: { finishedHeight: number }, x0: number, y0: number, boxW: number, sc: number) {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
