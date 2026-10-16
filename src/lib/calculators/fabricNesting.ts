@@ -145,12 +145,14 @@ type Item = CutPiece & { w: number; h: number; area: number }
 type Free = { x: number; y: number; w: number; h: number }
 
 /** Lay pieces on a strip `W` wide, in the given order. Returns the placements and the length used. */
-function packStrip(items: Item[], W: number, gap: number, score: 'bl' | 'bssf' | 'baf', maxLen = 1e7) {
+type Box = { w: number; h: number; area: number; cushion: string }
+
+function packStrip<T extends Box>(items: T[], W: number, gap: number, score: 'bl' | 'bssf' | 'baf', maxLen = 1e7) {
   // Each piece takes its size plus the gap; the strip gets one extra gap so the last piece fits flush.
   const BW = W + gap
   const bounded = maxLen < 1e7
   let free: Free[] = [{ x: 0, y: 0, w: BW, h: bounded ? maxLen + gap : 1e7 }]
-  const placed: { it: Item; x: number; y: number }[] = []
+  const placed: { it: T; x: number; y: number }[] = []
   let length = 0
   for (const it of items) {
     const w = it.w + gap
@@ -206,10 +208,10 @@ function packStrip(items: Item[], W: number, gap: number, score: 'bl' | 'bssf' |
 }
 
 /** Pack one set of pieces, trying several orders and scores and keeping the shortest. */
-function packBest(items: Item[], width: number, gap: number, cushionOrder: string[]) {
+function packBest<T extends Box>(items: T[], width: number, gap: number, cushionOrder: string[]) {
   // With a cushion order, sorting happens inside each cushion and the cushions stay in sequence.
-  const rank = (i: Item) => cushionOrder.indexOf(i.cushion)
-  const orders: ((a: Item, b: Item) => number)[] = [
+  const rank = (i: T) => cushionOrder.indexOf(i.cushion)
+  const orders: ((a: T, b: T) => number)[] = [
     (a, b) => b.area - a.area,
     (a, b) => b.h - a.h || b.area - a.area,
     (a, b) => b.w - a.w || b.area - a.area,
@@ -217,7 +219,7 @@ function packBest(items: Item[], width: number, gap: number, cushionOrder: strin
   ]
   const sorted = orders.map((o) => [...items].sort((a, b) => rank(a) - rank(b) || o(a, b)))
   const tryAll = (maxLen?: number) => {
-    let best: NonNullable<ReturnType<typeof packStrip>> | null = null
+    let best: NonNullable<ReturnType<typeof packStrip<T>>> | null = null
     for (const list of sorted)
       for (const sc of ['bl', 'bssf', 'baf'] as const) {
         const res = packStrip(list, width, gap, sc, maxLen)
@@ -243,6 +245,106 @@ function packBest(items: Item[], width: number, gap: number, cushionOrder: strin
     } else lo = mid
   }
   return best
+}
+
+const STRIPS: PieceName[] = ['boxing', 'zipper']
+
+/** A rectangle of pieces the cutter marks and cuts as one: a grid of same-size plates, or a bundle of strips. */
+type Block = Box & { parts: { it: Item; dx: number; dy: number }[] }
+
+type GridStyle = 'wide' | 'balanced' | 'column'
+
+/**
+ * Group pieces into blocks, the way the cutters lay out: same-size plates in a tidy
+ * grid (one straight line cuts a whole row), and every boxing and zipper strip
+ * together in one bundle of lanes, apart from the plates.
+ */
+function makeBlocks(items: Item[], W: number, gap: number, style: GridStyle, byCushion: boolean): Block[] {
+  const blocks: Block[] = []
+  const groupKey = (i: Item) => (byCushion ? i.cushion : '')
+  const groups = new Map<string, Item[]>()
+  for (const it of items) {
+    const kind = STRIPS.includes(it.name) ? 'strip' : 'plate'
+    const key = kind === 'strip' ? `${groupKey(it)}|strip` : `${groupKey(it)}|${it.w}|${it.h}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(it)
+  }
+  for (const [key, list] of groups) {
+    const cushion = byCushion ? list[0].cushion : ''
+    if (key.endsWith('|strip')) blocks.push(...stripBundles(list, W, gap, cushion))
+    else blocks.push(...plateGrids(list, W, gap, style, cushion))
+  }
+  return blocks
+}
+
+/** Same-size plates in full grid rows; any leftovers form one short row of their own. */
+function plateGrids(list: Item[], W: number, gap: number, style: GridStyle, cushion: string): Block[] {
+  const { w, h } = list[0]
+  const n = list.length
+  const maxCols = Math.max(1, Math.floor((W + gap + EPS) / (w + gap)))
+  const cols =
+    style === 'column' ? 1 : style === 'wide' ? Math.min(n, maxCols) : Math.ceil(n / Math.ceil(n / Math.min(n, maxCols)))
+  const grid = (pieces: Item[], c: number): Block => {
+    const rows = Math.ceil(pieces.length / c)
+    const parts = pieces.map((it, k) => ({ it, dx: (k % c) * (w + gap), dy: Math.floor(k / c) * (h + gap) }))
+    const bw = c * w + (c - 1) * gap
+    const bh = rows * h + (rows - 1) * gap
+    return { w: bw, h: bh, area: bw * bh, cushion, parts }
+  }
+  const full = Math.floor(n / cols) * cols
+  const out = [grid(list.slice(0, full), cols)]
+  if (full < n) out.push(grid(list.slice(full), n - full))
+  return out.filter((b) => b.parts.length)
+}
+
+/**
+ * Strips laid in lanes along their length, short ones end to end in the same lane,
+ * lanes side by side. Lanes run along the roll when the strips do (railroaded), or
+ * across it when they are cut up the roll.
+ */
+function stripBundles(list: Item[], W: number, gap: number, cushion: string): Block[] {
+  const along = list.every((i) => i.h >= i.w)
+  const long = (i: Item) => (along ? i.h : i.w)
+  const short = (i: Item) => (along ? i.w : i.h)
+  const laneLen = Math.max(...list.map(long))
+  const lanes: { width: number; used: number; items: Item[] }[] = []
+  for (const it of [...list].sort((a, b) => short(b) - short(a) || long(b) - long(a))) {
+    const lane = lanes.find((l) => Math.abs(l.width - short(it)) < EPS && l.used + gap + long(it) <= laneLen + EPS)
+    if (lane) {
+      lane.items.push(it)
+      lane.used += gap + long(it)
+    } else lanes.push({ width: short(it), used: long(it), items: [it] })
+  }
+  // Lanes side by side; when they run along the roll, a bundle is never wider than the roll.
+  const bundles: Block[] = []
+  let cur: Block | null = null
+  let offset = 0
+  for (const lane of lanes) {
+    if (cur && along && offset + lane.width > W + EPS) {
+      bundles.push(cur)
+      cur = null
+    }
+    if (!cur) {
+      cur = { w: 0, h: 0, area: 0, cushion, parts: [] }
+      offset = 0
+    }
+    let pos = 0
+    for (const it of lane.items) {
+      cur.parts.push(along ? { it, dx: offset, dy: pos } : { it, dx: pos, dy: offset })
+      pos += long(it) + gap
+    }
+    offset += lane.width + gap
+    if (along) {
+      cur.w = offset - gap
+      cur.h = laneLen
+    } else {
+      cur.w = laneLen
+      cur.h = offset - gap
+    }
+    cur.area = cur.w * cur.h
+  }
+  if (cur) bundles.push(cur)
+  return bundles
 }
 
 export type FabricOptions = {
@@ -331,22 +433,27 @@ function planOneWay(pieces: CutPiece[], opts: FabricOptions, direction: Directio
   const order: string[] = []
   for (const it of items) if (it.cushion && !order.includes(it.cushion)) order.push(it.cushion)
   order.push('')
-  let res = items.length ? packBest(items, width, gap, order) : null
-  if (!together && items.length) {
-    const free = packBest(items, width, gap, [])
-    if (free && (!res || free.length < res.length - EPS)) res = free
-  }
-  const placed: PlacedCut[] = (res?.placed ?? []).map(({ it, x, y }) => ({
-    name: it.name,
-    cushion: it.cushion,
-    across: it.across,
-    along: it.along,
-    join: it.join,
-    x,
-    y,
-    w: it.w,
-    h: it.h,
-  }))
+  // Pieces go down in blocks (plate grids, strip bundles); try a few grid shapes and keep the shortest.
+  let res: { placed: { it: Block; x: number; y: number }[]; length: number } | null = null
+  if (items.length)
+    for (const style of ['wide', 'balanced', 'column'] as const) {
+      const blocks = makeBlocks(items, width, gap, style, together)
+      const r = packBest(blocks, width, gap, together ? order : [])
+      if (r && (!res || r.length < res.length - EPS)) res = r
+    }
+  const placed: PlacedCut[] = (res?.placed ?? []).flatMap(({ it: b, x, y }) =>
+    b.parts.map(({ it, dx, dy }) => ({
+      name: it.name,
+      cushion: it.cushion,
+      across: it.across,
+      along: it.along,
+      join: it.join,
+      x: x + dx,
+      y: y + dy,
+      w: it.w,
+      h: it.h,
+    })),
+  )
   const piecesLength = res?.length ?? 0
   const strips = cordingStrips(cordingInches)
   const cordingLength = cordingBlock(strips)
