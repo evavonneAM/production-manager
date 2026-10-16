@@ -25,17 +25,7 @@ import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, FilePdfOutlined, PlusO
 import { formatInches, parseInches } from '../../lib/calculators/inches'
 import { FOAM_TYPES } from '../../lib/foamTypes'
 import { SHEET_L, SHEET_PRICE, SHEET_W, fitsSheet, planPlywood, type Board, type Sheet } from '../../lib/calculators/plywoodNesting'
-import {
-  ADD_ONS,
-  FOAM_INSERTS,
-  PRICE_OPTIONS,
-  SEWING_STYLES,
-  estimateRocketText,
-  money,
-  wholeYards,
-  yardageNonReversible,
-  type PriceOption,
-} from '../../lib/calculators/cushionPricing'
+import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, type PriceOption } from '../../lib/calculators/cushionPricing'
 import { DEFAULT_HEIGHT_DEDUCTION, cushionCuts } from '../../lib/calculators/cushionCut'
 import {
   DEFAULT_END_ALLOWANCE,
@@ -45,6 +35,7 @@ import {
   DEFAULT_SELVAGE_TRIM,
   piecesFor,
   planFabric,
+  type CutPiece,
 } from '../../lib/calculators/fabricNesting'
 
 type Row = {
@@ -230,34 +221,56 @@ function toBackSection(r: Row): Section | null {
 }
 
 /**
+ * Cut pieces for cushions upholstered to plywood, from the workroom's cut list sheet
+ * (finished sizes, no deduction): one plate W+1 × D+1, and one boxing strip that goes all
+ * the way around the board and wraps under it, 2W+2D+1 long × H+2½ wide. Welted styles
+ * get cording around the top and the bottom edge.
+ */
+function boardPieces(x: Section, welted: boolean): { pieces: CutPiece[]; cording: number } {
+  const around = 2 * x.length + 2 * x.d + 1
+  const pieces: CutPiece[] = []
+  for (let i = 0; i < x.qty; i++) {
+    pieces.push({ name: 'plate', cushion: '', across: x.length + 1, along: x.d + 1 })
+    pieces.push({ name: 'boxing', cushion: '', across: around, along: x.h + 2.5 })
+  }
+  return { pieces, cording: welted ? 2 * around * x.qty : 0 }
+}
+
+/**
  * Yards to order for every cushion of one part of a line (all `qty` of them): the cut pieces
  * laid out on a 54" roll the way Fabric Yardage does it, with one spare plate and the bias
- * cording for welted styles (both plates in the fabric).
- * Upholstered to plywood keeps the old per-piece formula.
+ * cording for welted styles. Sewn cushions use the Cushion Cut pieces (both plates in the
+ * fabric); upholstered-to-plywood cushions use the board cut list.
  */
 function lineYards(r: Row, x: Section, side: 'seat' | 'back'): number {
-  if (r.plan === 'plywood') return wholeYards(yardageNonReversible(x.length)) * x.qty
   const back = side === 'back'
   const style = back ? r.backStyle : r.erStyle
   const dir = back ? r.backDirection : r.erDirection
   const repeat = parseInches(back ? r.backRepeat : r.erRepeat) ?? 0
   const halfDrop = back ? r.backHalfDrop : r.erHalfDrop
-  const cuts = cushionCuts({
-    qty: x.qty,
-    front: x.length,
-    sides: x.d,
-    height: x.h,
-    style: 'back',
-    heightDeduction: DEFAULT_HEIGHT_DEDUCTION,
-    cording: isWelted(style),
-  })
-  return planFabric(piecesFor(cuts, ''), {
+  let pieces: CutPiece[]
+  let cording: number
+  if (r.plan === 'plywood') ({ pieces, cording } = boardPieces(x, isWelted(style)))
+  else {
+    const cuts = cushionCuts({
+      qty: x.qty,
+      front: x.length,
+      sides: x.d,
+      height: x.h,
+      style: 'back',
+      heightDeduction: DEFAULT_HEIGHT_DEDUCTION,
+      cording: isWelted(style),
+    })
+    pieces = piecesFor(cuts, '')
+    cording = cuts.cording
+  }
+  return planFabric(pieces, {
     listedWidth: DEFAULT_LISTED_WIDTH,
     selvageTrim: DEFAULT_SELVAGE_TRIM,
     direction: dir === 'tbd' ? 'auto' : dir,
     gap: DEFAULT_GAP,
     endAllowance: DEFAULT_END_ALLOWANCE,
-    cordingInches: cuts.cording,
+    cordingInches: cording,
     together: false,
     extra: DEFAULT_EXTRA,
     oneWay: false,
