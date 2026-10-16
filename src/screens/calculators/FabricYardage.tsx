@@ -37,7 +37,9 @@ import {
 import {
   CORDING_STRIP_WIDTH,
   DEFAULT_END_ALLOWANCE,
+  DEFAULT_EXTRA,
   DEFAULT_GAP,
+  EXTRA_CHOICES,
   DEFAULT_USABLE_WIDTH,
   piecesFor,
   planFabric,
@@ -65,7 +67,7 @@ type Cushion = {
   cording: boolean
   direction: Direction
 }
-type Settings = { widths: Record<string, number>; gap: number; endAllowance: number }
+type Settings = { widths: Record<string, number>; gap: number; endAllowance: number; together: boolean; extra: number }
 type Draft = { cushions: Cushion[]; settings: Settings }
 
 const DRAFT_KEY = 'pm-calc-fabric-yardage'
@@ -87,7 +89,7 @@ const blank = (): Cushion => ({
   cording: true,
   direction: 'either',
 })
-const blankSettings = (): Settings => ({ widths: {}, gap: DEFAULT_GAP, endAllowance: DEFAULT_END_ALLOWANCE })
+const blankSettings = (): Settings => ({ widths: {}, gap: DEFAULT_GAP, endAllowance: DEFAULT_END_ALLOWANCE, together: true, extra: DEFAULT_EXTRA })
 
 function loadDraft(): Draft {
   try {
@@ -277,7 +279,7 @@ function FabricYardageScreen() {
       const pieces = g.idx.flatMap((i) => piecesFor(cuts[i]!, cushions[i].label.trim() || t('fabricYardage.cushionN', { n: i + 1 }), cushions[i].direction))
       const cordingInches = g.idx.reduce((n, i) => n + cuts[i]!.cording, 0)
       const cushionNames = g.idx.map((i) => cushions[i].label.trim() || t('fabricYardage.cushionN', { n: i + 1 }))
-      return { key, width, cushionNames, plan: planFabric(pieces, { width, gap: settings.gap, endAllowance: settings.endAllowance, cordingInches }) }
+      return { key, width, cushionNames, plan: planFabric(pieces, { width, gap: settings.gap, endAllowance: settings.endAllowance, cordingInches, together: settings.together, extra: settings.extra }) }
     })
   }, [cushions, cuts, settings, t])
 
@@ -488,6 +490,23 @@ function FabricYardageScreen() {
                 <InputNumber size="large" min={0} max={36} step={0.5} value={settings.endAllowance} onChange={(v) => setSettings((s) => ({ ...s, endAllowance: v ?? 0 }))} suffix={t('calc.in')} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
+            <Col xs={12}>
+              <Form.Item label={t('fabricYardage.extra')} extra={t('fabricYardage.extraHelp')} style={{ marginBottom: 0, marginTop: 16 }}>
+                <Select
+                  size="large"
+                  value={settings.extra}
+                  onChange={(v) => setSettings((s) => ({ ...s, extra: v }))}
+                  options={EXTRA_CHOICES.map((x) => ({ value: x, label: `${Math.round(x * 100)}%` }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={12}>
+              <Form.Item label={t('fabricYardage.layout')} extra={t(settings.together ? 'fabricYardage.togetherHelp' : 'fabricYardage.mixedHelp')} style={{ marginBottom: 0, marginTop: 16 }}>
+                <Checkbox checked={settings.together} onChange={(e) => setSettings((s) => ({ ...s, together: e.target.checked }))}>
+                  {t('fabricYardage.together')}
+                </Checkbox>
+              </Form.Item>
+            </Col>
           </Row>
         </Card>
 
@@ -525,6 +544,8 @@ function FabricYardageScreen() {
                 </Col>
                 <Col xs={12} sm={8}>
                   <Typography.Text>{t('fabricYardage.exact', { len: formatInches(plan.totalLength), yd: plan.yards.toFixed(2) })}</Typography.Text>
+                  <br />
+                  <Typography.Text>{t('fabricYardage.withExtra', { pct: Math.round(plan.extra * 100), yd: plan.yardsWithExtra.toFixed(2) })}</Typography.Text>
                   <br />
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                     {t('fabricYardage.breakdown', {

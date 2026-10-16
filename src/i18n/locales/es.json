@@ -732,7 +732,7 @@
   "fabricYardage": {
     "intro": "Agrega los cojines o tráelos de Medidas de corte de cojines. Cada pieza se acomoda en el rollo y el yardaje se actualiza al escribir.",
     "v1Title": "Versión 1: tela lisa",
-    "v1": "Todavía no maneja repetición de diseño ni pelo, así que úsala solo con tela lisa. Hasta que el cortador llene sus reglas, se asume: las piezas comparten línea de corte (sin espacio), se escuadra {{end}} al inicio, el cordón se corta al bies en tiras de {{strip}} y el pedido se redondea hacia arriba a yardas enteras.",
+    "v1": "Todavía no maneja repetición de diseño ni pelo, así que úsala solo con tela lisa. Hasta que el cortador llene sus reglas, se asume: las piezas comparten línea de corte (sin espacio), se escuadra {{end}} al inicio, las piezas de cada cojín van juntas, el cordón se corta al bies en tiras de {{strip}}, se agrega 10% extra por fallas y el pedido se redondea hacia arriba a yardas enteras.",
     "import": "Traer de Medidas de corte de cojines",
     "importConfirm": "¿Reemplazar estos cojines con los de Medidas de corte de cojines?",
     "importNone": "Medidas de corte de cojines aún no tiene cojines completos en este dispositivo.",
@@ -781,7 +781,7 @@
     "endAllowance": "Escuadrado al inicio",
     "order": "Pedir",
     "yardsN": "{{n}} yd",
-    "exact": "Exacto: {{len}} ({{yd}} yd)",
+    "exact": "Acomodo: {{len}} ({{yd}} yd)",
     "breakdown": "Piezas {{pieces}} + inicio {{end}} + cordón {{cording}}",
     "cordingStrips_one": "{{count}} tira de cordón",
     "cordingStrips_other": "{{count}} tiras de cordón",
@@ -807,7 +807,14 @@
     "runsRR": "Atravesado",
     "empty": "Agrega un cojín para ver el acomodo.",
     "replace": "Reemplazar",
-    "colQty": "Cant."
+    "colQty": "Cant.",
+    "withExtra": "+ {{pct}}% por fallas = {{yd}} yd",
+    "extra": "Extra por fallas",
+    "extraHelp": "Se suma al acomodo antes de redondear.",
+    "layout": "Acomodo",
+    "together": "Mantener juntas las piezas de cada cojín",
+    "togetherHelp": "Más fácil de cortar: cada cojín tiene su propio tramo del rollo.",
+    "mixedHelp": "Las piezas de distintos cojines llenan los huecos entre sí. Usa menos tela."
   },
   "upholstery": {
     "intro": "Sigue \"Cómo cotizar mano de obra de tapicería\": mano de obra base, cojines, espuma, yardaje, materiales y adicionales. La cotización de abajo se copia directo a Estimate Rocket.",

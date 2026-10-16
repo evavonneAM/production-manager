@@ -733,7 +733,7 @@
   "fabricYardage": {
     "intro": "Add the cushions, or bring them in from Cushion Cut Dimensions. Every piece is laid out on the roll and the yardage updates as you type.",
     "v1Title": "Version 1: plain fabric",
-    "v1": "Pattern repeat and nap are not handled yet, so use this for plain fabric only. Until the cutter's rulebook is filled in, the tool assumes: pieces share a cut line (no gap), {{end}} is squared off the first end, cording is cut on the bias in {{strip}} strips, and the order is rounded up to whole yards.",
+    "v1": "Pattern repeat and nap are not handled yet, so use this for plain fabric only. Until the cutter's rulebook is filled in, the tool assumes: pieces share a cut line (no gap), {{end}} is squared off the first end, each cushion's pieces stay together, cording is cut on the bias in {{strip}} strips, 10% extra is added for flaws, and the order is rounded up to whole yards.",
     "import": "Bring in from Cushion Cut Dimensions",
     "importConfirm": "Replace these cushions with the ones in Cushion Cut Dimensions?",
     "importNone": "Cushion Cut Dimensions has no finished cushions on this device yet.",
@@ -782,7 +782,7 @@
     "endAllowance": "Squared off the first end",
     "order": "Order",
     "yardsN": "{{n}} yd",
-    "exact": "Exact: {{len}} ({{yd}} yd)",
+    "exact": "Layout: {{len}} ({{yd}} yd)",
     "breakdown": "Pieces {{pieces}} + first end {{end}} + cording {{cording}}",
     "cordingStrips_one": "{{count}} cording strip",
     "cordingStrips_other": "{{count}} cording strips",
@@ -808,7 +808,14 @@
     "runsRR": "Railroaded",
     "empty": "Add a cushion to see the layout.",
     "replace": "Replace",
-    "colQty": "Qty"
+    "colQty": "Qty",
+    "withExtra": "+ {{pct}}% for flaws = {{yd}} yd",
+    "extra": "Extra for flaws",
+    "extraHelp": "Added on top of the layout before rounding up.",
+    "layout": "Layout",
+    "together": "Keep each cushion's pieces together",
+    "togetherHelp": "Easier to cut: each cushion gets its own stretch of roll.",
+    "mixedHelp": "Pieces from different cushions fill each other's gaps. Uses the least fabric."
   },
   "upholstery": {
     "intro": "Follows \"How to price upholstery labor\": base labor, cushions, foam, yardage, supplies, then upcharges. The estimate at the bottom copies straight into Estimate Rocket.",

@@ -15,6 +15,9 @@ export const DEFAULT_GAP = 0
 export const DEFAULT_END_ALLOWANCE = 2
 /** Width of a bias cording strip. */
 export const CORDING_STRIP_WIDTH = 1.5
+/** Extra fabric on top of the layout for flaws (the shop likes 10–15%). */
+export const DEFAULT_EXTRA = 0.1
+export const EXTRA_CHOICES = [0, 0.1, 0.15, 0.2] as const
 
 const EPS = 1e-6
 
@@ -36,9 +39,13 @@ export type FabricPlan = {
   endAllowance: number
   /** Everything added up, inches. */
   totalLength: number
-  /** Exact yards. */
+  /** Exact yards for the layout. */
   yards: number
-  /** Yards to order: whole yards, rounded up. */
+  /** Share added for flaws. */
+  extra: number
+  /** Layout yards plus the extra for flaws. */
+  yardsWithExtra: number
+  /** Yards to order: layout plus extra, rounded up to whole yards. */
   orderYards: number
   /** Share of the used roll covered by pieces. */
   used: number
@@ -125,24 +132,10 @@ function packStrip(items: Item[], W: number, gap: number, score: 'bl' | 'bssf' |
   return { placed, length }
 }
 
-/** Does a piece fit across the roll the way it has to run? */
-function fitsRoll(p: CutPiece, W: number) {
-  const up = p.across <= W + EPS
-  const rr = p.along <= W + EPS
-  return p.direction === 'upTheRoll' ? up : p.direction === 'railroaded' ? rr : up || rr
-}
-
-export type FabricOptions = { width: number; gap: number; endAllowance: number; cordingInches: number }
-
-/** Lay out one fabric's pieces, trying several orders and scores and keeping the shortest. */
-export function planFabric(pieces: CutPiece[], { width, gap, endAllowance, cordingInches }: FabricOptions): FabricPlan {
-  const items: Item[] = []
-  const tooWide: CutPiece[] = []
-  pieces.forEach((p, idx) => {
-    if (!(p.across > 0 && p.along > 0)) return
-    if (fitsRoll(p, width)) items.push({ ...p, idx, area: p.across * p.along })
-    else tooWide.push(p)
-  })
+/** Pack one set of pieces, trying several orders and scores and keeping the shortest. */
+function packBest(items: Item[], width: number, gap: number, cushionOrder: string[]) {
+  // With a cushion order, sorting happens inside each cushion and the cushions stay in sequence.
+  const rank = (i: Item) => cushionOrder.indexOf(i.cushion)
   const long = (i: Item) => Math.max(i.across, i.along)
   const short = (i: Item) => Math.min(i.across, i.along)
   const orders: ((a: Item, b: Item) => number)[] = [
@@ -152,13 +145,54 @@ export function planFabric(pieces: CutPiece[], { width, gap, endAllowance, cordi
     (a, b) => b.across + b.along - (a.across + a.along),
   ]
   let best: NonNullable<ReturnType<typeof packStrip>> | null = null
-  if (items.length)
-    for (const o of orders)
-      for (const sc of ['bl', 'bssf', 'baf'] as const) {
-        const res = packStrip([...items].sort(o), width, gap, sc)
-        if (res && (!best || res.length < best.length - EPS)) best = res
-      }
-  const placed: PlacedCut[] = (best?.placed ?? []).map(({ it, s }) => ({
+  for (const o of orders)
+    for (const sc of ['bl', 'bssf', 'baf'] as const) {
+      const res = packStrip([...items].sort((a, b) => rank(a) - rank(b) || o(a, b)), width, gap, sc)
+      if (res && (!best || res.length < best.length - EPS)) best = res
+    }
+  return best
+}
+
+/** Does a piece fit across the roll the way it has to run? */
+function fitsRoll(p: CutPiece, W: number) {
+  const up = p.across <= W + EPS
+  const rr = p.along <= W + EPS
+  return p.direction === 'upTheRoll' ? up : p.direction === 'railroaded' ? rr : up || rr
+}
+
+export type FabricOptions = {
+  width: number
+  gap: number
+  endAllowance: number
+  cordingInches: number
+  /** Keep each cushion's pieces together on the roll, the way the cutters lay it out. */
+  together: boolean
+  /** Share added for flaws, e.g. 0.1 = 10%. */
+  extra: number
+}
+
+/** Lay out one fabric's pieces on the roll and work out the yards to order. */
+export function planFabric(pieces: CutPiece[], { width, gap, endAllowance, cordingInches, together, extra }: FabricOptions): FabricPlan {
+  const items: Item[] = []
+  const tooWide: CutPiece[] = []
+  pieces.forEach((p, idx) => {
+    if (!(p.across > 0 && p.along > 0)) return
+    if (fitsRoll(p, width)) items.push({ ...p, idx, area: p.across * p.along })
+    else tooWide.push(p)
+  })
+  // Together: cushions go down the roll one after the other, each cushion's pieces laid
+  // as a group; a later cushion may still use a gap the earlier one left.
+  // Otherwise every piece is sorted freely to use the least fabric.
+  const order: string[] = []
+  for (const it of items) if (!order.includes(it.cushion)) order.push(it.cushion)
+  let res = items.length ? packBest(items, width, gap, order) : null
+  if (!together && items.length) {
+    const free = packBest(items, width, gap, [])
+    if (free && (!res || free.length < res.length - EPS)) res = free
+  }
+  const best = res?.placed ?? []
+  const piecesLength = res?.length ?? 0
+  const placed: PlacedCut[] = best.map(({ it, s }) => ({
     name: it.name,
     cushion: it.cushion,
     across: it.across,
@@ -166,7 +200,6 @@ export function planFabric(pieces: CutPiece[], { width, gap, endAllowance, cordi
     direction: it.direction,
     ...s,
   }))
-  const piecesLength = best?.length ?? 0
   const strips = cordingStrips(cordingInches)
   // Bias cording, estimated by area: each 74" strip × 1½" wide, spread across the roll width.
   const cordingLength = strips > 0 ? Math.ceil((strips * BIAS_STRIP_LENGTH * CORDING_STRIP_WIDTH) / width - 1e-9) : 0
@@ -183,7 +216,9 @@ export function planFabric(pieces: CutPiece[], { width, gap, endAllowance, cordi
     endAllowance: totalLength > 0 ? endAllowance : 0,
     totalLength,
     yards,
-    orderYards: Math.ceil(yards - 1e-9),
+    extra,
+    yardsWithExtra: yards * (1 + extra),
+    orderYards: Math.ceil(yards * (1 + extra) - 1e-9),
     used: piecesLength > 0 ? pieceArea / (piecesLength * width) : 0,
   }
 }
