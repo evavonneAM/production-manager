@@ -145,7 +145,8 @@ type Item = CutPiece & { w: number; h: number; area: number }
 type Free = { x: number; y: number; w: number; h: number }
 
 /** Lay pieces on a strip `W` wide, in the given order. Returns the placements and the length used. */
-type Box = { w: number; h: number; area: number; cushion: string }
+/** `holes`: open space inside the box (relative to its corner) that other pieces may use. */
+type Box = { w: number; h: number; area: number; cushion: string; holes?: Free[] }
 
 function packStrip<T extends Box>(items: T[], W: number, gap: number, score: 'bl' | 'bssf' | 'baf', maxLen = 1e7) {
   // Each piece takes its size plus the gap; the strip gets one extra gap so the last piece fits flush.
@@ -192,6 +193,8 @@ function packStrip<T extends Box>(items: T[], W: number, gap: number, score: 'bl
       if (p.y > f.y + EPS) out.push({ x: f.x, y: f.y, w: f.w, h: p.y - f.y })
       if (p.y + p.h < f.y + f.h - EPS) out.push({ x: f.x, y: p.y + p.h, w: f.w, h: f.y + f.h - p.y - p.h })
     }
+    // Open space inside a block (the staircase beside shorter strips) stays usable.
+    for (const hole of it.holes ?? []) if (hole.w > EPS && hole.h > EPS) out.push({ x: p.x + hole.x, y: p.y + hole.y, w: hole.w, h: hole.h })
     free = out.filter(
       (a, i) =>
         !out.some(
@@ -250,7 +253,11 @@ function packBest<T extends Box>(items: T[], width: number, gap: number, cushion
 const STRIPS: PieceName[] = ['boxing', 'zipper']
 
 /** A rectangle of pieces the cutter marks and cuts as one: a grid of same-size plates, or a bundle of strips. */
-type Block = Box & { parts: { it: Item; dx: number; dy: number }[] }
+type Block = Box & {
+  parts: { it: Item; dx: number; dy: number }[]
+  /** Strip bundles: which side of the block holds the longest lanes. */
+  longSide?: 'near' | 'far'
+}
 
 type GridStyle = 'wide' | 'balanced' | 'column'
 
@@ -259,7 +266,7 @@ type GridStyle = 'wide' | 'balanced' | 'column'
  * grid (one straight line cuts a whole row), and every boxing and zipper strip
  * together in one bundle of lanes, apart from the plates.
  */
-function makeBlocks(items: Item[], W: number, gap: number, style: GridStyle, byCushion: boolean): Block[] {
+function makeBlocks(items: Item[], W: number, gap: number, style: GridStyle, byCushion: boolean, mirror: boolean): Block[] {
   const blocks: Block[] = []
   const groupKey = (i: Item) => (byCushion ? i.cushion : '')
   const groups = new Map<string, Item[]>()
@@ -271,7 +278,7 @@ function makeBlocks(items: Item[], W: number, gap: number, style: GridStyle, byC
   }
   for (const [key, list] of groups) {
     const cushion = byCushion ? list[0].cushion : ''
-    if (key.endsWith('|strip')) blocks.push(...stripBundles(list, W, gap, cushion))
+    if (key.endsWith('|strip')) blocks.push(...stripBundles(list, W, gap, cushion, mirror))
     else blocks.push(...plateGrids(list, W, gap, style, cushion))
   }
   return blocks
@@ -302,12 +309,13 @@ function plateGrids(list: Item[], W: number, gap: number, style: GridStyle, cush
  * lanes side by side. Lanes run along the roll when the strips do (railroaded), or
  * across it when they are cut up the roll.
  */
-function stripBundles(list: Item[], W: number, gap: number, cushion: string): Block[] {
+/** `mirror` puts the longest lanes on the other side, so they can sit on whichever roll edge the bundle lands on. */
+function stripBundles(list: Item[], W: number, gap: number, cushion: string, mirror: boolean): Block[] {
   const along = list.every((i) => i.h >= i.w)
   const long = (i: Item) => (along ? i.h : i.w)
   const short = (i: Item) => (along ? i.w : i.h)
   const laneLen = Math.max(...list.map(long))
-  const lanes: { width: number; used: number; items: Item[] }[] = []
+  const lanes: { width: number; used: number; items: Item[]; offset?: number; bundle?: Block }[] = []
   for (const it of [...list].sort((a, b) => short(b) - short(a) || long(b) - long(a))) {
     const lane = lanes.find((l) => Math.abs(l.width - short(it)) < EPS && l.used + gap + long(it) <= laneLen + EPS)
     if (lane) {
@@ -315,6 +323,9 @@ function stripBundles(list: Item[], W: number, gap: number, cushion: string): Bl
       lane.used += gap + long(it)
     } else lanes.push({ width: short(it), used: long(it), items: [it] })
   }
+  // Longest lanes on the outside edge, getting shorter toward the middle (the cutters' habit):
+  // the staircase of open fabric this leaves can take another piece, like a spare plate.
+  lanes.sort((a, b) => b.used - a.used)
   // Lanes side by side; when they run along the roll, a bundle is never wider than the roll.
   const bundles: Block[] = []
   let cur: Block | null = null
@@ -325,14 +336,16 @@ function stripBundles(list: Item[], W: number, gap: number, cushion: string): Bl
       cur = null
     }
     if (!cur) {
-      cur = { w: 0, h: 0, area: 0, cushion, parts: [] }
+      cur = { w: 0, h: 0, area: 0, cushion, parts: [], holes: [], longSide: along ? (mirror ? 'far' : 'near') : undefined }
       offset = 0
     }
+    lane.bundle = cur
     let pos = 0
     for (const it of lane.items) {
       cur.parts.push(along ? { it, dx: offset, dy: pos } : { it, dx: pos, dy: offset })
       pos += long(it) + gap
     }
+    lane.offset = offset
     offset += lane.width + gap
     if (along) {
       cur.w = offset - gap
@@ -344,6 +357,19 @@ function stripBundles(list: Item[], W: number, gap: number, cushion: string): Bl
     cur.area = cur.w * cur.h
   }
   if (cur) bundles.push(cur)
+  // Open fabric beyond the end of each shorter lane, out to the bundle's far side.
+  for (const lane of lanes) {
+    const b = lane.bundle!
+    const rest = laneLen - lane.used - gap
+    if (rest <= EPS) continue
+    const o = lane.offset!
+    b.holes!.push(along ? { x: o, y: lane.used + gap, w: b.w - o + gap, h: rest + gap } : { x: lane.used + gap, y: o, w: rest + gap, h: b.h - o + gap })
+  }
+  if (mirror && along)
+    for (const b of bundles) {
+      for (const part of b.parts) part.dx = b.w - part.dx - part.it.w
+      for (const hole of b.holes!) hole.x = b.w + gap - (hole.x + hole.w)
+    }
   return bundles
 }
 
@@ -384,48 +410,47 @@ function planOneWay(pieces: CutPiece[], opts: FabricOptions, direction: Directio
   const { gap, endAllowance, cordingInches, together, extra } = opts
   const width = Math.max(1, opts.listedWidth - 2 * opts.selvageTrim)
 
-  // One spare plate: a copy of the largest plate, laid out with everything else.
-  const all = [...pieces]
-  if (extra === 'plate') {
-    const plates = pieces.filter((p) => p.name === 'plate' || p.name === 'wedgePanel')
-    const biggest = plates.sort((a, b) => b.across * b.along - a.across * a.along)[0]
-    if (biggest) all.push({ ...biggest, name: 'sparePlate', cushion: '' })
-  }
-
   const items: Item[] = []
   const tooWide: CutPiece[] = []
   const joinedMap = new Map<string, Joined>()
-  const push = (p: CutPiece) => {
-    const [w, h] = direction === 'upTheRoll' ? [p.across, p.along] : [p.along, p.across]
-    items.push({ ...p, w, h, area: w * h })
-  }
-  for (const p of all) {
-    if (!(p.across > 0 && p.along > 0)) continue
-    // The dimension that runs across the roll.
-    const acrossLen = direction === 'upTheRoll' ? p.across : p.along
-    if (acrossLen <= width + EPS) {
-      push(p)
-      continue
+  /** Turn pieces into roll-oriented items, joining any that are too wide for the roll. */
+  const toItems = (list: CutPiece[], out: Item[], track: boolean) => {
+    const push = (p: CutPiece) => {
+      const [w, h] = direction === 'upTheRoll' ? [p.across, p.along] : [p.along, p.across]
+      out.push({ ...p, w, h, area: w * h })
     }
-    // Too wide across the roll: join it from a center and two mirrored ends.
-    const isPlate = p.name === 'plate' || p.name === 'wedgePanel' || p.name === 'sparePlate'
-    const split = splitSymmetric(acrossLen, width, isPlate ? MIN_PLATE_END : MIN_STRIP_END)
-    if (!split) {
-      tooWide.push(p)
-      continue
+    for (const p of list) {
+      if (!(p.across > 0 && p.along > 0)) continue
+      // The dimension that runs across the roll.
+      const acrossLen = direction === 'upTheRoll' ? p.across : p.along
+      if (acrossLen <= width + EPS) {
+        push(p)
+        continue
+      }
+      // Too wide across the roll: join it from a center and two mirrored ends.
+      const isPlate = p.name === 'plate' || p.name === 'wedgePanel' || p.name === 'sparePlate'
+      const split = splitSymmetric(acrossLen, width, isPlate ? MIN_PLATE_END : MIN_STRIP_END)
+      if (!split) {
+        if (track) tooWide.push(p)
+        continue
+      }
+      const mk = (len: number, part: 'center' | 'end'): CutPiece =>
+        direction === 'upTheRoll' ? { ...p, across: len, join: { part, of: 3 } } : { ...p, along: len, join: { part, of: 3 } }
+      push(mk(split.center, 'center'))
+      push(mk(split.end, 'end'))
+      push(mk(split.end, 'end'))
+      if (!track) continue
+      const key = `${p.cushion}|${p.name}`
+      const j = joinedMap.get(key)
+      if (j) j.count++
+      else joinedMap.set(key, { cushion: p.cushion, name: p.name, center: split.center, end: split.end, pieces: 3, count: 1 })
     }
-    const mk = (len: number, part: 'center' | 'end'): CutPiece =>
-      direction === 'upTheRoll'
-        ? { ...p, across: len, join: { part, of: 3 } }
-        : { ...p, along: len, join: { part, of: 3 } }
-    push(mk(split.center, 'center'))
-    push(mk(split.end, 'end'))
-    push(mk(split.end, 'end'))
-    const key = `${p.cushion}|${p.name}`
-    const j = joinedMap.get(key)
-    if (j) j.count++
-    else joinedMap.set(key, { cushion: p.cushion, name: p.name, center: split.center, end: split.end, pieces: 3, count: 1 })
   }
+
+  // One spare plate: a copy of the largest plate, laid out with everything else.
+  const plates = pieces.filter((p) => p.name === 'plate' || p.name === 'wedgePanel').sort((a, b) => b.across * b.along - a.across * a.along)
+  const spare = (p: CutPiece): CutPiece => ({ ...p, name: 'sparePlate', cushion: '' })
+  toItems(extra === 'plate' && plates[0] ? [...pieces, spare(plates[0])] : pieces, items, true)
 
   // Together: cushions go down the roll one after the other, each cushion's pieces laid
   // as a group; a later cushion may still use a gap the earlier one left. The spare
@@ -434,13 +459,51 @@ function planOneWay(pieces: CutPiece[], opts: FabricOptions, direction: Directio
   for (const it of items) if (it.cushion && !order.includes(it.cushion)) order.push(it.cushion)
   order.push('')
   // Pieces go down in blocks (plate grids, strip bundles); try a few grid shapes and keep the shortest.
-  let res: { placed: { it: Block; x: number; y: number }[]; length: number } | null = null
-  if (items.length)
-    for (const style of ['wide', 'balanced', 'column'] as const) {
-      const blocks = makeBlocks(items, width, gap, style, together)
-      const r = packBest(blocks, width, gap, together ? order : [])
-      if (r && (!res || r.length < res.length - EPS)) res = r
+  type Layout = { placed: { it: Block; x: number; y: number }[]; length: number }
+  // Strip bundles whose longest lanes don't sit on a roll edge (the cutters keep them on the outside).
+  const offEdge = (r: Layout) =>
+    r.placed.filter(({ it, x }) => (it.longSide === 'near' && x > EPS) || (it.longSide === 'far' && x + it.w < width - EPS)).length
+  // Slide a strip bundle out to the roll edge on its long side when nothing is in the way.
+  const toEdge = (r: Layout): Layout => {
+    for (const p of r.placed) {
+      if (!p.it.longSide) continue
+      const target = p.it.longSide === 'near' ? 0 : width - p.it.w
+      const lo = Math.min(p.x, target)
+      const hi = Math.max(p.x, target) + p.it.w
+      const blocked = r.placed.some(
+        (q) => q !== p && q.y < p.y + p.it.h - EPS && q.y + q.it.h > p.y + EPS && q.x < hi - EPS && q.x + q.it.w > lo + EPS,
+      )
+      if (!blocked) p.x = target
     }
+    return r
+  }
+  const layout = (list: Item[]) => {
+    let best: Layout | null = null
+    for (const style of ['wide', 'balanced', 'column'] as const)
+      for (const mirror of [false, true]) {
+        const r0 = packBest(makeBlocks(list, width, gap, style, together, mirror), width, gap, together ? order : [])
+        const r = r0 && toEdge(r0)
+        if (r && (!best || r.length < best.length - EPS || (r.length < best.length + EPS && offEdge(r) < offEdge(best)))) best = r
+      }
+    return best
+  }
+  let res = items.length ? layout(items) : null
+  // A spare of each other plate size comes free when it fits in the open fabric already there.
+  if (res && extra === 'plate') {
+    const sizes = new Set([`${plates[0].across}x${plates[0].along}`])
+    for (const p of plates) {
+      const key = `${p.across}x${p.along}`
+      if (sizes.has(key)) continue
+      sizes.add(key)
+      const more: Item[] = []
+      toItems([spare(p)], more, false)
+      const r = layout([...items, ...more])
+      if (r && r.length <= res.length + EPS) {
+        items.push(...more)
+        res = r
+      }
+    }
+  }
   const placed: PlacedCut[] = (res?.placed ?? []).flatMap(({ it: b, x, y }) =>
     b.parts.map(({ it, dx, dy }) => ({
       name: it.name,
