@@ -839,7 +839,21 @@
     "autoPickedNap": "Tela en una dirección: se corta a lo largo para que el pelo vaya igual en todas las piezas.",
     "napRailroadTitle": "Atravesar una tela en una dirección necesita aprobación",
     "napRailroad": "El pelo quedará de lado a lado en los cojines. Consulta con Eva o el cliente antes de cortar.",
-    "napLegend": "Las flechas rojas apuntan a favor del pelo. Fíjate hacia dónde va el pelo en el rollo y acomoda cada pieza con su flecha hacia ese lado: las tapas van del borde de atrás al de adelante, y los costados y cierres del borde de arriba al de abajo."
+    "napLegend": "Las flechas rojas apuntan a favor del pelo. Fíjate hacia dónde va el pelo en el rollo y acomoda cada pieza con su flecha hacia ese lado: las tapas van del borde de atrás al de adelante, y los costados y cierres del borde de arriba al de abajo.",
+    "patternRepeat": "Repetición del diseño (arriba-abajo)",
+    "patternRepeatHelp": "De la ficha de la tela. Deja 0 para tela lisa.",
+    "patternHorizontal": "Repetición de lado a lado",
+    "patternHorizontalHelp": "Vacío = igual que arriba-abajo.",
+    "patternMatch": "Casado",
+    "match_straight": "Recto",
+    "match_halfDrop": "Medio salto (half-drop)",
+    "autoPickedPattern": "Tela con diseño: se corta a lo largo. Al través solo si lo aprueba el diseñador o la orden de trabajo.",
+    "patternEstimateTitle": "Tela con diseño: para cotizar",
+    "patternEstimate": "Cada tapa, costado y pieza de cuña lleva un motivo centrado; los cierres van donde sea. Dónde caen los motivos a lo ancho del rollo es suerte, así que esto es el peor de cuatro puntos de inicio. Que un cortador lo trace antes de cortar.",
+    "offCenter_one": "{{count}} pieza no puede quedar centrada en un motivo a lo ancho del rollo y va descentrada. Consúltalo con el diseñador.",
+    "offCenter_other": "{{count}} piezas no pueden quedar centradas en un motivo a lo ancho del rollo y van descentradas. Consúltalo con el diseñador.",
+    "heldAtPlain": "Este diseño acomoda más apretado que el trazo de tela lisa, así que la cotización se queda en las yardas de tela lisa.",
+    "motifLegend": "Los puntos marcan el motivo en que se centra cada pieza."
   },
   "upholstery": {
     "intro": "Sigue \"Cómo cotizar mano de obra de tapicería\": mano de obra base, cojines, espuma, yardaje, materiales y adicionales. La cotización de abajo se copia directo a Estimate Rocket.",

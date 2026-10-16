@@ -840,7 +840,21 @@
     "autoPickedNap": "One-way fabric: cut up the roll so the nap runs the same way on every piece.",
     "napRailroadTitle": "Railroading a one-way fabric needs approval",
     "napRailroad": "The nap will run side to side on the cushions. Check with Eva or the client before cutting.",
-    "napLegend": "Red arrows point down the nap. Find which way the nap runs on the roll and lay every piece with its arrow that way: plates run back edge to front edge, and boxing and zipper strips run top edge to bottom edge."
+    "napLegend": "Red arrows point down the nap. Find which way the nap runs on the roll and lay every piece with its arrow that way: plates run back edge to front edge, and boxing and zipper strips run top edge to bottom edge.",
+    "patternRepeat": "Pattern repeat (up and down)",
+    "patternRepeatHelp": "From the fabric's spec. Leave at 0 for a plain fabric.",
+    "patternHorizontal": "Repeat side to side",
+    "patternHorizontalHelp": "Blank = same as up and down.",
+    "patternMatch": "Match",
+    "match_straight": "Straight",
+    "match_halfDrop": "Half-drop",
+    "autoPickedPattern": "Patterned: cut up the roll. Railroad only if the designer or work order approves.",
+    "patternEstimateTitle": "Patterned fabric: for estimating",
+    "patternEstimate": "Every plate, boxing and wedge piece sits with a motif centered on it; zippers go anywhere. Where the motifs fall across the roll is luck, so this is the worst of four starting points. Have a cutter lay it out before cutting.",
+    "offCenter_one": "{{count}} piece can't land centered on a motif across the roll and is placed off center. Check with the designer.",
+    "offCenter_other": "{{count}} pieces can't land centered on a motif across the roll and are placed off center. Check with the designer.",
+    "heldAtPlain": "This pattern packs tighter than the plain-fabric layout, so the estimate is held at the plain yardage.",
+    "motifLegend": "Dots mark the motif each piece is centered on."
   },
   "upholstery": {
     "intro": "Follows \"How to price upholstery labor\": base labor, cushions, foam, yardage, supplies, then upcharges. The estimate at the bottom copies straight into Estimate Rocket.",

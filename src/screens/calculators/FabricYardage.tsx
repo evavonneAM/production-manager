@@ -77,6 +77,8 @@ type Settings = {
   directions: Record<string, DirectionChoice>
   /** One-way (nap) per fabric; unset = guessed from the fabric name. */
   oneWay: Record<string, boolean>
+  /** Pattern repeat per fabric; vertical 0 = plain. Horizontal null = same as vertical. */
+  patterns: Record<string, PatternInput>
   /** Trimmed off each selvage (the cutter's ruler line). */
   selvageLine: number
   gap: number
@@ -85,6 +87,7 @@ type Settings = {
   byCushion: boolean
   flaws: Extra
 }
+type PatternInput = { vertical: number; horizontal: number | null; halfDrop: boolean }
 type Draft = { cushions: Cushion[]; settings: Settings }
 
 const DRAFT_KEY = 'pm-calc-fabric-yardage'
@@ -109,6 +112,7 @@ const blankSettings = (): Settings => ({
   widths: {},
   directions: {},
   oneWay: {},
+  patterns: {},
   selvageLine: DEFAULT_SELVAGE_TRIM,
   gap: DEFAULT_GAP,
   endAllowance: DEFAULT_END_ALLOWANCE,
@@ -300,6 +304,7 @@ function RollDiagram({ plan, cushionIndex, pieceLabel }: { plan: FabricPlan; cus
                   </tspan>
                 </text>
                 {plan.oneWay && <NapArrow x={x} y={y} w={w} h={h} />}
+                {p.matched && <circle cx={cx} cy={cy} r={Math.min(1.6, w / 4, h / 4)} fill="none" stroke="#c0392b" strokeWidth={0.35} />}
               </g>
             )
           })}
@@ -333,7 +338,7 @@ function RollDiagram({ plan, cushionIndex, pieceLabel }: { plan: FabricPlan; cus
   )
 }
 
-/** Fabric yardage: cushion cut pieces laid out on the roll, plain fabric (version 1). */
+/** Fabric yardage: cushion cut pieces laid out on the roll, plain or patterned. */
 export default function FabricYardage() {
   return (
     <AntApp>
@@ -373,6 +378,11 @@ function FabricYardageScreen() {
       const listedWidth = settings.widths[key] ?? DEFAULT_LISTED_WIDTH
       const direction = settings.directions[key] ?? 'auto'
       const oneWay = settings.oneWay[key] ?? ONE_WAY_NAMES.test(key)
+      const patternInput: PatternInput = settings.patterns[key] ?? { vertical: 0, horizontal: null, halfDrop: false }
+      const pattern =
+        patternInput.vertical > 0
+          ? { vertical: patternInput.vertical, horizontal: patternInput.horizontal || patternInput.vertical, halfDrop: patternInput.halfDrop }
+          : null
       const pieces = g.idx.flatMap((i) => piecesFor(cuts[i]!, cushions[i].label.trim() || t('fabricYardage.cushionN', { n: i + 1 })))
       const cordingInches = g.idx.reduce((n, i) => n + cuts[i]!.cording, 0)
       const cushionNames = g.idx.map((i) => cushions[i].label.trim() || t('fabricYardage.cushionN', { n: i + 1 }))
@@ -386,8 +396,9 @@ function FabricYardageScreen() {
         together: settings.byCushion,
         extra: settings.flaws,
         oneWay,
+        pattern,
       })
-      return { key, listedWidth, direction, oneWay, cushionNames, plan }
+      return { key, listedWidth, direction, oneWay, patternInput, cushionNames, plan }
     })
   }, [cushions, cuts, settings, t])
 
@@ -711,7 +722,8 @@ function FabricYardageScreen() {
 
         {fabrics.length === 0 && <Typography.Text type="secondary">{t('fabricYardage.empty')}</Typography.Text>}
 
-        {fabrics.map(({ key, listedWidth, direction, oneWay, cushionNames, plan }) => {
+        {fabrics.map(({ key, listedWidth, direction, oneWay, patternInput, cushionNames, plan }) => {
+          const setPattern = (patch: Partial<PatternInput>) => setSettings((s) => ({ ...s, patterns: { ...s.patterns, [key]: { ...patternInput, ...patch } } }))
           const cushionIndex = (name: string) => Math.max(0, cushionNames.indexOf(name))
           // Same piece, same size, same way on the roll: one line with a count.
           const lines = new Map<string, PlacedCut & { qty: number; key: string }>()
@@ -764,13 +776,15 @@ function FabricYardageScreen() {
                     <Form.Item
                       label={t('fabricYardage.direction')}
                       extra={
-                        direction === 'auto' && oneWay
-                          ? t('fabricYardage.autoPickedNap')
-                          : direction === 'auto'
-                            ? t('fabricYardage.autoPicked', {
-                                way: t(`fabricYardage.${plan.direction}`),
-                              })
-                            : t(`fabricYardage.${direction}Help`)
+                        direction === 'auto' && plan.pattern
+                          ? t('fabricYardage.autoPickedPattern')
+                          : direction === 'auto' && oneWay
+                            ? t('fabricYardage.autoPickedNap')
+                            : direction === 'auto'
+                              ? t('fabricYardage.autoPicked', {
+                                  way: t(`fabricYardage.${plan.direction}`),
+                                })
+                              : t(`fabricYardage.${direction}Help`)
                       }
                       style={{ marginBottom: 0 }}
                     >
@@ -799,6 +813,48 @@ function FabricYardageScreen() {
                       <Checkbox checked={oneWay} onChange={(e) => setSettings((s) => ({ ...s, oneWay: { ...s.oneWay, [key]: e.target.checked } }))}>
                         {t('fabricYardage.oneWay')}
                       </Checkbox>
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={9}>
+                    <Form.Item label={t('fabricYardage.patternRepeat')} extra={t('fabricYardage.patternRepeatHelp')} style={{ marginBottom: 0 }}>
+                      <InputNumber
+                        size="large"
+                        min={0}
+                        max={120}
+                        step={0.25}
+                        value={patternInput.vertical}
+                        onChange={(v) => setPattern({ vertical: v ?? 0 })}
+                        suffix={t('calc.in')}
+                        style={{ width: '100%' }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={12} sm={8}>
+                    <Form.Item label={t('fabricYardage.patternHorizontal')} extra={t('fabricYardage.patternHorizontalHelp')} style={{ marginBottom: 0 }}>
+                      <InputNumber
+                        size="large"
+                        min={0}
+                        max={120}
+                        step={0.25}
+                        disabled={!plan.pattern}
+                        value={patternInput.horizontal}
+                        placeholder={patternInput.vertical ? String(patternInput.vertical) : ''}
+                        onChange={(v) => setPattern({ horizontal: v || null })}
+                        suffix={t('calc.in')}
+                        style={{ width: '100%' }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={12} sm={7}>
+                    <Form.Item label={t('fabricYardage.patternMatch')} style={{ marginBottom: 0 }}>
+                      <Select
+                        size="large"
+                        style={{ width: '100%' }}
+                        disabled={!plan.pattern}
+                        value={patternInput.halfDrop ? 'halfDrop' : 'straight'}
+                        onChange={(v) => setPattern({ halfDrop: v === 'halfDrop' })}
+                        options={(['straight', 'halfDrop'] as const).map((m) => ({ value: m, label: t(`fabricYardage.match_${m}`) }))}
+                      />
                     </Form.Item>
                   </Col>
                   <Col xs={12} sm={10}>
@@ -855,6 +911,19 @@ function FabricYardageScreen() {
                   </Tag>
                 )}
               </Space>
+              {plan.pattern && (
+                <Alert
+                  type="info"
+                  showIcon
+                  title={t('fabricYardage.patternEstimateTitle')}
+                  description={t('fabricYardage.patternEstimate')}
+                  style={{ marginBottom: 12 }}
+                />
+              )}
+              {plan.offCenter > 0 && (
+                <Alert type="warning" showIcon title={t('fabricYardage.offCenter', { count: plan.offCenter })} style={{ marginBottom: 12 }} />
+              )}
+              {plan.heldAtPlain && <Alert type="info" showIcon title={t('fabricYardage.heldAtPlain')} style={{ marginBottom: 12 }} />}
               {plan.tooWide.length > 0 && (
                 <Alert
                   type="warning"
@@ -923,6 +992,11 @@ function FabricYardageScreen() {
               {plan.oneWay && plan.totalLength > 0 && (
                 <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 6, marginBottom: 0 }}>
                   {t('fabricYardage.napLegend')}
+                </Typography.Paragraph>
+              )}
+              {plan.pattern && plan.totalLength > 0 && (
+                <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 6, marginBottom: 0 }}>
+                  {t('fabricYardage.motifLegend')}
                 </Typography.Paragraph>
               )}
               {list.length > 0 && (
