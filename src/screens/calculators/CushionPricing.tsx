@@ -34,9 +34,18 @@ import {
   money,
   wholeYards,
   yardageNonReversible,
-  yardageReversible,
   type PriceOption,
 } from '../../lib/calculators/cushionPricing'
+import { DEFAULT_HEIGHT_DEDUCTION, cushionCuts } from '../../lib/calculators/cushionCut'
+import {
+  DEFAULT_END_ALLOWANCE,
+  DEFAULT_EXTRA,
+  DEFAULT_GAP,
+  DEFAULT_LISTED_WIDTH,
+  DEFAULT_SELVAGE_TRIM,
+  piecesFor,
+  planFabric,
+} from '../../lib/calculators/fabricNesting'
 
 type Row = {
   id: number
@@ -66,6 +75,9 @@ type Row = {
   backFabric: string
   backDirection: 'tbd' | 'upTheRoll' | 'railroaded'
   backCenter: string
+  /** Pattern repeat of the back fabric, inches; empty = plain. */
+  backRepeat: string
+  backHalfDrop: boolean
   backWeltFabric: string
   // Estimate Rocket text
   erConfirmed: boolean
@@ -74,6 +86,9 @@ type Row = {
   erFabric: string
   erDirection: 'tbd' | 'upTheRoll' | 'railroaded'
   erCenter: string
+  /** Pattern repeat of the fabric, inches; empty = plain. */
+  erRepeat: string
+  erHalfDrop: boolean
   erContrastWelt: boolean
   erWeltFabric: string
   // Add-ons folded into this cushion's price
@@ -109,6 +124,8 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   backFabric: '',
   backDirection: 'tbd',
   backCenter: '',
+  backRepeat: '',
+  backHalfDrop: false,
   backWeltFabric: '',
   erConfirmed: false,
   erStyle: 'To Be Determined',
@@ -116,6 +133,8 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   erFabric: '',
   erDirection: 'tbd',
   erCenter: '',
+  erRepeat: '',
+  erHalfDrop: false,
   erContrastWelt: false,
   erWeltFabric: '',
   addTick: false,
@@ -215,8 +234,46 @@ function toBackSection(r: Row): Section | null {
 /** Upholstered to plywood is one-sided, so its yardage is never reversible. */
 const isReversible = (r: Row) => r.plan !== 'plywood' && r.erReversible
 
-/** Yards for one cushion, reversible or not. */
-const pieceYardsFor = (r: Row, x: Section) => (isReversible(r) ? yardageReversible(x.length) : yardageNonReversible(x.length))
+/**
+ * Yards to order for every cushion of one part of a line (all `qty` of them): the cut pieces
+ * laid out on a 54" roll the way Fabric Yardage does it, with one spare plate and the bias
+ * cording for welted styles. Non-reversible cushions need only the top plate in this fabric.
+ * Upholstered to plywood keeps the old per-piece formula.
+ */
+function lineYards(r: Row, x: Section, side: 'seat' | 'back'): number {
+  if (r.plan === 'plywood') return wholeYards(yardageNonReversible(x.length)) * x.qty
+  const back = side === 'back'
+  const style = back ? r.backStyle : r.erStyle
+  const dir = back ? r.backDirection : r.erDirection
+  const repeat = parseInches(back ? r.backRepeat : r.erRepeat) ?? 0
+  const halfDrop = back ? r.backHalfDrop : r.erHalfDrop
+  const cuts = cushionCuts({
+    qty: x.qty,
+    front: x.length,
+    sides: x.d,
+    height: x.h,
+    style: 'back',
+    heightDeduction: DEFAULT_HEIGHT_DEDUCTION,
+    cording: isWelted(style),
+  })
+  let pieces = piecesFor(cuts, '')
+  if (!isReversible(r)) {
+    let drop = x.qty
+    pieces = pieces.filter((p) => !(p.name === 'plate' && drop-- > 0))
+  }
+  return planFabric(pieces, {
+    listedWidth: DEFAULT_LISTED_WIDTH,
+    selvageTrim: DEFAULT_SELVAGE_TRIM,
+    direction: dir === 'tbd' ? 'auto' : dir,
+    gap: DEFAULT_GAP,
+    endAllowance: DEFAULT_END_ALLOWANCE,
+    cordingInches: cuts.cording,
+    together: false,
+    extra: DEFAULT_EXTRA,
+    oneWay: false,
+    pattern: repeat > 0 ? { vertical: repeat, horizontal: repeat, halfDrop } : null,
+  }).orderYards
+}
 
 const priceFor = (o: PriceOption, s: Section) => o.price(s.length, s.d, s.h)
 
@@ -365,7 +422,8 @@ function erTextFor(r: Row, s: Section): string {
     sewingStyle: r.erStyle,
     insert: r.insert,
     foamType: r.foamType,
-    yardsPerItem: pieceYardsFor(r, s),
+    yardsPerItem: lineYards(r, s, r.part === 'back' ? 'back' : 'seat') / s.qty,
+    yardsTotal: lineYards(r, s, r.part === 'back' ? 'back' : 'seat'),
     fabric: r.erFabric,
     direction: r.erDirection,
     center: r.erCenter,
@@ -377,7 +435,8 @@ function erTextFor(r: Row, s: Section): string {
           sewingStyle: r.backStyle,
           insert: r.backInsert,
           foamType: r.backFoamType,
-          yardsPerItem: pieceYardsFor(r, b),
+          yardsPerItem: lineYards(r, b, 'back') / b.qty,
+          yardsTotal: lineYards(r, b, 'back'),
           fabric: r.backFabric,
           direction: r.backDirection,
           center: r.backCenter,
@@ -438,10 +497,10 @@ export default function CushionPricing() {
       const insert = seat.insert + (back?.insert ?? 0)
       const addOns = seat.addOns + (back?.addOns ?? 0)
       const eachPrice = labor + insert + addOns
-      // Seat and back round up separately: they can be different fabrics.
-      const seatYards = wholeYards(pieceYardsFor(r, s))
-      const backYards = b ? wholeYards(pieceYardsFor(r, b)) : 0
-      const yardsEach = seatYards + backYards
+      // Seat and back are laid out separately: they can be different fabrics. Yards are for the whole line.
+      const seatYards = lineYards(r, s, r.part === 'back' ? 'back' : 'seat')
+      const backYards = b ? lineYards(r, b, 'back') : 0
+      const yards = seatYards + backYards
       return [
         {
           key: r.id,
@@ -455,8 +514,8 @@ export default function CushionPricing() {
           addOns,
           each: eachPrice,
           total: eachPrice * s.qty,
-          yardsEach,
-          yards: yardsEach * s.qty,
+          yardsEach: yards / s.qty,
+          yards,
           seatYards,
           backYards,
         },
@@ -538,6 +597,7 @@ export default function CushionPricing() {
           dir: r.backDirection,
           center: r.backCenter,
           welt: r.backWeltFabric,
+          repeat: r.backRepeat,
         }
       : {
           labor: r.labor,
@@ -548,7 +608,9 @@ export default function CushionPricing() {
           dir: r.erDirection,
           center: r.erCenter,
           welt: r.erWeltFabric,
+          repeat: r.erRepeat,
         }
+    const halfDrop = back ? r.backHalfDrop : r.erHalfDrop
     const set = (k: keyof typeof v, val: string) => {
       const map = back
         ? {
@@ -560,6 +622,7 @@ export default function CushionPricing() {
             dir: 'backDirection',
             center: 'backCenter',
             welt: 'backWeltFabric',
+            repeat: 'backRepeat',
           }
         : {
             labor: 'labor',
@@ -570,6 +633,7 @@ export default function CushionPricing() {
             dir: 'erDirection',
             center: 'erCenter',
             welt: 'erWeltFabric',
+            repeat: 'erRepeat',
           }
       update(r.id, { [map[k]]: val } as Partial<Row>)
     }
@@ -625,6 +689,31 @@ export default function CushionPricing() {
           onChange={(e) => set('center', e.target.value)}
           placeholder={t('cushionPricing.erCenterPlaceholder')}
         />,
+      ),
+      repeat: field(
+        id('repeat'),
+        t('cushionPricing.fRepeat', { part: P }),
+        <Space.Compact style={{ width: '100%' }}>
+          <Input
+            id={id('repeat')}
+            size="large"
+            allowClear
+            inputMode="decimal"
+            value={v.repeat}
+            onChange={(e) => set('repeat', e.target.value)}
+            placeholder={t('cushionPricing.repeatPlain')}
+            suffix={t('calc.in')}
+            status={v.repeat.trim() !== '' && parseInches(v.repeat) === null ? 'error' : undefined}
+          />
+          <Select
+            size="large"
+            style={{ width: 150 }}
+            disabled={!(parseInches(v.repeat) ?? 0)}
+            value={halfDrop ? 'halfDrop' : 'straight'}
+            onChange={(x) => update(r.id, (back ? { backHalfDrop: x === 'halfDrop' } : { erHalfDrop: x === 'halfDrop' }) as Partial<Row>)}
+            options={(['straight', 'halfDrop'] as const).map((m) => ({ value: m, label: t(`fabricYardage.match_${m}`) }))}
+          />
+        </Space.Compact>,
       ),
       welt: isWelted(v.style)
         ? field(
@@ -862,6 +951,7 @@ export default function CushionPricing() {
                       pair(seat.fabric, back.fabric, 'fabric'),
                       pair(seat.dir, back.dir, 'dir'),
                       pair(seat.center, back.center, 'center'),
+                      pair(seat.repeat, back.repeat, 'repeat'),
                       pair(seat.welt, back.welt, 'welt'),
                     ]
                   : [
@@ -869,6 +959,7 @@ export default function CushionPricing() {
                       pair(seat.insert, seat.foam, 'insert'),
                       pair(seat.fabric, seat.dir, 'fabric'),
                       pair(seat.welt, seat.center, 'center'),
+                      pair(seat.repeat, null, 'repeat'),
                     ]}
 
                 <Form.Item label={t('cushionPricing.addOnsLabel')} extra={t('cushionPricing.addOnsHelp')} style={{ marginBottom: 0 }}>
@@ -948,15 +1039,17 @@ export default function CushionPricing() {
                   render: (_: unknown, l) =>
                     l.backYards ? (
                       <>
-                        <div>{t('cushionPricing.ydSeat', { n: l.seatYards * l.qty })}</div>
-                        <div>{t('cushionPricing.ydBack', { n: l.backYards * l.qty })}</div>
+                        <div>{t('cushionPricing.ydSeat', { n: l.seatYards })}</div>
+                        <div>{t('cushionPricing.ydBack', { n: l.backYards })}</div>
                       </>
                     ) : (
                       <>
-                        <div>{t('cushionPricing.ydEach', { n: l.yardsEach })}</div>
-                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                          {t('cushionPricing.ydTotal', { n: l.yards })}
-                        </Typography.Text>
+                        <div>{t('cushionPricing.ydTotal', { n: l.yards })}</div>
+                        {l.qty > 1 && (
+                          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            {t('cushionPricing.ydEachAbout', { n: Number.isInteger(l.yardsEach) ? l.yardsEach : l.yardsEach.toFixed(1) })}
+                          </Typography.Text>
+                        )}
                       </>
                     ),
                 },
@@ -987,6 +1080,9 @@ export default function CushionPricing() {
               <Statistic title={t('cushionPricing.fabricTotal')} value={quote.yards} suffix={t('calc.yd')} />
             </Col>
           </Row>
+          <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 12, marginBottom: 0 }}>
+            {t('cushionPricing.yardageHow')}
+          </Typography.Paragraph>
         </Card>
 
         {quote.lines.length > 0 && (

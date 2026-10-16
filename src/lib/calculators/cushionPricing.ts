@@ -48,8 +48,7 @@ export const ADD_ONS = {
   com15: 1.15,
 }
 
-export const money = (n: number) =>
-  isFinite(n) ? `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
+export const money = (n: number) => (isFinite(n) ? `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—')
 
 // ── Estimate Rocket line text ─────────────────────────────────────────
 // Matches the workroom's Estimate Rocket template so it can be pasted as is.
@@ -103,6 +102,8 @@ export type EstimateRocketPart = {
   insert: string
   foamType: string
   yardsPerItem: number
+  /** Yards for every cushion of the line together, from the roll layout; when set it is printed as is. */
+  yardsTotal?: number
   fabric: string
   direction: 'tbd' | 'upTheRoll' | 'railroaded'
   /** What the fabric is centered on (pattern, motif, stripe…). */
@@ -132,9 +133,14 @@ function directionLine(direction: EstimateRocketPart['direction'], center: strin
   return c ? `${DIRECTION_TEXT[direction]} - Centered: ${c}` : DIRECTION_TEXT[direction]
 }
 
+/** Yards per item from a whole-line total: whole numbers as is, otherwise to one decimal. */
+const perItem = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
+
 function fabricLines(label: string, qty: number, p: EstimateRocketPart): string[] {
   return [
-    `* **${label} Yardage:** ${wholeYards(p.yardsPerItem) * qty} Yards of Fabric Required in TOTAL (${wholeYards(p.yardsPerItem)} Yards Per Item)`,
+    p.yardsTotal !== undefined
+      ? `* **${label} Yardage:** ${p.yardsTotal} Yards of Fabric Required in TOTAL (${perItem(p.yardsTotal / qty)} Yards Per Item)`
+      : `* **${label} Yardage:** ${wholeYards(p.yardsPerItem) * qty} Yards of Fabric Required in TOTAL (${wholeYards(p.yardsPerItem)} Yards Per Item)`,
     `* **${label} Fabric:** ${p.fabric.trim() || 'To Be Determined (Price Not Included)'}`,
     `* **${label} Fabric Direction/Center:** ${directionLine(p.direction, p.center)}`,
     ...(p.weltFabric.trim() ? [`* **${label === 'Body' ? '' : `${label} `}Contrast Welt:** ${p.weltFabric.trim()}`] : []),
@@ -153,9 +159,7 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     ...(e.back ? [dims('Seat Dimensions', e.depth, e.height), dims('Back Dimensions', e.back.depth, e.back.height)] : [dims('Dimensions', e.depth, e.height)]),
     '',
     '#### Style:',
-    ...(e.back
-      ? [`* **Seat Sewing Style:** ${e.sewingStyle}`, `* **Back Sewing Style:** ${e.back.sewingStyle}`]
-      : [`* **Sewing Style:** ${e.sewingStyle}`]),
+    ...(e.back ? [`* **Seat Sewing Style:** ${e.sewingStyle}`, `* **Back Sewing Style:** ${e.back.sewingStyle}`] : [`* **Sewing Style:** ${e.sewingStyle}`]),
     '* **Zipper:** Standard',
     '',
     '#### Fill:',

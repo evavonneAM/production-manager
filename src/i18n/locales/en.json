@@ -728,7 +728,11 @@
     "thickness": "Thickness",
     "part": "Seat or back",
     "priceEach": "Price each",
-    "cushionN": "Cushion {{n}}"
+    "cushionN": "Cushion {{n}}",
+    "fRepeat": "{{part}} pattern repeat",
+    "repeatPlain": "Plain",
+    "ydEachAbout": "about {{n}} yd each",
+    "yardageHow": "Fabric is worked out by laying every cut piece on a 54\" roll (with one spare plate and the bias cording for welted styles), the same as the Fabric Yardage tool. Add a pattern repeat for patterned fabric."
   },
   "fabricYardage": {
     "intro": "Add the cushions, or bring them in from Cushion Cut Dimensions. Every piece is laid out on the roll and the yardage updates as you type.",
