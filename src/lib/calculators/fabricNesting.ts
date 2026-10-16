@@ -1,6 +1,6 @@
 // Fabric yardage for cushions: lay every cut piece for one fabric onto the roll
 // (MaxRects, the same method as the plywood nesting) and measure how much roll
-// it takes. Plain fabric only for now: no pattern repeat and no nap.
+// it takes. No pattern repeat yet; one-way (nap) fabrics are handled.
 //
 // Rules from the cutter's rulebook:
 // - Every piece of a fabric is cut the same way: all up the roll or all railroaded.
@@ -13,6 +13,10 @@
 // - Bias cording comes from one block at the end: strips × 1¾" + 24", at least 60".
 // - Extra for flaws: enough for one spare plate, or a percentage.
 // - The order is rounded up to whole yards.
+// - One-way fabrics (velvet, mohair, chenille, directional prints) are cut up the roll
+//   with every piece pointing the same way: plates back edge first, boxing and zipper
+//   top edge first, so the nap runs from back to front and down the boxing.
+//   Railroading a one-way fabric needs approval.
 
 import { cordingStrips, type AnyCuts } from './cushionCut'
 
@@ -68,6 +72,8 @@ export type FabricPlan = {
   /** Usable width the pieces are laid on. */
   width: number
   direction: Direction
+  /** One-way fabric: every piece points the same way along the roll. */
+  oneWay: boolean
   placed: PlacedCut[]
   /** Pieces too big for the roll even when joined. */
   tooWide: CutPiece[]
@@ -252,10 +258,14 @@ export type FabricOptions = {
   /** Keep each cushion's pieces together on the roll, the way the cutters lay it out. */
   together: boolean
   extra: Extra
+  /** One-way fabric (nap or directional print). */
+  oneWay: boolean
 }
 
 /** Lay out one fabric's pieces on the roll and work out the yards to order. */
 export function planFabric(pieces: CutPiece[], opts: FabricOptions): FabricPlan {
+  // One-way fabric goes up the roll unless someone chose otherwise (that needs approval).
+  if (opts.direction === 'auto' && opts.oneWay) return planOneWay(pieces, opts, 'upTheRoll')
   if (opts.direction === 'auto') {
     // "If we can railroad we will": railroad unless up the roll needs no joins and
     // takes fewer yards. Joined plates are decided with the client, never picked here.
@@ -347,6 +357,7 @@ function planOneWay(pieces: CutPiece[], opts: FabricOptions, direction: Directio
   return {
     width,
     direction,
+    oneWay: opts.oneWay,
     placed,
     tooWide,
     joined: [...joinedMap.values()],

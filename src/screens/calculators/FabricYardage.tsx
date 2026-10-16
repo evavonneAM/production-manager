@@ -75,6 +75,8 @@ type Settings = {
   widths: Record<string, number>
   /** Which way each fabric is cut. */
   directions: Record<string, DirectionChoice>
+  /** One-way (nap) per fabric; unset = guessed from the fabric name. */
+  oneWay: Record<string, boolean>
   /** Trimmed off each selvage (the cutter's ruler line). */
   selvageLine: number
   gap: number
@@ -106,6 +108,7 @@ const blank = (): Cushion => ({
 const blankSettings = (): Settings => ({
   widths: {},
   directions: {},
+  oneWay: {},
   selvageLine: DEFAULT_SELVAGE_TRIM,
   gap: DEFAULT_GAP,
   endAllowance: DEFAULT_END_ALLOWANCE,
@@ -206,8 +209,25 @@ function InchField({ id, label, value, onChange }: { id: string; label: string; 
   )
 }
 
+/** Fabrics treated as one-way unless the box is unticked. */
+const ONE_WAY_NAMES = /velvet|velour|mohair|chenille|plush|corduroy/i
+
 const FILLS = ['#d4e3f2', '#f6e3c8', '#d9eedb', '#eedcf2', '#f5d6d6', '#d6eff0', '#ece9cf', '#e2e2e2']
 const STROKES = ['#1677ff', '#d48806', '#389e0d', '#9254de', '#cf1322', '#08979c', '#7c6f00', '#595959']
+
+/** Down-the-nap arrow in a piece's corner. Every piece points the same way along the roll. */
+function NapArrow({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
+  const len = Math.min(6, w * 0.5)
+  const s = Math.min(1.2, h / 4)
+  const ax = x + 1
+  const ay = y + Math.min(2, h / 2)
+  return (
+    <g stroke="#a8071a" fill="#a8071a" strokeWidth={0.35}>
+      <line x1={ax} y1={ay} x2={ax + len - s} y2={ay} />
+      <polygon points={`${ax + len},${ay} ${ax + len - s},${ay - s / 2} ${ax + len - s},${ay + s / 2}`} stroke="none" />
+    </g>
+  )
+}
 
 /** The roll unrolled on the cutting table: first end on the left, the roll's width top to bottom. */
 function RollDiagram({ plan, cushionIndex, pieceLabel }: { plan: FabricPlan; cushionIndex: (c: string) => number; pieceLabel: (p: PlacedCut) => string }) {
@@ -279,6 +299,7 @@ function RollDiagram({ plan, cushionIndex, pieceLabel }: { plan: FabricPlan; cus
                     {formatInches(p.across)} × {formatInches(p.along)}
                   </tspan>
                 </text>
+                {plan.oneWay && <NapArrow x={x} y={y} w={w} h={h} />}
               </g>
             )
           })}
@@ -351,6 +372,7 @@ function FabricYardageScreen() {
     return [...groups.entries()].map(([key, g]) => {
       const listedWidth = settings.widths[key] ?? DEFAULT_LISTED_WIDTH
       const direction = settings.directions[key] ?? 'auto'
+      const oneWay = settings.oneWay[key] ?? ONE_WAY_NAMES.test(key)
       const pieces = g.idx.flatMap((i) => piecesFor(cuts[i]!, cushions[i].label.trim() || t('fabricYardage.cushionN', { n: i + 1 })))
       const cordingInches = g.idx.reduce((n, i) => n + cuts[i]!.cording, 0)
       const cushionNames = g.idx.map((i) => cushions[i].label.trim() || t('fabricYardage.cushionN', { n: i + 1 }))
@@ -363,8 +385,9 @@ function FabricYardageScreen() {
         cordingInches,
         together: settings.byCushion,
         extra: settings.flaws,
+        oneWay,
       })
-      return { key, listedWidth, direction, cushionNames, plan }
+      return { key, listedWidth, direction, oneWay, cushionNames, plan }
     })
   }, [cushions, cuts, settings, t])
 
@@ -688,7 +711,7 @@ function FabricYardageScreen() {
 
         {fabrics.length === 0 && <Typography.Text type="secondary">{t('fabricYardage.empty')}</Typography.Text>}
 
-        {fabrics.map(({ key, listedWidth, direction, cushionNames, plan }) => {
+        {fabrics.map(({ key, listedWidth, direction, oneWay, cushionNames, plan }) => {
           const cushionIndex = (name: string) => Math.max(0, cushionNames.indexOf(name))
           // Same piece, same size, same way on the roll: one line with a count.
           const lines = new Map<string, PlacedCut & { qty: number; key: string }>()
@@ -699,7 +722,13 @@ function FabricYardageScreen() {
             else lines.set(key, { ...p, qty: 1, key })
           }
           const rank = (c: string) => (c ? cushionIndex(c) : 1e3)
-          const list = [...lines.values()].sort((a, b) => rank(a.cushion) - rank(b.cushion))
+          const PIECE_ORDER = ['plate', 'wedgePanel', 'wedgeSide', 'boxing', 'zipper', 'sparePlate']
+          const list = [...lines.values()].sort(
+            (a, b) =>
+              rank(a.cushion) - rank(b.cushion) ||
+              PIECE_ORDER.indexOf(a.name) - PIECE_ORDER.indexOf(b.name) ||
+              (a.join?.part === 'end' ? 1 : 0) - (b.join?.part === 'end' ? 1 : 0),
+          )
           return (
             <Card key={key || '-'} title={`${t('fabricYardage.rollTitle')}: ${key || t('fabricYardage.noFabric')}`}>
               <Form layout="vertical" component="div">
@@ -735,11 +764,13 @@ function FabricYardageScreen() {
                     <Form.Item
                       label={t('fabricYardage.direction')}
                       extra={
-                        direction === 'auto'
-                          ? t('fabricYardage.autoPicked', {
-                              way: t(`fabricYardage.${plan.direction}`),
-                            })
-                          : t(`fabricYardage.${direction}Help`)
+                        direction === 'auto' && oneWay
+                          ? t('fabricYardage.autoPickedNap')
+                          : direction === 'auto'
+                            ? t('fabricYardage.autoPicked', {
+                                way: t(`fabricYardage.${plan.direction}`),
+                              })
+                            : t(`fabricYardage.${direction}Help`)
                       }
                       style={{ marginBottom: 0 }}
                     >
@@ -761,6 +792,13 @@ function FabricYardageScreen() {
                           label: t(`fabricYardage.dir_${d}`),
                         }))}
                       />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24}>
+                    <Form.Item extra={t('fabricYardage.oneWayHelp')} style={{ marginBottom: 0 }}>
+                      <Checkbox checked={oneWay} onChange={(e) => setSettings((s) => ({ ...s, oneWay: { ...s.oneWay, [key]: e.target.checked } }))}>
+                        {t('fabricYardage.oneWay')}
+                      </Checkbox>
                     </Form.Item>
                   </Col>
                   <Col xs={12} sm={10}>
@@ -848,6 +886,15 @@ function FabricYardageScreen() {
                   style={{ marginBottom: 12 }}
                 />
               )}
+              {plan.oneWay && plan.direction === 'railroaded' && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  title={t('fabricYardage.napRailroadTitle')}
+                  description={t('fabricYardage.napRailroad')}
+                  style={{ marginBottom: 12 }}
+                />
+              )}
               {plan.joined.length > 0 && (
                 <Alert
                   type="warning"
@@ -873,6 +920,11 @@ function FabricYardageScreen() {
                 />
               )}
               {plan.totalLength > 0 && <RollDiagram plan={plan} cushionIndex={cushionIndex} pieceLabel={pieceLabel} />}
+              {plan.oneWay && plan.totalLength > 0 && (
+                <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 6, marginBottom: 0 }}>
+                  {t('fabricYardage.napLegend')}
+                </Typography.Paragraph>
+              )}
               {list.length > 0 && (
                 <>
                   <Typography.Title level={5} style={{ marginTop: 16 }}>
