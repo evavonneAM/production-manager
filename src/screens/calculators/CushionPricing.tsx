@@ -82,7 +82,6 @@ type Row = {
   // Estimate Rocket text
   erConfirmed: boolean
   erStyle: string
-  erReversible: boolean
   erFabric: string
   erDirection: 'tbd' | 'upTheRoll' | 'railroaded'
   erCenter: string
@@ -129,7 +128,6 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   backWeltFabric: '',
   erConfirmed: false,
   erStyle: 'To Be Determined',
-  erReversible: true,
   erFabric: '',
   erDirection: 'tbd',
   erCenter: '',
@@ -231,13 +229,10 @@ function toBackSection(r: Row): Section | null {
   return toSection({ ...r, depth: r.backDepth, thickness: r.backThickness })
 }
 
-/** Upholstered to plywood is one-sided, so its yardage is never reversible. */
-const isReversible = (r: Row) => r.plan !== 'plywood' && r.erReversible
-
 /**
  * Yards to order for every cushion of one part of a line (all `qty` of them): the cut pieces
  * laid out on a 54" roll the way Fabric Yardage does it, with one spare plate and the bias
- * cording for welted styles. Non-reversible cushions need only the top plate in this fabric.
+ * cording for welted styles (both plates in the fabric).
  * Upholstered to plywood keeps the old per-piece formula.
  */
 function lineYards(r: Row, x: Section, side: 'seat' | 'back'): number {
@@ -256,12 +251,7 @@ function lineYards(r: Row, x: Section, side: 'seat' | 'back'): number {
     heightDeduction: DEFAULT_HEIGHT_DEDUCTION,
     cording: isWelted(style),
   })
-  let pieces = piecesFor(cuts, '')
-  if (!isReversible(r)) {
-    let drop = x.qty
-    pieces = pieces.filter((p) => !(p.name === 'plate' && drop-- > 0))
-  }
-  return planFabric(pieces, {
+  return planFabric(piecesFor(cuts, ''), {
     listedWidth: DEFAULT_LISTED_WIDTH,
     selvageTrim: DEFAULT_SELVAGE_TRIM,
     direction: dir === 'tbd' ? 'auto' : dir,
@@ -970,13 +960,6 @@ export default function CushionPricing() {
                     <Checkbox checked={r.com === 'com15'} onChange={(e) => update(r.id, { com: e.target.checked ? 'com15' : 'none' })}>
                       {t('cushionPricing.com15')}
                     </Checkbox>
-                    {r.plan === 'plywood' ? (
-                      <Typography.Text type="secondary">{t('cushionPricing.plywoodNotReversible')}</Typography.Text>
-                    ) : (
-                      <Checkbox checked={r.erReversible} onChange={(e) => update(r.id, { erReversible: e.target.checked })}>
-                        {t('cushionPricing.reversibleFabric')}
-                      </Checkbox>
-                    )}
                   </Space>
                 </Form.Item>
               </Form>
