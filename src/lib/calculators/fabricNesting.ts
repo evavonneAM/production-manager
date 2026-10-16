@@ -1,6 +1,6 @@
 // Fabric yardage for cushions: lay every cut piece for one fabric onto the roll
 // (MaxRects, the same method as the plywood nesting) and measure how much roll
-// it takes. No pattern repeat yet; one-way (nap) fabrics are handled.
+// it takes. One-way (nap) fabrics and pattern repeats (straight or half-drop) are handled.
 //
 // Rules from the cutter's rulebook:
 // - Every piece of a fabric is cut the same way: all up the roll or all railroaded.
@@ -17,6 +17,12 @@
 //   with every piece pointing the same way: plates back edge first, boxing and zipper
 //   top edge first, so the nap runs from back to front and down the boxing.
 //   Railroading a one-way fabric needs approval.
+// - Patterned fabric (for estimating): every plate, boxing strip and wedge piece is cut
+//   with a motif centered on it, so it can only sit where the pattern puts a motif.
+//   Zipper strips are hidden at the back and go anywhere. Up the roll unless railroading
+//   is chosen (a designer or work order has to approve it). A strip too long for the
+//   roll is joined so the center and both ends still land on a motif. Where the motifs
+//   fall across the roll is luck, so the yardage is the worst of four starting points.
 
 import { cordingStrips, type AnyCuts } from './cushionCut'
 
@@ -64,7 +70,17 @@ export type CutPiece = {
   join?: { part: 'center' | 'end'; of: number }
 }
 
-export type PlacedCut = CutPiece & { x: number; y: number; w: number; h: number }
+export type PlacedCut = CutPiece & {
+  x: number
+  y: number
+  w: number
+  h: number
+  /** Patterned fabric: the piece is cut with a motif centered on it. */
+  matched?: boolean
+}
+
+/** A pattern repeat, as the mill lists it (inches). Half-drop: every other column is dropped half a repeat. */
+export type Pattern = { vertical: number; horizontal: number; halfDrop: boolean }
 
 export type Joined = { cushion: string; name: PieceName; center: number; end: number; pieces: number; count: number }
 
@@ -96,6 +112,12 @@ export type FabricPlan = {
   orderYards: number
   /** Share of the used roll covered by pieces. */
   used: number
+  /** Patterned fabric only: the repeat used. */
+  pattern?: Pattern
+  /** Patterned fabric: pieces that could not be centered on a motif (they can't land on one across the roll). */
+  offCenter: number
+  /** Patterned fabric: the yards were raised to the plain-fabric layout, which came out longer. */
+  heldAtPlain?: boolean
 }
 
 /** The cut pieces for one cushion line, from the Cushion Cut Dimensions formulas. */
@@ -119,8 +141,7 @@ export function piecesFor(cuts: AnyCuts, cushion: string): CutPiece[] {
 }
 
 /** Bias cording block length for a number of strips. */
-export const cordingBlock = (strips: number) =>
-  strips > 0 ? Math.max(CORDING_BLOCK_MIN, strips * CORDING_STRIP_WIDTH + CORDING_BLOCK_EXTRA) : 0
+export const cordingBlock = (strips: number) => (strips > 0 ? Math.max(CORDING_BLOCK_MIN, strips * CORDING_STRIP_WIDTH + CORDING_BLOCK_EXTRA) : 0)
 
 const up8 = (x: number) => Math.ceil(x * 8 - 1e-9) / 8
 const down8 = (x: number) => Math.floor(x * 8 + 1e-9) / 8
@@ -200,7 +221,10 @@ function packStrip<T extends Box>(items: T[], W: number, gap: number, score: 'bl
         !out.some(
           (c, j) =>
             j !== i &&
-            a.x >= c.x - EPS && a.y >= c.y - EPS && a.x + a.w <= c.x + c.w + EPS && a.y + a.h <= c.y + c.h + EPS &&
+            a.x >= c.x - EPS &&
+            a.y >= c.y - EPS &&
+            a.x + a.w <= c.x + c.w + EPS &&
+            a.y + a.h <= c.y + c.h + EPS &&
             (j < i || !(Math.abs(a.x - c.x) < EPS && Math.abs(a.y - c.y) < EPS && Math.abs(a.w - c.w) < EPS && Math.abs(a.h - c.h) < EPS)),
         ),
     )
@@ -234,10 +258,7 @@ function packBest<T extends Box>(items: T[], width: number, gap: number, cushion
   if (!best) return null
   // Then squeeze: try shorter fixed lengths of roll, which lets pieces fill the
   // width in rows the way a cutter would, and keep the shortest layout that fits.
-  let lo = Math.max(
-    items.reduce((n, i) => n + (i.w + gap) * (i.h + gap), 0) / (width + gap) - gap,
-    Math.max(...items.map((i) => i.h)),
-  )
+  let lo = Math.max(items.reduce((n, i) => n + (i.w + gap) * (i.h + gap), 0) / (width + gap) - gap, Math.max(...items.map((i) => i.h)))
   let hi = best.length
   for (let k = 0; k < 14 && hi - lo > 0.25; k++) {
     const mid = (lo + hi) / 2
@@ -289,8 +310,7 @@ function plateGrids(list: Item[], W: number, gap: number, style: GridStyle, cush
   const { w, h } = list[0]
   const n = list.length
   const maxCols = Math.max(1, Math.floor((W + gap + EPS) / (w + gap)))
-  const cols =
-    style === 'column' ? 1 : style === 'wide' ? Math.min(n, maxCols) : Math.ceil(n / Math.ceil(n / Math.min(n, maxCols)))
+  const cols = style === 'column' ? 1 : style === 'wide' ? Math.min(n, maxCols) : Math.ceil(n / Math.ceil(n / Math.min(n, maxCols)))
   const grid = (pieces: Item[], c: number): Block => {
     const rows = Math.ceil(pieces.length / c)
     const parts = pieces.map((it, k) => ({ it, dx: (k % c) * (w + gap), dy: Math.floor(k / c) * (h + gap) }))
@@ -328,6 +348,8 @@ function stripBundles(list: Item[], W: number, gap: number, cushion: string, mir
   lanes.sort((a, b) => b.used - a.used)
   // Lanes side by side; when they run along the roll, a bundle is never wider than the roll.
   const bundles: Block[] = []
+  // Each bundle is as long as its own longest lane (lanes are sorted longest first).
+  const bundleLen = new Map<Block, number>()
   let cur: Block | null = null
   let offset = 0
   for (const lane of lanes) {
@@ -338,6 +360,7 @@ function stripBundles(list: Item[], W: number, gap: number, cushion: string, mir
     if (!cur) {
       cur = { w: 0, h: 0, area: 0, cushion, parts: [], holes: [], longSide: along ? (mirror ? 'far' : 'near') : undefined }
       offset = 0
+      bundleLen.set(cur, lane.used)
     }
     lane.bundle = cur
     let pos = 0
@@ -347,11 +370,12 @@ function stripBundles(list: Item[], W: number, gap: number, cushion: string, mir
     }
     lane.offset = offset
     offset += lane.width + gap
+    const len = bundleLen.get(cur)!
     if (along) {
       cur.w = offset - gap
-      cur.h = laneLen
+      cur.h = len
     } else {
-      cur.w = laneLen
+      cur.w = len
       cur.h = offset - gap
     }
     cur.area = cur.w * cur.h
@@ -360,7 +384,7 @@ function stripBundles(list: Item[], W: number, gap: number, cushion: string, mir
   // Open fabric beyond the end of each shorter lane, out to the bundle's far side.
   for (const lane of lanes) {
     const b = lane.bundle!
-    const rest = laneLen - lane.used - gap
+    const rest = bundleLen.get(b)! - lane.used - gap
     if (rest <= EPS) continue
     const o = lane.offset!
     b.holes!.push(along ? { x: o, y: lane.used + gap, w: b.w - o + gap, h: rest + gap } : { x: lane.used + gap, y: o, w: rest + gap, h: b.h - o + gap })
@@ -388,10 +412,24 @@ export type FabricOptions = {
   extra: Extra
   /** One-way fabric (nap or directional print). */
   oneWay: boolean
+  /** Pattern repeat; leave out (or 0") for a plain fabric. */
+  pattern?: Pattern | null
 }
 
 /** Lay out one fabric's pieces on the roll and work out the yards to order. */
 export function planFabric(pieces: CutPiece[], opts: FabricOptions): FabricPlan {
+  // Patterned fabric goes up the roll unless railroading was chosen on purpose.
+  if (opts.pattern && opts.pattern.vertical > 0) {
+    const direction = opts.direction === 'auto' ? 'upTheRoll' : opts.direction
+    const pat = planPattern(pieces, opts, direction, opts.pattern)
+    // A pattern never takes less fabric than the same job in a plain fabric: if the
+    // pattern layout packs tighter than the cutter-friendly plain layout, hold the
+    // estimate at the plain yardage.
+    const plain = planOneWay(pieces, { ...opts, pattern: null }, direction)
+    if (plain.yardsWithExtra > pat.yardsWithExtra + EPS)
+      return { ...pat, yards: plain.yards, yardsWithExtra: plain.yardsWithExtra, orderYards: plain.orderYards, heldAtPlain: true }
+    return pat
+  }
   // One-way fabric goes up the roll unless someone chose otherwise (that needs approval).
   if (opts.direction === 'auto' && opts.oneWay) return planOneWay(pieces, opts, 'upTheRoll')
   if (opts.direction === 'auto') {
@@ -461,8 +499,7 @@ function planOneWay(pieces: CutPiece[], opts: FabricOptions, direction: Directio
   // Pieces go down in blocks (plate grids, strip bundles); try a few grid shapes and keep the shortest.
   type Layout = { placed: { it: Block; x: number; y: number }[]; length: number }
   // Strip bundles whose longest lanes don't sit on a roll edge (the cutters keep them on the outside).
-  const offEdge = (r: Layout) =>
-    r.placed.filter(({ it, x }) => (it.longSide === 'near' && x > EPS) || (it.longSide === 'far' && x + it.w < width - EPS)).length
+  const offEdge = (r: Layout) => r.placed.filter(({ it, x }) => (it.longSide === 'near' && x > EPS) || (it.longSide === 'far' && x + it.w < width - EPS)).length
   // Slide a strip bundle out to the roll edge on its long side when nothing is in the way.
   const toEdge = (r: Layout): Layout => {
     for (const p of r.placed) {
@@ -470,9 +507,7 @@ function planOneWay(pieces: CutPiece[], opts: FabricOptions, direction: Directio
       const target = p.it.longSide === 'near' ? 0 : width - p.it.w
       const lo = Math.min(p.x, target)
       const hi = Math.max(p.x, target) + p.it.w
-      const blocked = r.placed.some(
-        (q) => q !== p && q.y < p.y + p.it.h - EPS && q.y + q.it.h > p.y + EPS && q.x < hi - EPS && q.x + q.it.w > lo + EPS,
-      )
+      const blocked = r.placed.some((q) => q !== p && q.y < p.y + p.it.h - EPS && q.y + q.it.h > p.y + EPS && q.x < hi - EPS && q.x + q.it.w > lo + EPS)
       if (!blocked) p.x = target
     }
     return r
@@ -541,5 +576,251 @@ function planOneWay(pieces: CutPiece[], opts: FabricOptions, direction: Directio
     yardsWithExtra,
     orderYards: Math.ceil(yardsWithExtra - 1e-9),
     used: piecesLength > 0 ? pieceArea / (piecesLength * width) : 0,
+    offCenter: 0,
+  }
+}
+
+// ── Patterned fabric ────────────────────────────────────────────────
+
+type PItem = CutPiece & { w: number; h: number; matched: boolean }
+
+/** Small seeded random numbers, so the same job always gives the same layout. */
+function rng(seed: number) {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0
+    let t = a
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/**
+ * Where motif centers fall on the roll. Up the roll, motif columns run along the roll every
+ * `horizontal` inches across it (half-drop: every other column drops half a repeat).
+ * Railroaded, the pattern is turned: its vertical repeat runs across the roll.
+ */
+function lattice(pattern: Pattern, direction: Direction, ox: number) {
+  const { vertical: V, horizontal: H, halfDrop } = pattern
+  const drop = (k: number) => (halfDrop && Math.abs(k) % 2 === 1 ? V / 2 : 0)
+  const mod = (a: number, m: number) => ((a % m) + m) % m
+  /** Lowest motif center at or past `y0` (along) in column `i` / at or past `x0` (across) in row `j`. */
+  const candidates = (fx: number, fy: number, w: number, h: number): [number, number][] => {
+    const out: [number, number][] = []
+    if (direction === 'upTheRoll') {
+      const i0 = Math.ceil((fx + w / 2 - ox) / H - EPS)
+      for (let i = i0; i < i0 + 3; i++) {
+        const cx = ox + i * H
+        const ph = drop(i)
+        const cy = ph + Math.ceil((fy + h / 2 - ph) / V - EPS) * V
+        out.push([cx - w / 2, cy - h / 2])
+      }
+    } else {
+      const j0 = Math.ceil((fy + h / 2) / H - EPS)
+      for (let j = j0; j < j0 + 3; j++) {
+        const cy = j * H
+        const ph = ox + drop(j)
+        const cx = ph + Math.ceil((fx + w / 2 - ph) / V - EPS) * V
+        out.push([cx - w / 2, cy - h / 2])
+      }
+    }
+    return out
+  }
+  /** Can a piece `w` across land centered on a motif inside the usable width `W`? */
+  const fitsAcross = (w: number, W: number) => {
+    if (w > W + EPS) return false
+    const phases = direction === 'upTheRoll' ? [{ p: ox, P: H }] : [{ p: ox, P: V }, ...(halfDrop ? [{ p: ox + V / 2, P: V }] : [])]
+    return phases.some(({ p, P }) => mod(p - w / 2, P) + w <= W + EPS)
+  }
+  return { candidates, fitsAcross, period: direction === 'upTheRoll' ? H : V }
+}
+
+/** MaxRects, lowest piece end first; matched pieces may only sit centered on a motif. */
+function packPattern(items: PItem[], W: number, gap: number, lat: ReturnType<typeof lattice>) {
+  let free: Free[] = [{ x: 0, y: 0, w: W + gap, h: 1e7 }]
+  const placed: { it: PItem; x: number; y: number }[] = []
+  for (const it of items) {
+    const w = it.w + gap
+    const h = it.h + gap
+    let best: { x: number; y: number; k1: number; k2: number } | null = null
+    for (const f of free) {
+      const spots: [number, number][] = it.matched ? lat.candidates(f.x, f.y, it.w, it.h) : [[f.x, f.y]]
+      for (const [x, y] of spots) {
+        if (x < f.x - EPS || y < f.y - EPS || x + w > f.x + f.w + EPS || y + h > f.y + f.h + EPS) continue
+        const k1 = y + h
+        if (!best || k1 < best.k1 - EPS || (Math.abs(k1 - best.k1) < EPS && x < best.k2)) best = { x, y, k1, k2: x }
+      }
+    }
+    if (!best) return null
+    const p = { x: best.x, y: best.y, w, h }
+    const out: Free[] = []
+    for (const f of free) {
+      if (p.x >= f.x + f.w - EPS || p.x + p.w <= f.x + EPS || p.y >= f.y + f.h - EPS || p.y + p.h <= f.y + EPS) {
+        out.push(f)
+        continue
+      }
+      if (p.x > f.x + EPS) out.push({ x: f.x, y: f.y, w: p.x - f.x, h: f.h })
+      if (p.x + p.w < f.x + f.w - EPS) out.push({ x: p.x + p.w, y: f.y, w: f.x + f.w - p.x - p.w, h: f.h })
+      if (p.y > f.y + EPS) out.push({ x: f.x, y: f.y, w: f.w, h: p.y - f.y })
+      if (p.y + p.h < f.y + f.h - EPS) out.push({ x: f.x, y: p.y + p.h, w: f.w, h: f.y + f.h - p.y - p.h })
+    }
+    free = out.filter(
+      (a, i) =>
+        !out.some(
+          (c, j) =>
+            j !== i &&
+            a.x >= c.x - EPS &&
+            a.y >= c.y - EPS &&
+            a.x + a.w <= c.x + c.w + EPS &&
+            a.y + a.h <= c.y + c.h + EPS &&
+            (j < i || !(Math.abs(a.x - c.x) < EPS && Math.abs(a.y - c.y) < EPS && Math.abs(a.w - c.w) < EPS && Math.abs(a.h - c.h) < EPS)),
+        ),
+    )
+    placed.push({ it, x: best.x, y: best.y })
+  }
+  const length = placed.reduce((n, { it, y }) => Math.max(n, y + it.h), 0)
+  return { placed, length }
+}
+
+function planPattern(pieces: CutPiece[], opts: FabricOptions, direction: Direction, pattern: Pattern): FabricPlan {
+  const { gap, endAllowance, cordingInches, extra } = opts
+  const width = Math.max(1, opts.listedWidth - 2 * opts.selvageTrim)
+  const pat: Pattern = { ...pattern, horizontal: pattern.horizontal > 0 ? pattern.horizontal : pattern.vertical }
+  const plates = pieces.filter((p) => p.name === 'plate' || p.name === 'wedgePanel').sort((a, b) => b.across * b.along - a.across * a.along)
+  const all = extra === 'plate' && plates[0] ? [...pieces, { ...plates[0], name: 'sparePlate' as const, cushion: '' }] : pieces
+  const isPlate = (n: PieceName) => n === 'plate' || n === 'wedgePanel' || n === 'sparePlate'
+
+  /** Pieces for one starting point of the pattern: joins depend on where the motifs fall. */
+  const prepare = (lat: ReturnType<typeof lattice>) => {
+    const items: PItem[] = []
+    const tooWide: CutPiece[] = []
+    const joined = new Map<string, Joined>()
+    let offCenter = 0
+    for (const p of all) {
+      if (!(p.across > 0 && p.along > 0)) continue
+      const matched = p.name !== 'zipper'
+      const [w, h] = direction === 'upTheRoll' ? [p.across, p.along] : [p.along, p.across]
+      const ok = (c: number) => (matched ? lat.fitsAcross(c, width) : c <= width + EPS)
+      if (ok(w)) {
+        items.push({ ...p, w, h, matched })
+        continue
+      }
+      if (w <= width + EPS) {
+        // Fits the roll but can't be centered on a motif: cut it where it fits, off center.
+        items.push({ ...p, w, h, matched: false })
+        offCenter++
+        continue
+      }
+      const minEnd = isPlate(p.name) ? MIN_PLATE_END : MIN_STRIP_END
+      const total = w + 2 * JOIN_ALLOWANCE
+      const endOf = (c: number) => up8((total - c) / 2)
+      let center = 0
+      let endsMatched = matched
+      for (let c = down8(width); c >= minEnd; c -= 0.125) {
+        const e = endOf(c)
+        if (ok(c) && e >= minEnd - EPS && ok(e)) {
+          center = c
+          break
+        }
+      }
+      if (!center)
+        for (let c = down8(width); c >= minEnd; c -= 0.125) {
+          const e = endOf(c)
+          if (ok(c) && e >= minEnd - EPS && e <= width + EPS) {
+            center = c
+            endsMatched = false
+            offCenter++
+            break
+          }
+        }
+      if (!center) {
+        tooWide.push(p)
+        continue
+      }
+      const end = endOf(center)
+      const mk = (len: number, part: 'center' | 'end', m: boolean): PItem => {
+        const piece: CutPiece = direction === 'upTheRoll' ? { ...p, across: len, join: { part, of: 3 } } : { ...p, along: len, join: { part, of: 3 } }
+        return { ...piece, w: len, h, matched: m }
+      }
+      items.push(mk(center, 'center', matched), mk(end, 'end', endsMatched), mk(end, 'end', endsMatched))
+      const key = `${p.cushion}|${p.name}`
+      const j = joined.get(key)
+      if (j) j.count++
+      else joined.set(key, { cushion: p.cushion, name: p.name, center, end, pieces: 3, count: 1 })
+    }
+    return { items, tooWide, joined: [...joined.values()], offCenter }
+  }
+
+  type Run = ReturnType<typeof prepare> & { placed: { it: PItem; x: number; y: number }[]; length: number }
+  let worst: Run | null = null
+  const period = direction === 'upTheRoll' ? pat.horizontal : pat.vertical
+  for (let k = 0; k < 4; k++) {
+    const lat = lattice(pat, direction, (period * k) / 4)
+    const prep = prepare(lat)
+    const orders: ((a: PItem, b: PItem) => number)[] = [
+      (a, b) => Number(b.matched) - Number(a.matched) || b.w * b.h - a.w * a.h,
+      (a, b) => b.w * b.h - a.w * a.h,
+      (a, b) => b.w - a.w || b.h - a.h,
+      (a, b) => b.h - a.h || b.w - a.w,
+      (a, b) => Number(b.matched) - Number(a.matched) || b.w - a.w,
+    ]
+    const lists = orders.map((o) => [...prep.items].sort(o))
+    const rand = rng(7 + k)
+    for (let s = 0; s < 24; s++) {
+      const q = [...lists[0]]
+      for (let i = 0; i < q.length; i++) {
+        const j = Math.min(q.length - 1, i + Math.floor(rand() * 4))
+        ;[q[i], q[j]] = [q[j], q[i]]
+      }
+      lists.push(q)
+    }
+    let best: { placed: { it: PItem; x: number; y: number }[]; length: number } | null = null
+    for (const list of lists) {
+      const r = packPattern(list, width, gap, lat)
+      if (r && (!best || r.length < best.length - EPS)) best = r
+    }
+    if (!best) continue
+    if (!worst || best.length > worst.length + EPS) worst = { ...prep, ...best }
+  }
+
+  const placed: PlacedCut[] = (worst?.placed ?? []).map(({ it, x, y }) => ({
+    name: it.name,
+    cushion: it.cushion,
+    across: it.across,
+    along: it.along,
+    join: it.join,
+    x,
+    y,
+    w: it.w,
+    h: it.h,
+    matched: it.matched,
+  }))
+  const piecesLength = worst?.length ?? 0
+  const strips = cordingStrips(cordingInches)
+  const cordingLength = cordingBlock(strips)
+  const totalLength = (piecesLength > 0 || cordingLength > 0 ? endAllowance : 0) + piecesLength + cordingLength
+  const yards = totalLength / 36
+  const yardsWithExtra = typeof extra === 'number' ? yards * (1 + extra) : yards
+  const pieceArea = (worst?.items ?? []).reduce((n, i) => n + i.w * i.h, 0)
+  return {
+    width,
+    direction,
+    oneWay: opts.oneWay,
+    placed,
+    tooWide: worst?.tooWide ?? [],
+    joined: worst?.joined ?? [],
+    piecesLength,
+    cordingStrips: strips,
+    cordingLength,
+    endAllowance: totalLength > 0 ? endAllowance : 0,
+    totalLength,
+    yards,
+    extra,
+    yardsWithExtra,
+    orderYards: Math.ceil(yardsWithExtra - 1e-9),
+    used: piecesLength > 0 ? pieceArea / (piecesLength * width) : 0,
+    pattern: pat,
+    offCenter: worst?.offCenter ?? 0,
   }
 }
