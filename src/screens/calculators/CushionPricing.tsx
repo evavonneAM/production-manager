@@ -77,7 +77,6 @@ type Row = {
   erContrastWelt: boolean
   erWeltFabric: string
   // Add-ons folded into this cushion's price
-  addWelting: boolean
   addTick: boolean
   com: 'none' | 'com15'
 }
@@ -119,7 +118,6 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   erCenter: '',
   erContrastWelt: false,
   erWeltFabric: '',
-  addWelting: false,
   addTick: false,
   com: 'none',
   ...patch,
@@ -136,8 +134,6 @@ function loadDraft(): Row[] {
           // The back used to share the seat's labor and style.
           if (old.backLabor === undefined) r.backLabor = r.labor
           if (old.backStyle === undefined) r.backStyle = r.erStyle
-          // Welt fabric now shows with the welting add-on.
-          if (r.erContrastWelt && r.erWeltFabric) r.addWelting = true
           if (r.com !== 'com15') r.com = 'none'
           // Labor used to include foam; now it is the cover only and foam is the insert.
           const cover = ({ customFoam: 'cleanSeam', frenchFoam: 'frenchCover' } as Record<string, string>)[r.labor]
@@ -235,9 +231,12 @@ function InchField({ id, label, value, onChange, help }: { id: string; label: st
 }
 
 /** Add-ons for one of this cushion, given its labor price each. */
-function sectionAddOns(r: Row, labor: number): number {
+/** Welting comes with the sewing style: any "Welted" style gets it. */
+const isWelted = (style: string) => /welt/i.test(style)
+
+function sectionAddOns(r: Row, labor: number, welted: boolean): number {
   return (
-    (r.addWelting ? ADD_ONS.welting : 0) +
+    (welted ? ADD_ONS.welting : 0) +
     (r.addTick ? ADD_ONS.outdoorTick : 0) +
     (r.com === 'com15' ? labor * (ADD_ONS.com15 - 1) : 0)
   )
@@ -349,7 +348,7 @@ function Converters() {
 /** Estimate Rocket text for one cushion line (with its matching back when it has one). */
 function erTextFor(r: Row, s: Section): string {
   const b = toBackSection(r)
-  const welt = (f: string) => (r.addWelting ? f : '')
+  const welt = (style: string, f: string) => (isWelted(style) ? f : '')
   return estimateRocketText({
     qty: s.qty,
     width: formatInches(s.length),
@@ -365,7 +364,7 @@ function erTextFor(r: Row, s: Section): string {
     fabric: r.erFabric,
     direction: r.erDirection,
     center: r.erCenter,
-    weltFabric: welt(r.erWeltFabric),
+    weltFabric: welt(r.erStyle, r.erWeltFabric),
     back: b
       ? {
           depth: formatInches(b.d),
@@ -377,7 +376,7 @@ function erTextFor(r: Row, s: Section): string {
           fabric: r.backFabric,
           direction: r.backDirection,
           center: r.backCenter,
-          weltFabric: welt(r.backWeltFabric),
+          weltFabric: welt(r.backStyle, r.backWeltFabric),
         }
       : undefined,
   })
@@ -417,19 +416,20 @@ export default function CushionPricing() {
       if (!s) return []
       const b = toBackSection(r)
       // One cushion of the line: its picks and their prices.
-      const part = (x: Section, labor: string, insert: string) => {
+      const part = (x: Section, labor: string, insert: string, style: string) => {
+        const welted = isWelted(style)
         const l = price(labor, x)
         const ins = price(insert, x)
         const picks: Pick[] = []
         if (labor !== 'none') picks.push({ label: optionLabel(labor), amount: l })
         if (ins) picks.push({ label: insertLabel(insert), amount: ins })
-        if (r.addWelting) picks.push({ label: t('cushionPricing.pickWelting'), amount: ADD_ONS.welting })
+        if (welted) picks.push({ label: t('cushionPricing.pickWelting'), amount: ADD_ONS.welting })
         if (r.addTick) picks.push({ label: t('cushionPricing.pickTick'), amount: ADD_ONS.outdoorTick })
         if (r.com === 'com15') picks.push({ label: t('cushionPricing.pickCom'), amount: l * (ADD_ONS.com15 - 1) })
-        return { labor: l, insert: ins, addOns: sectionAddOns(r, l), picks }
+        return { labor: l, insert: ins, addOns: sectionAddOns(r, l, welted), picks }
       }
-      const seat = part(s, r.labor, r.insert)
-      const back = b ? part(b, r.backLabor, r.backInsert) : null
+      const seat = part(s, r.labor, r.insert, r.erStyle)
+      const back = b ? part(b, r.backLabor, r.backInsert, r.backStyle) : null
       const labor = seat.labor + (back?.labor ?? 0)
       const insert = seat.insert + (back?.insert ?? 0)
       const addOns = seat.addOns + (back?.addOns ?? 0)
@@ -551,7 +551,7 @@ export default function CushionPricing() {
         t('cushionPricing.fCenter', { part: P }),
         <Input id={id('center')} size="large" allowClear value={v.center} onChange={(e) => set('center', e.target.value)} placeholder={t('cushionPricing.erCenterPlaceholder')} />,
       ),
-      welt: r.addWelting
+      welt: isWelted(v.style)
         ? field(id('welt'), t('cushionPricing.fWelt', { part: P }), <Input id={id('welt')} size="large" allowClear value={v.welt} onChange={(e) => set('welt', e.target.value)} placeholder={t('cushionPricing.weltSame')} />)
         : null,
     }
@@ -744,9 +744,6 @@ export default function CushionPricing() {
 
                 <Form.Item label={t('cushionPricing.addOnsLabel')} extra={t('cushionPricing.addOnsHelp')} style={{ marginBottom: 0 }}>
                   <Space wrap size={[24, 8]}>
-                    <Checkbox checked={r.addWelting} onChange={(e) => update(r.id, { addWelting: e.target.checked })}>
-                      {t('cushionPricing.addWelting', { price: money(ADD_ONS.welting) })}
-                    </Checkbox>
                     <Checkbox checked={r.addTick} onChange={(e) => update(r.id, { addTick: e.target.checked })}>
                       {t('cushionPricing.addTick', { price: money(ADD_ONS.outdoorTick) })}
                     </Checkbox>
