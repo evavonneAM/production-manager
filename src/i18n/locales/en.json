@@ -731,7 +731,8 @@
     "repeatPlain": "Plain",
     "ydEachAbout": "about {{n}} yd each",
     "yardageHow": "Fabric is worked out by laying every cut piece on a 54\" roll (with one spare plate and the bias cording for welted styles), the same as the Fabric Yardage tool. Add a pattern repeat for patterned fabric.",
-    "duplicateLast": "Duplicate the last cushion"
+    "duplicateLast": "Duplicate the last cushion",
+    "fabricMapsTitle": "Fabric layouts"
   },
   "fabricYardage": {
     "intro": "Add the cushions, or bring them in from Cushion Cut Dimensions. Every piece is laid out on the roll and the yardage updates as you type.",

@@ -36,7 +36,10 @@ import {
   piecesFor,
   planFabric,
   type CutPiece,
+  type DirectionChoice,
+  type FabricPlan,
 } from '../../lib/calculators/fabricNesting'
+import { RollDiagram } from '../../components/FabricRollDiagram'
 
 type Row = {
   id: number
@@ -242,7 +245,10 @@ function boardPieces(x: Section, welted: boolean): { pieces: CutPiece[]; cording
  * cording for welted styles. Sewn cushions use the Cushion Cut pieces (both plates in the
  * fabric); upholstered-to-plywood cushions use the board cut list.
  */
-function lineYards(r: Row, x: Section, side: 'seat' | 'back'): number {
+/** Layouts already worked out, by their inputs (a page render asks for the same line several times). */
+const planCache = new Map<string, FabricPlan>()
+
+function linePlan(r: Row, x: Section, side: 'seat' | 'back'): FabricPlan {
   const back = side === 'back'
   const style = back ? r.backStyle : r.erStyle
   const dir = back ? r.backDirection : r.erDirection
@@ -264,10 +270,10 @@ function lineYards(r: Row, x: Section, side: 'seat' | 'back'): number {
     pieces = piecesFor(cuts, '')
     cording = cuts.cording
   }
-  return planFabric(pieces, {
+  const opts = {
     listedWidth: DEFAULT_LISTED_WIDTH,
     selvageTrim: DEFAULT_SELVAGE_TRIM,
-    direction: dir === 'tbd' ? 'auto' : dir,
+    direction: (dir === 'tbd' ? 'auto' : dir) as DirectionChoice,
     gap: DEFAULT_GAP,
     endAllowance: DEFAULT_END_ALLOWANCE,
     cordingInches: cording,
@@ -275,8 +281,18 @@ function lineYards(r: Row, x: Section, side: 'seat' | 'back'): number {
     extra: DEFAULT_EXTRA,
     oneWay: false,
     pattern: repeat > 0 ? { vertical: repeat, horizontal: repeat, halfDrop } : null,
-  }).orderYards
+  }
+  const key = JSON.stringify([pieces, opts])
+  let plan = planCache.get(key)
+  if (!plan) {
+    if (planCache.size > 200) planCache.clear()
+    plan = planFabric(pieces, opts)
+    planCache.set(key, plan)
+  }
+  return plan
 }
+
+const lineYards = (r: Row, x: Section, side: 'seat' | 'back') => linePlan(r, x, side).orderYards
 
 const priceFor = (o: PriceOption, s: Section) => o.price(s.length, s.d, s.h)
 
@@ -501,8 +517,10 @@ export default function CushionPricing() {
       const addOns = seat.addOns + (back?.addOns ?? 0)
       const eachPrice = labor + insert + addOns
       // Seat and back are laid out separately: they can be different fabrics. Yards are for the whole line.
-      const seatYards = lineYards(r, s, r.part === 'back' ? 'back' : 'seat')
-      const backYards = b ? lineYards(r, b, 'back') : 0
+      const seatPlan = linePlan(r, s, r.part === 'back' ? 'back' : 'seat')
+      const backPlan = b ? linePlan(r, b, 'back') : null
+      const seatYards = seatPlan.orderYards
+      const backYards = backPlan?.orderYards ?? 0
       const yards = seatYards + backYards
       return [
         {
@@ -521,6 +539,10 @@ export default function CushionPricing() {
           yards,
           seatYards,
           backYards,
+          seatPlan,
+          backPlan,
+          seatFabric: (r.part === 'back' ? r.backFabric : r.erFabric).trim(),
+          backFabric: r.backFabric.trim(),
         },
       ]
     })
@@ -1006,6 +1028,31 @@ export default function CushionPricing() {
         </Row>
 
         {anyPlywood && <PlywoodSheets plan={quote.plywood} />}
+
+        {quote.lines.length > 0 && (
+          <Card title={t('cushionPricing.fabricMapsTitle')}>
+            <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+              {quote.lines.flatMap((l) =>
+                [
+                  { part: l.backPlan ? t('cushionPricing.seat') : '', plan: l.seatPlan, fabric: l.seatFabric },
+                  ...(l.backPlan ? [{ part: t('cushionPricing.ib'), plan: l.backPlan, fabric: l.backFabric }] : []),
+                ].map(({ part, plan, fabric }) => (
+                  <div key={`${l.key}-${part}`}>
+                    <Typography.Text strong>
+                      {[l.name, part, fabric].filter(Boolean).join(' · ')} — {t('cushionPricing.ydTotal', { n: plan.orderYards })} (
+                      {t(`fabricYardage.${plan.direction}`)})
+                    </Typography.Text>
+                    <RollDiagram
+                      plan={plan}
+                      cushionIndex={() => 0}
+                      pieceLabel={(p) => t(`fabricYardage.piece_${p.name}`) + (p.join ? ` (${t(`fabricYardage.join_${p.join.part}`)})` : '')}
+                    />
+                  </div>
+                )),
+              )}
+            </Space>
+          </Card>
+        )}
 
         <Card title={t('cushionPricing.quoteTitle')}>
           {quote.lines.length > 0 ? (

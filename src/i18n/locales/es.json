@@ -730,7 +730,8 @@
     "repeatPlain": "Lisa",
     "ydEachAbout": "unas {{n}} yd cada uno",
     "yardageHow": "La tela se calcula acomodando cada pieza cortada en un rollo de 54\" (con una tapa de repuesto y el sesgo para los estilos con vivo), igual que la herramienta de Yardas de tela. Agrega la repetición si la tela tiene diseño.",
-    "duplicateLast": "Duplicar el último cojín"
+    "duplicateLast": "Duplicar el último cojín",
+    "fabricMapsTitle": "Trazos de la tela"
   },
   "fabricYardage": {
     "intro": "Agrega los cojines o tráelos de Medidas de corte de cojines. Cada pieza se acomoda en el rollo y el yardaje se actualiza al escribir.",
