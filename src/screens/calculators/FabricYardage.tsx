@@ -75,7 +75,8 @@ type Settings = {
   widths: Record<string, number>
   /** Which way each fabric is cut. */
   directions: Record<string, DirectionChoice>
-  selvageTrim: number
+  /** Trimmed off each selvage (the cutter's ruler line). */
+  selvageLine: number
   gap: number
   endAllowance: number
   /** Keep each cushion's pieces together (off: same pieces together, largest first, like the cutters). */
@@ -105,7 +106,7 @@ const blank = (): Cushion => ({
 const blankSettings = (): Settings => ({
   widths: {},
   directions: {},
-  selvageTrim: DEFAULT_SELVAGE_TRIM,
+  selvageLine: DEFAULT_SELVAGE_TRIM,
   gap: DEFAULT_GAP,
   endAllowance: DEFAULT_END_ALLOWANCE,
   byCushion: false,
@@ -355,7 +356,7 @@ function FabricYardageScreen() {
       const cushionNames = g.idx.map((i) => cushions[i].label.trim() || t('fabricYardage.cushionN', { n: i + 1 }))
       const plan = planFabric(pieces, {
         listedWidth,
-        selvageTrim: settings.selvageTrim,
+        selvageTrim: settings.selvageLine,
         direction,
         gap: settings.gap,
         endAllowance: settings.endAllowance,
@@ -611,8 +612,8 @@ function FabricYardageScreen() {
                     min={0}
                     max={4}
                     step={0.25}
-                    value={settings.selvageTrim}
-                    onChange={(v) => setSettings((s) => ({ ...s, selvageTrim: v ?? 0 }))}
+                    value={settings.selvageLine}
+                    onChange={(v) => setSettings((s) => ({ ...s, selvageLine: v ?? 0 }))}
                     suffix={t('calc.in')}
                     style={{ width: '100%' }}
                   />

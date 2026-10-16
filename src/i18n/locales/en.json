@@ -817,7 +817,7 @@
     "togetherHelp": "Each cushion's pieces stay together. Can take more fabric.",
     "mixedHelp": "Off: like the cutters, the same pieces are cut together in chunks, largest first.",
     "selvageTrim": "Trim off each selvage",
-    "selvageTrimHelp": "Selvage plus the poke holes.",
+    "selvageTrimHelp": "Selvage plus room for the cutter's straight ruler line.",
     "listedWidth": "Width the mill lists",
     "listedWidthHelp": "Usable after trimming the selvages: {{width}}.",
     "dir_auto": "Let the tool pick (railroad if possible)",

@@ -816,7 +816,7 @@
     "togetherHelp": "Las piezas de cada cojín quedan juntas. Puede usar más tela.",
     "mixedHelp": "Apagado: como los cortadores, las piezas iguales se cortan juntas, empezando por las más grandes.",
     "selvageTrim": "Recorte de cada orillo",
-    "selvageTrimHelp": "El orillo más los agujeros.",
+    "selvageTrimHelp": "El orillo más espacio para la línea recta del cortador.",
     "listedWidth": "Ancho según el fabricante",
     "listedWidthHelp": "Útil después de recortar los orillos: {{width}}.",
     "dir_auto": "Que elija la herramienta (atravesado si se puede)",

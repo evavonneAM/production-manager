@@ -5,7 +5,7 @@
 // Rules from the cutter's rulebook:
 // - Every piece of a fabric is cut the same way: all up the roll or all railroaded.
 //   Railroad when it fits, because it saves yardage.
-// - Usable width = the width the mill lists, less a trim off each selvage.
+// - Usable width = the width the mill lists, less 1½" off each selvage (the cutter's ruler line).
 // - Pieces share cut lines; if a gap is used it is at least ½".
 // - A piece wider than the roll is joined: a center as wide as the roll allows and
 //   two mirrored ends (never a seam down the middle). Plate ends at least 5",
@@ -22,8 +22,8 @@ export type DirectionChoice = Direction | 'auto'
 
 /** What the mill usually lists; the office always gives the real one. */
 export const DEFAULT_LISTED_WIDTH = 54
-/** The selvage itself, each side (the poke holes inside it can sit in seam allowances). */
-export const DEFAULT_SELVAGE_TRIM = 0.5
+/** Each side: the cutter draws a straight line 1½"–2" in from the selvage and builds every cut off it. */
+export const DEFAULT_SELVAGE_TRIM = 1.5
 /** Gap between pieces; 0 = pieces share a cut line. */
 export const DEFAULT_GAP = 0
 export const GAP_CHOICES = [0, 0.5, 1] as const
