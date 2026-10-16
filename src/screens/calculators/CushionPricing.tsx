@@ -37,6 +37,7 @@ import {
   planFabric,
   type CutPiece,
   type DirectionChoice,
+  type FabricOptions,
   type FabricPlan,
 } from '../../lib/calculators/fabricNesting'
 import { RollDiagram } from '../../components/FabricRollDiagram'
@@ -248,7 +249,8 @@ function boardPieces(x: Section, welted: boolean): { pieces: CutPiece[]; cording
 /** Layouts already worked out, by their inputs (a page render asks for the same line several times). */
 const planCache = new Map<string, FabricPlan>()
 
-function linePlan(r: Row, x: Section, side: 'seat' | 'back'): FabricPlan {
+/** The cut pieces and roll options for one part (seat or back) of a line. */
+function lineInputs(r: Row, x: Section, side: 'seat' | 'back'): { pieces: CutPiece[]; opts: FabricOptions } {
   const back = side === 'back'
   const style = back ? r.backStyle : r.erStyle
   const dir = back ? r.backDirection : r.erDirection
@@ -270,7 +272,7 @@ function linePlan(r: Row, x: Section, side: 'seat' | 'back'): FabricPlan {
     pieces = piecesFor(cuts, '')
     cording = cuts.cording
   }
-  const opts = {
+  const opts: FabricOptions = {
     listedWidth: DEFAULT_LISTED_WIDTH,
     selvageTrim: DEFAULT_SELVAGE_TRIM,
     direction: (dir === 'tbd' ? 'auto' : dir) as DirectionChoice,
@@ -282,6 +284,10 @@ function linePlan(r: Row, x: Section, side: 'seat' | 'back'): FabricPlan {
     oneWay: false,
     pattern: repeat > 0 ? { vertical: repeat, horizontal: repeat, halfDrop } : null,
   }
+  return { pieces, opts }
+}
+
+function cachedPlan(pieces: CutPiece[], opts: FabricOptions): FabricPlan {
   const key = JSON.stringify([pieces, opts])
   let plan = planCache.get(key)
   if (!plan) {
@@ -290,6 +296,11 @@ function linePlan(r: Row, x: Section, side: 'seat' | 'back'): FabricPlan {
     planCache.set(key, plan)
   }
   return plan
+}
+
+const linePlan = (r: Row, x: Section, side: 'seat' | 'back') => {
+  const { pieces, opts } = lineInputs(r, x, side)
+  return cachedPlan(pieces, opts)
 }
 
 const lineYards = (r: Row, x: Section, side: 'seat' | 'back') => linePlan(r, x, side).orderYards
@@ -558,11 +569,42 @@ export default function CushionPricing() {
       ]
     })
     const plywood = planPlywood(boards)
+    // Ordering: every part in the same fabric (same direction and repeat) goes on one roll together.
+    // A part without a fabric name stays on its own.
+    type Part = { label: string; fabric: string; pieces: CutPiece[]; opts: FabricOptions; yards: number }
+    const parts: Part[] = rows.flatMap((r, i) => {
+      const s = sections[i]
+      if (!s) return []
+      const name = r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 })
+      const b = toBackSection(r)
+      const mk = (x: Section, side: 'seat' | 'back', fabric: string, label: string): Part => {
+        const { pieces, opts } = lineInputs(r, x, side)
+        return { label, fabric: fabric.trim(), pieces: pieces.map((p) => ({ ...p, cushion: label })), opts, yards: cachedPlan(pieces, opts).orderYards }
+      }
+      const mainSide = r.part === 'back' ? 'back' : 'seat'
+      return [
+        mk(s, mainSide, mainSide === 'back' ? r.backFabric : r.erFabric, b ? `${name} ${t('cushionPricing.seat').toLowerCase()}` : name),
+        ...(b ? [mk(b, 'back', r.backFabric, `${name} ${t('cushionPricing.ib').toLowerCase()}`)] : []),
+      ]
+    })
+    const groups = new Map<string, Part[]>()
+    parts.forEach((p, k) => {
+      const { cordingInches: _c, ...same } = p.opts
+      void _c
+      const key = p.fabric ? JSON.stringify([p.fabric.toLowerCase(), same]) : `#${k}`
+      groups.set(key, [...(groups.get(key) ?? []), p])
+    })
+    const fabrics = [...groups.values()].map((list) => {
+      const pieces = list.flatMap((p) => p.pieces)
+      const opts = { ...list[0].opts, cordingInches: list.reduce((n, p) => n + p.opts.cordingInches, 0) }
+      return { fabric: list[0].fabric, labels: list.map((p) => p.label), separate: list.reduce((n, p) => n + p.yards, 0), plan: cachedPlan(pieces, opts) }
+    })
+    const orderYards = fabrics.reduce((n, f) => n + f.plan.orderYards, 0)
     const sum = (k: 'total' | 'yards') => lines.reduce((n, l) => n + l[k], 0)
     const labor = lines.reduce((n, l) => n + l.labor * l.qty, 0)
     const insert = lines.reduce((n, l) => n + l.insert * l.qty, 0)
     const addOns = lines.reduce((n, l) => n + l.addOns * l.qty, 0)
-    return { lines, labor, insert, addOns, plywood, total: sum('total') + plywood.cost, yards: sum('yards') }
+    return { lines, labor, insert, addOns, plywood, total: sum('total') + plywood.cost, yards: sum('yards'), fabrics, orderYards }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, sections, t])
 
@@ -1029,27 +1071,35 @@ export default function CushionPricing() {
 
         {anyPlywood && <PlywoodSheets plan={quote.plywood} />}
 
-        {quote.lines.length > 0 && (
+        {quote.fabrics.length > 0 && (
           <Card title={t('cushionPricing.fabricMapsTitle')}>
+            <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+              {t('cushionPricing.fabricMapsHelp', { order: quote.orderYards, separate: quote.yards })}
+            </Typography.Paragraph>
             <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-              {quote.lines.flatMap((l) =>
-                [
-                  { part: l.backPlan ? t('cushionPricing.seat') : '', plan: l.seatPlan, fabric: l.seatFabric },
-                  ...(l.backPlan ? [{ part: t('cushionPricing.ib'), plan: l.backPlan, fabric: l.backFabric }] : []),
-                ].map(({ part, plan, fabric }) => (
-                  <div key={`${l.key}-${part}`}>
-                    <Typography.Text strong>
-                      {[l.name, part, fabric].filter(Boolean).join(' · ')} — {t('cushionPricing.ydTotal', { n: plan.orderYards })} (
-                      {t(`fabricYardage.${plan.direction}`)})
+              {quote.fabrics.map((f, k) => (
+                <div key={k}>
+                  <Typography.Text strong>
+                    {f.fabric || t('cushionPricing.fabricUnnamed')} — {t('cushionPricing.ydTotal', { n: f.plan.orderYards })} (
+                    {t(`fabricYardage.${f.plan.direction}`)})
+                  </Typography.Text>
+                  <div>
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      {f.labels.join(', ')}
+                      {f.labels.length > 1 && f.separate !== f.plan.orderYards ? ` · ${t('cushionPricing.separately', { n: f.separate })}` : ''}
                     </Typography.Text>
-                    <RollDiagram
-                      plan={plan}
-                      cushionIndex={() => 0}
-                      pieceLabel={(p) => t(`fabricYardage.piece_${p.name}`) + (p.join ? ` (${t(`fabricYardage.join_${p.join.part}`)})` : '')}
-                    />
                   </div>
-                )),
-              )}
+                  <RollDiagram
+                    plan={f.plan}
+                    cushionIndex={(c) => Math.max(0, f.labels.indexOf(c))}
+                    pieceLabel={(p) =>
+                      (f.labels.length > 1 && p.cushion ? `${p.cushion} · ` : '') +
+                      t(`fabricYardage.piece_${p.name}`) +
+                      (p.join ? ` (${t(`fabricYardage.join_${p.join.part}`)})` : '')
+                    }
+                  />
+                </div>
+              ))}
             </Space>
           </Card>
         )}
@@ -1136,7 +1186,7 @@ export default function CushionPricing() {
               <Statistic title={t('cushionPricing.total')} value={money(quote.total)} valueStyle={{ fontWeight: 700 }} />
             </Col>
             <Col xs={12} sm={6}>
-              <Statistic title={t('cushionPricing.fabricTotal')} value={quote.yards} suffix={t('calc.yd')} />
+              <Statistic title={t('cushionPricing.fabricTotal')} value={quote.orderYards} suffix={t('calc.yd')} />
             </Col>
           </Row>
           <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 12, marginBottom: 0 }}>

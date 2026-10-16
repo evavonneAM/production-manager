@@ -714,7 +714,7 @@
     "addOnsCol": "Adicionales",
     "ydEach": "{{n}} yd c/u",
     "ydTotal": "{{n}} yd total",
-    "fabricTotal": "Tela (total)",
+    "fabricTotal": "Tela a pedir",
     "fabricEachOne": "{{each}} yd c/u × {{qty}}",
     "fabricEachMany": "Las yardas por unidad están en cada sección arriba",
     "insertTbd": "Por definir",
@@ -731,7 +731,10 @@
     "ydEachAbout": "unas {{n}} yd cada uno",
     "yardageHow": "La tela se calcula acomodando cada pieza cortada en un rollo de 54\" (con una tapa de repuesto y el sesgo para los estilos con vivo), igual que la herramienta de Yardas de tela. Agrega la repetición si la tela tiene diseño.",
     "duplicateLast": "Duplicar el último cojín",
-    "fabricMapsTitle": "Trazos de la tela"
+    "fabricMapsTitle": "Trazos de la tela",
+    "fabricMapsHelp": "Los cojines de la misma tela se acomodan juntos en un solo rollo: {{order}} yd para pedir en total. Las líneas de arriba cotizan cada cojín por separado ({{separate}} yd).",
+    "fabricUnnamed": "Tela sin nombre todavía",
+    "separately": "{{n}} yd si se cortan por separado"
   },
   "fabricYardage": {
     "intro": "Agrega los cojines o tráelos de Medidas de corte de cojines. Cada pieza se acomoda en el rollo y el yardaje se actualiza al escribir.",

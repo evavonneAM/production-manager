@@ -715,7 +715,7 @@
     "addOnsCol": "Add-ons",
     "ydEach": "{{n}} yd each",
     "ydTotal": "{{n}} yd total",
-    "fabricTotal": "Fabric (total)",
+    "fabricTotal": "Fabric to order",
     "fabricEachOne": "{{each}} yd each × {{qty}}",
     "fabricEachMany": "Yards each are listed per section above",
     "insertTbd": "To be determined",
@@ -732,7 +732,10 @@
     "ydEachAbout": "about {{n}} yd each",
     "yardageHow": "Fabric is worked out by laying every cut piece on a 54\" roll (with one spare plate and the bias cording for welted styles), the same as the Fabric Yardage tool. Add a pattern repeat for patterned fabric.",
     "duplicateLast": "Duplicate the last cushion",
-    "fabricMapsTitle": "Fabric layouts"
+    "fabricMapsTitle": "Fabric layouts",
+    "fabricMapsHelp": "Cushions in the same fabric are laid out together on one roll: {{order}} yd to order in all. The estimate lines above price each cushion on its own ({{separate}} yd).",
+    "fabricUnnamed": "Fabric not named yet",
+    "separately": "{{n}} yd if cut separately"
   },
   "fabricYardage": {
     "intro": "Add the cushions, or bring them in from Cushion Cut Dimensions. Every piece is laid out on the roll and the yardage updates as you type.",
