@@ -27,6 +27,7 @@ const Scan = lazy(() => import('./screens/Scan'))
 const CushionCut = lazy(() => import('./screens/calculators/CushionCut'))
 const LeafBag = lazy(() => import('./screens/calculators/LeafBag'))
 const CushionPricing = lazy(() => import('./screens/calculators/CushionPricing'))
+const FabricYardage = lazy(() => import('./screens/calculators/FabricYardage'))
 const Upholstery = lazy(() => import('./screens/calculators/Upholstery'))
 const DraperyPleat = lazy(() => import('./screens/calculators/DraperyPleat'))
 const FloorplanMeasure = lazy(() => import('./screens/calculators/floorplan/FloorplanMeasure'))
@@ -92,6 +93,7 @@ export default function App() {
         <Route path="/reports" element={<Reports />} />
         <Route path="/tools" element={<Tools />} />
         <Route path="/tools/cushion-cut" element={page(<CushionCut />)} />
+        <Route path="/tools/fabric-yardage" element={page(<FabricYardage />)} />
         <Route path="/tools/leaf-bag" element={page(<LeafBag />)} />
         <Route path="/tools/drapery-pleat" element={page(<DraperyPleat />)} />
         <Route path="/tools/floorplan-measure" element={page(<FloorplanMeasure />)} />
