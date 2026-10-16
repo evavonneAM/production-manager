@@ -3,6 +3,7 @@ import {
   BIAS_STRIP_LENGTH,
   cordingByFabric,
   cordingStrips,
+  zipperWrap,
   formatInches,
   type AnyCuts,
   type CushionCuts,
@@ -191,8 +192,10 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
     drawWedgeProfile(doc, c, c.cuts, M + 12, y + 6, drawW, 160)
     drawWedgeFront(doc, c, c.cuts, M + 12, y + 196, drawW, 44)
   } else {
-    drawPlan(doc, c, c.cuts, M + 12, y + 6, drawW, 150)
-    drawSide(doc, c, c.cuts, M + 12, y + 186, drawW, 50)
+    // Plan and side views share one scale so they read true to each other.
+    const sc = Math.min((drawW - 100) / c.width, (150 - 48) / c.depth, (50 - 10) / c.height)
+    drawPlan(doc, c, c.cuts, M + 12, y + 6, drawW, sc)
+    drawSide(doc, c, c.cuts, M + 12, y + 186, drawW, sc)
   }
 
   const rx = M + 12 + drawW + 30
@@ -292,9 +295,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
 }
 
 /** Plan (top) view: width across, depth down, zipper on the back edge. */
-function drawPlan(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number, y0: number, boxW: number, boxH: number) {
-  const pad = 30
-  const sc = Math.min((boxW - pad * 2) / c.width, (boxH - pad * 1.6) / c.depth)
+function drawPlan(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number, y0: number, boxW: number, sc: number) {
   const w = c.width * sc
   const d = c.depth * sc
   const x = x0 + (boxW - w) / 2
@@ -310,16 +311,17 @@ function drawPlan(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number
   doc.setLineWidth(1.2)
   doc.roundedRect(x, y, w, d, 4, 4, 'FD')
 
-  // Zipper: back edge only, or back + halfway down each side.
+  // Zipper: back edge only, or back + 4" up each side.
   doc.setDrawColor(...ACCENT)
   doc.setLineWidth(3)
   const inset = Math.min(1.5 * sc, w * 0.1)
   if (c.style === 'back') {
     doc.line(x + inset, y, x + w - inset, y)
   } else {
-    doc.line(x, y + d / 2, x, y)
+    const wrap = zipperWrap(cuts.finishedDepth) * sc
+    doc.line(x, y + wrap, x, y)
     doc.line(x, y, x + w, y)
-    doc.line(x + w, y, x + w, y + d / 2)
+    doc.line(x + w, y, x + w, y + wrap)
   }
   doc.setLineWidth(1)
 
@@ -345,12 +347,11 @@ function drawPlan(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number
 }
 
 /** Side view: width across, ordered vs finished boxing height. */
-function drawSide(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number, y0: number, boxW: number, boxH: number) {
+function drawSide(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number, y0: number, boxW: number, sc: number) {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
   doc.text('SIDE VIEW', x0, y0)
-  const sc = Math.min((boxW - 100) / c.width, (boxH - 10) / c.height)
   const w = c.width * sc
   const h = c.height * sc
   const fh = cuts.finishedHeight * sc
