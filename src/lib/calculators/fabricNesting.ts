@@ -296,6 +296,8 @@ function makeBlocks(
   byCushion: boolean,
   mirror: boolean,
   looseZippers = false,
+  /** Widest a strip bundle may be: narrower than the roll when the strips run down the open fabric beside a plate column. */
+  bundleWidth = W,
 ): Block[] {
   const blocks: Block[] = []
   const groupKey = (i: Item) => (byCushion ? i.cushion : '')
@@ -312,7 +314,7 @@ function makeBlocks(
   }
   for (const [key, list] of groups) {
     const cushion = byCushion ? list[0].cushion : ''
-    if (key.endsWith('|strip')) blocks.push(...stripBundles(list, W, gap, cushion, mirror))
+    if (key.endsWith('|strip')) blocks.push(...stripBundles(list, bundleWidth, gap, cushion, mirror))
     else blocks.push(...plateGrids(list, W, gap, style(list[0].w, list[0].h), cushion))
   }
   return blocks
@@ -526,7 +528,7 @@ function planOneWay(pieces: CutPiece[], opts: FabricOptions, direction: Directio
     return r
   }
   const layout = (list: Item[]) => {
-    let best: Layout | null = null
+    const pick: { best: Layout | null } = { best: null }
     // Grid shapes to try: the same shape for every plate size, and (for up to three sizes)
     // each size on its own as a single column or a wide grid, so a narrow column of plates
     // can sit beside the strips while the bigger plates go in rows after them.
@@ -534,14 +536,26 @@ function planOneWay(pieces: CutPiece[], opts: FabricOptions, direction: Directio
     const shapes: ((w: number, h: number) => GridStyle)[] = (['wide', 'balanced', 'column'] as const).map((st) => () => st)
     if (sizes.length > 1 && sizes.length <= 3)
       for (let mask = 1; mask < (1 << sizes.length) - 1; mask++) shapes.push((w, h) => ((mask >> sizes.indexOf(`${w}x${h}`)) & 1 ? 'column' : 'wide'))
+    const consider = (r0: Layout | null) => {
+      const r = r0 && toEdge(r0)
+      const best = pick.best
+      if (r && (!best || r.length < best.length - EPS || (r.length < best.length + EPS && offEdge(r) < offEdge(best)))) pick.best = r
+    }
     for (const style of shapes)
       for (const mirror of [false, true])
-        for (const loose of [false, true]) {
-          const r0 = packBest(makeBlocks(list, width, gap, style, together, mirror, loose), width, gap, together ? order : [])
-          const r = r0 && toEdge(r0)
-          if (r && (!best || r.length < best.length - EPS || (r.length < best.length + EPS && offEdge(r) < offEdge(best)))) best = r
-        }
-    return best
+        for (const loose of [false, true]) consider(packBest(makeBlocks(list, width, gap, style, together, mirror, loose), width, gap, together ? order : []))
+    // Strips beside the plates: one plate size in a single column down the roll, and the strips
+    // in lanes down the open fabric beside it (the cutters' favorite: short, and few moves).
+    const narrowest = Math.min(...list.filter((i) => STRIPS.includes(i.name)).map((i) => Math.min(i.w, i.h)))
+    for (const key of sizes) {
+      const side = width - Number(key.split('x')[0]) - gap
+      if (!(side >= narrowest - EPS)) continue
+      const style = (w: number, h: number) => (`${w}x${h}` === key ? 'column' : 'wide') as GridStyle
+      for (const mirror of [false, true])
+        for (const loose of [false, true])
+          consider(packBest(makeBlocks(list, width, gap, style, together, mirror, loose, side), width, gap, together ? order : []))
+    }
+    return pick.best
   }
   let res = items.length ? layout(items) : null
   // A spare of each other plate size comes free when it fits in the open fabric already there.
