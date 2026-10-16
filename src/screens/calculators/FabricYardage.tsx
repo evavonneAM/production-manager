@@ -39,11 +39,15 @@ import {
   DEFAULT_END_ALLOWANCE,
   DEFAULT_EXTRA,
   DEFAULT_GAP,
+  DEFAULT_LISTED_WIDTH,
+  DEFAULT_SELVAGE_TRIM,
   EXTRA_CHOICES,
-  DEFAULT_USABLE_WIDTH,
+  GAP_CHOICES,
+  cordingBlock,
   piecesFor,
   planFabric,
-  type Direction,
+  type DirectionChoice,
+  type Extra,
   type FabricPlan,
   type PlacedCut,
 } from '../../lib/calculators/fabricNesting'
@@ -65,9 +69,19 @@ type Cushion = {
   heightDeduction: number
   lengthDeduction: number
   cording: boolean
-  direction: Direction
 }
-type Settings = { widths: Record<string, number>; gap: number; endAllowance: number; together: boolean; extra: number }
+type Settings = {
+  /** Listed width per fabric. */
+  widths: Record<string, number>
+  /** Which way each fabric is cut. */
+  directions: Record<string, DirectionChoice>
+  selvageTrim: number
+  gap: number
+  endAllowance: number
+  /** Keep each cushion's pieces together (off: same pieces together, largest first, like the cutters). */
+  byCushion: boolean
+  flaws: Extra
+}
 type Draft = { cushions: Cushion[]; settings: Settings }
 
 const DRAFT_KEY = 'pm-calc-fabric-yardage'
@@ -87,16 +101,27 @@ const blank = (): Cushion => ({
   heightDeduction: DEFAULT_HEIGHT_DEDUCTION,
   lengthDeduction: DEFAULT_LENGTH_DEDUCTION,
   cording: true,
-  direction: 'either',
 })
-const blankSettings = (): Settings => ({ widths: {}, gap: DEFAULT_GAP, endAllowance: DEFAULT_END_ALLOWANCE, together: true, extra: DEFAULT_EXTRA })
+const blankSettings = (): Settings => ({
+  widths: {},
+  directions: {},
+  selvageTrim: DEFAULT_SELVAGE_TRIM,
+  gap: DEFAULT_GAP,
+  endAllowance: DEFAULT_END_ALLOWANCE,
+  byCushion: false,
+  flaws: DEFAULT_EXTRA,
+})
 
 function loadDraft(): Draft {
   try {
     const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') as Draft | null
     if (saved?.cushions?.length)
       return {
-        cushions: saved.cushions.map((c) => ({ ...blank(), ...c, id: nextId++ })),
+        cushions: saved.cushions.map((c) => ({
+          ...blank(),
+          ...c,
+          id: nextId++,
+        })),
         settings: { ...blankSettings(), ...saved.settings },
       }
   } catch {
@@ -105,16 +130,18 @@ function loadDraft(): Draft {
   return { cushions: [blank()], settings: blankSettings() }
 }
 
-/** The cushions saved by Cushion Cut Dimensions on this device. */
-function loadCutDraft(): Cushion[] {
+/** The cushions saved by Cushion Cut Dimensions on this device, and any direction set per fabric there. */
+function loadCutDraft(): {
+  cushions: Cushion[]
+  directions: Record<string, DirectionChoice>
+} {
+  const directions: Record<string, DirectionChoice> = {}
   try {
-    const saved = JSON.parse(localStorage.getItem(CUT_DRAFT_KEY) ?? 'null') as
-      | { rows?: Record<string, unknown>[] }
-      | Record<string, unknown>[]
-      | null
+    const saved = JSON.parse(localStorage.getItem(CUT_DRAFT_KEY) ?? 'null') as { rows?: Record<string, unknown>[] } | Record<string, unknown>[] | null
     const rows = Array.isArray(saved) ? saved : (saved?.rows ?? [])
-    return rows.map((r) => {
+    const cushions = rows.map((r): Cushion => {
       const dir = r.direction as string | undefined
+      if (dir === 'railroaded' || dir === 'upTheRoll') directions[String(r.fabric ?? '').trim()] = dir
       return {
         ...blank(),
         label: String(r.label ?? ''),
@@ -129,11 +156,11 @@ function loadCutDraft(): Cushion[] {
         heightDeduction: typeof r.heightDeduction === 'number' ? r.heightDeduction : DEFAULT_HEIGHT_DEDUCTION,
         lengthDeduction: typeof r.lengthDeduction === 'number' ? r.lengthDeduction : DEFAULT_LENGTH_DEDUCTION,
         cording: r.cording !== false,
-        direction: dir === 'railroaded' || dir === 'upTheRoll' ? dir : 'either',
       }
     })
+    return { cushions, directions }
   } catch {
-    return []
+    return { cushions: [], directions }
   }
 }
 
@@ -146,10 +173,26 @@ function cutsFor(c: Cushion): AnyCuts | null {
   if (c.shape === 'wedge') {
     const top = parseInches(c.topDepth)
     if (top === null || top <= 0 || top > sides || front <= c.lengthDeduction) return null
-    return wedgeCuts({ qty, length: front, height, bottom: sides, top, lengthDeduction: c.lengthDeduction, cording: c.cording })
+    return wedgeCuts({
+      qty,
+      length: front,
+      height,
+      bottom: sides,
+      top,
+      lengthDeduction: c.lengthDeduction,
+      cording: c.cording,
+    })
   }
   if (height <= c.heightDeduction) return null
-  return cushionCuts({ qty, front, sides, height, style: c.style, heightDeduction: c.heightDeduction, cording: c.cording })
+  return cushionCuts({
+    qty,
+    front,
+    sides,
+    height,
+    style: c.style,
+    heightDeduction: c.heightDeduction,
+    cording: c.cording,
+  })
 }
 
 function InchField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
@@ -166,7 +209,7 @@ const FILLS = ['#d4e3f2', '#f6e3c8', '#d9eedb', '#eedcf2', '#f5d6d6', '#d6eff0',
 const STROKES = ['#1677ff', '#d48806', '#389e0d', '#9254de', '#cf1322', '#08979c', '#7c6f00', '#595959']
 
 /** The roll unrolled on the cutting table: first end on the left, the roll's width top to bottom. */
-function RollDiagram({ plan, cushionIndex, pieceName }: { plan: FabricPlan; cushionIndex: (c: string) => number; pieceName: (n: string) => string }) {
+function RollDiagram({ plan, cushionIndex, pieceLabel }: { plan: FabricPlan; cushionIndex: (c: string) => number; pieceLabel: (p: PlacedCut) => string }) {
   const { t } = useTranslation()
   const W = plan.width
   const L = plan.totalLength
@@ -179,19 +222,42 @@ function RollDiagram({ plan, cushionIndex, pieceName }: { plan: FabricPlan; cush
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
         {t('fabricYardage.diagram')}
       </Typography.Text>
-      <div style={{ overflowX: 'auto', border: '1px solid #d9d9d9', borderRadius: 6, background: '#fafafa', marginTop: 4 }}>
-        <svg width={(L + 2) * PX} height={(W + 8) * PX} viewBox={`-1 -6 ${L + 2} ${W + 8}`} role="img" aria-label={t('fabricYardage.diagram')} style={{ display: 'block' }}>
+      <div
+        style={{
+          overflowX: 'auto',
+          border: '1px solid #d9d9d9',
+          borderRadius: 6,
+          background: '#fafafa',
+          marginTop: 4,
+        }}
+      >
+        <svg
+          width={(L + 2) * PX}
+          height={(W + 8) * PX}
+          viewBox={`-1 -6 ${L + 2} ${W + 8}`}
+          role="img"
+          aria-label={t('fabricYardage.diagram')}
+          style={{ display: 'block' }}
+        >
           <rect x={0} y={0} width={L} height={W} fill="#fff" stroke="#555" strokeWidth={0.4} />
           {off > 0 && (
             <g>
               <rect x={0} y={0} width={off} height={W} fill="#e8e8e8" />
-              <text x={off / 2} y={W / 2} fontSize={1.6} textAnchor="middle" dominantBaseline="middle" fill="#666" transform={`rotate(-90 ${off / 2} ${W / 2})`}>
+              <text
+                x={off / 2}
+                y={W / 2}
+                fontSize={1.6}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="#666"
+                transform={`rotate(-90 ${off / 2} ${W / 2})`}
+              >
                 {t('fabricYardage.firstEnd')}
               </text>
             </g>
           )}
           {plan.placed.map((p, k) => {
-            const ci = cushionIndex(p.cushion) % FILLS.length
+            const ci = (p.cushion ? cushionIndex(p.cushion) : FILLS.length - 1) % FILLS.length
             const x = off + p.y
             const y = p.x
             // On screen the roll runs left to right, so a piece's length along the roll is its width here.
@@ -206,11 +272,10 @@ function RollDiagram({ plan, cushionIndex, pieceName }: { plan: FabricPlan; cush
                 <rect x={x} y={y} width={w} height={h} fill={FILLS[ci]} stroke={STROKES[ci]} strokeWidth={0.3} />
                 <text x={cx} y={cy} fontSize={fs} textAnchor="middle" fill="#222" transform={vertical ? `rotate(-90 ${cx} ${cy})` : undefined}>
                   <tspan x={cx} dy={-fs * 0.2}>
-                    {p.cushion ? `${p.cushion} · ` : ''}
-                    {pieceName(p.name)}
+                    {pieceLabel(p)}
                   </tspan>
                   <tspan x={cx} dy={fs * 1.1}>
-                    {formatInches(p.turned ? p.along : p.across)} × {formatInches(p.turned ? p.across : p.along)}
+                    {formatInches(p.across)} × {formatInches(p.along)}
                   </tspan>
                 </text>
               </g>
@@ -219,7 +284,15 @@ function RollDiagram({ plan, cushionIndex, pieceName }: { plan: FabricPlan; cush
           {plan.cordingLength > 0 && (
             <g>
               <rect x={cordX} y={0} width={plan.cordingLength} height={W} fill="#fff7e6" stroke="#d48806" strokeWidth={0.3} strokeDasharray="1 0.6" />
-              <text x={cordX + plan.cordingLength / 2} y={W / 2} fontSize={2} textAnchor="middle" dominantBaseline="middle" fill="#874d00" transform={`rotate(-90 ${cordX + plan.cordingLength / 2} ${W / 2})`}>
+              <text
+                x={cordX + plan.cordingLength / 2}
+                y={W / 2}
+                fontSize={2}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="#874d00"
+                transform={`rotate(-90 ${cordX + plan.cordingLength / 2} ${W / 2})`}
+              >
                 {t('fabricYardage.cordingBlock')}
               </text>
             </g>
@@ -275,30 +348,54 @@ function FabricYardageScreen() {
       groups.get(key)!.idx.push(i)
     })
     return [...groups.entries()].map(([key, g]) => {
-      const width = settings.widths[key] ?? DEFAULT_USABLE_WIDTH
-      const pieces = g.idx.flatMap((i) => piecesFor(cuts[i]!, cushions[i].label.trim() || t('fabricYardage.cushionN', { n: i + 1 }), cushions[i].direction))
+      const listedWidth = settings.widths[key] ?? DEFAULT_LISTED_WIDTH
+      const direction = settings.directions[key] ?? 'auto'
+      const pieces = g.idx.flatMap((i) => piecesFor(cuts[i]!, cushions[i].label.trim() || t('fabricYardage.cushionN', { n: i + 1 })))
       const cordingInches = g.idx.reduce((n, i) => n + cuts[i]!.cording, 0)
       const cushionNames = g.idx.map((i) => cushions[i].label.trim() || t('fabricYardage.cushionN', { n: i + 1 }))
-      return { key, width, cushionNames, plan: planFabric(pieces, { width, gap: settings.gap, endAllowance: settings.endAllowance, cordingInches, together: settings.together, extra: settings.extra }) }
+      const plan = planFabric(pieces, {
+        listedWidth,
+        selvageTrim: settings.selvageTrim,
+        direction,
+        gap: settings.gap,
+        endAllowance: settings.endAllowance,
+        cordingInches,
+        together: settings.byCushion,
+        extra: settings.flaws,
+      })
+      return { key, listedWidth, direction, cushionNames, plan }
     })
   }, [cushions, cuts, settings, t])
 
   const pieceName = (n: string) => t(`fabricYardage.piece_${n}`)
+  const pieceLabel = (p: { cushion: string; name: string; join?: PlacedCut['join'] }) =>
+    (p.cushion ? `${p.cushion} · ` : '') + pieceName(p.name) + (p.join ? ` (${t(`fabricYardage.join_${p.join.part}`)})` : '')
 
   const importCuts = () => {
-    const rows = loadCutDraft()
+    const { cushions: rows, directions } = loadCutDraft()
     const complete = rows.filter((r) => cutsFor(r))
     if (!complete.length) {
       message.info(t('fabricYardage.importNone'))
       return
     }
     setCushions(complete)
+    setSettings((s) => ({
+      ...s,
+      directions: { ...s.directions, ...directions },
+    }))
     message.success(t('fabricYardage.importDone', { count: complete.length }))
   }
   const hasEntries = cushions.some((c) => c.front || c.sides || c.height)
 
   return (
-    <div style={{ maxWidth: 960, width: '100%', margin: '0 auto', padding: '16px 16px 48px' }}>
+    <div
+      style={{
+        maxWidth: 960,
+        width: '100%',
+        margin: '0 auto',
+        padding: '16px 16px 48px',
+      }}
+    >
       <Link to="/tools" className="no-print">
         <Button type="link" icon={<ArrowLeftOutlined />} style={{ paddingInline: 0 }}>
           {t('tools.title')}
@@ -313,7 +410,11 @@ function FabricYardageScreen() {
         type="info"
         showIcon
         title={t('fabricYardage.v1Title')}
-        description={t('fabricYardage.v1', { end: formatInches(DEFAULT_END_ALLOWANCE), strip: formatInches(CORDING_STRIP_WIDTH) })}
+        description={t('fabricYardage.v1', {
+          end: formatInches(DEFAULT_END_ALLOWANCE),
+          strip: formatInches(CORDING_STRIP_WIDTH),
+          trim: formatInches(DEFAULT_SELVAGE_TRIM),
+        })}
         style={{ marginBottom: 16 }}
       />
 
@@ -345,7 +446,13 @@ function FabricYardageScreen() {
               }
               extra={
                 cushions.length > 1 && (
-                  <Button type="text" danger icon={<DeleteOutlined />} aria-label={t('fabricYardage.remove')} onClick={() => setCushions((cs) => cs.filter((x) => x.id !== c.id))} />
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    aria-label={t('fabricYardage.remove')}
+                    onClick={() => setCushions((cs) => cs.filter((x) => x.id !== c.id))}
+                  />
                 )
               }
             >
@@ -353,17 +460,37 @@ function FabricYardageScreen() {
                 <Row gutter={12}>
                   <Col xs={24} sm={8}>
                     <Form.Item label={t('fabricYardage.name')} htmlFor={`name-${c.id}`} style={{ marginBottom: 16 }}>
-                      <Input id={`name-${c.id}`} size="large" value={c.label} placeholder={t('fabricYardage.namePlaceholder')} onChange={(e) => update(c.id, { label: e.target.value })} />
+                      <Input
+                        id={`name-${c.id}`}
+                        size="large"
+                        value={c.label}
+                        placeholder={t('fabricYardage.namePlaceholder')}
+                        onChange={(e) => update(c.id, { label: e.target.value })}
+                      />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
                     <Form.Item label={t('fabricYardage.fabric')} htmlFor={`fabric-${c.id}`} extra={t('fabricYardage.fabricHelp')} style={{ marginBottom: 16 }}>
-                      <Input id={`fabric-${c.id}`} size="large" value={c.fabric} placeholder={t('fabricYardage.fabricPlaceholder')} onChange={(e) => update(c.id, { fabric: e.target.value })} />
+                      <Input
+                        id={`fabric-${c.id}`}
+                        size="large"
+                        value={c.fabric}
+                        placeholder={t('fabricYardage.fabricPlaceholder')}
+                        onChange={(e) => update(c.id, { fabric: e.target.value })}
+                      />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={4}>
                     <Form.Item label={t('fabricYardage.qty')} htmlFor={`qty-${c.id}`} style={{ marginBottom: 16 }}>
-                      <InputNumber id={`qty-${c.id}`} size="large" min={1} precision={0} value={c.qty} onChange={(v) => update(c.id, { qty: v ?? 1 })} style={{ width: '100%' }} />
+                      <InputNumber
+                        id={`qty-${c.id}`}
+                        size="large"
+                        min={1}
+                        precision={0}
+                        value={c.qty}
+                        onChange={(v) => update(c.id, { qty: v ?? 1 })}
+                        style={{ width: '100%' }}
+                      />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
@@ -377,17 +504,6 @@ function FabricYardageScreen() {
                           { value: 'box', label: t('fabricYardage.box') },
                           { value: 'wedge', label: t('fabricYardage.wedge') },
                         ]}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={16}>
-                    <Form.Item label={t('fabricYardage.direction')} extra={t(`fabricYardage.${c.direction}Help`)} style={{ marginBottom: 16 }}>
-                      <Segmented
-                        block
-                        size="large"
-                        value={c.direction}
-                        onChange={(v) => update(c.id, { direction: v as Direction })}
-                        options={(['either', 'upTheRoll', 'railroaded'] as const).map((d) => ({ value: d, label: t(`fabricYardage.${d}`) }))}
                       />
                     </Form.Item>
                   </Col>
@@ -423,7 +539,10 @@ function FabricYardageScreen() {
                             size="large"
                             value={c.heightDeduction}
                             onChange={(v) => update(c.id, { heightDeduction: v })}
-                            options={HEIGHT_DEDUCTIONS.map((d) => ({ value: d, label: `−${formatInches(d)}` }))}
+                            options={HEIGHT_DEDUCTIONS.map((d) => ({
+                              value: d,
+                              label: `−${formatInches(d)}`,
+                            }))}
                           />
                         </Form.Item>
                       </Col>
@@ -449,7 +568,10 @@ function FabricYardageScreen() {
                             size="large"
                             value={c.lengthDeduction}
                             onChange={(v) => update(c.id, { lengthDeduction: v })}
-                            options={LENGTH_DEDUCTIONS.map((d) => ({ value: d, label: `−${formatInches(d)}` }))}
+                            options={LENGTH_DEDUCTIONS.map((d) => ({
+                              value: d,
+                              label: `−${formatInches(d)}`,
+                            }))}
                           />
                         </Form.Item>
                       </Col>
@@ -469,97 +591,230 @@ function FabricYardageScreen() {
           )
         })}
 
-        <Button type="dashed" block size="large" icon={<PlusOutlined />} onClick={() => setCushions((cs) => [...cs, { ...blank(), fabric: cs[cs.length - 1]?.fabric ?? '' }])}>
+        <Button
+          type="dashed"
+          block
+          size="large"
+          icon={<PlusOutlined />}
+          onClick={() => setCushions((cs) => [...cs, { ...blank(), fabric: cs[cs.length - 1]?.fabric ?? '' }])}
+        >
           {t('fabricYardage.add')}
         </Button>
 
         <Card size="small">
-          <Row gutter={12}>
-            <Col xs={12}>
-              <Form.Item label={t('fabricYardage.gap')} extra={t('fabricYardage.gapHelp')} style={{ marginBottom: 0 }}>
-                <Select
-                  size="large"
-                  value={settings.gap}
-                  onChange={(v) => setSettings((s) => ({ ...s, gap: v }))}
-                  options={[0, 0.125, 0.25, 0.5].map((g) => ({ value: g, label: g === 0 ? '0' : formatInches(g) }))}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={12}>
-              <Form.Item label={t('fabricYardage.endAllowance')} style={{ marginBottom: 0 }}>
-                <InputNumber size="large" min={0} max={36} step={0.5} value={settings.endAllowance} onChange={(v) => setSettings((s) => ({ ...s, endAllowance: v ?? 0 }))} suffix={t('calc.in')} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col xs={12}>
-              <Form.Item label={t('fabricYardage.extra')} extra={t('fabricYardage.extraHelp')} style={{ marginBottom: 0, marginTop: 16 }}>
-                <Select
-                  size="large"
-                  value={settings.extra}
-                  onChange={(v) => setSettings((s) => ({ ...s, extra: v }))}
-                  options={EXTRA_CHOICES.map((x) => ({ value: x, label: `${Math.round(x * 100)}%` }))}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={12}>
-              <Form.Item label={t('fabricYardage.layout')} extra={t(settings.together ? 'fabricYardage.togetherHelp' : 'fabricYardage.mixedHelp')} style={{ marginBottom: 0, marginTop: 16 }}>
-                <Checkbox checked={settings.together} onChange={(e) => setSettings((s) => ({ ...s, together: e.target.checked }))}>
-                  {t('fabricYardage.together')}
-                </Checkbox>
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form layout="vertical" component="div">
+            <Row gutter={[12, 16]}>
+              <Col xs={12} sm={8}>
+                <Form.Item label={t('fabricYardage.selvageTrim')} extra={t('fabricYardage.selvageTrimHelp')} style={{ marginBottom: 0 }}>
+                  <InputNumber
+                    size="large"
+                    min={0}
+                    max={4}
+                    step={0.25}
+                    value={settings.selvageTrim}
+                    onChange={(v) => setSettings((s) => ({ ...s, selvageTrim: v ?? 0 }))}
+                    suffix={t('calc.in')}
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={12} sm={8}>
+                <Form.Item label={t('fabricYardage.endAllowance')} style={{ marginBottom: 0 }}>
+                  <InputNumber
+                    size="large"
+                    min={0}
+                    max={36}
+                    step={0.5}
+                    value={settings.endAllowance}
+                    onChange={(v) => setSettings((s) => ({ ...s, endAllowance: v ?? 0 }))}
+                    suffix={t('calc.in')}
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={12} sm={8}>
+                <Form.Item label={t('fabricYardage.gap')} extra={t('fabricYardage.gapHelp')} style={{ marginBottom: 0 }}>
+                  <Select
+                    size="large"
+                    value={settings.gap}
+                    onChange={(v) => setSettings((s) => ({ ...s, gap: v }))}
+                    options={GAP_CHOICES.map((g) => ({
+                      value: g,
+                      label: g === 0 ? '0' : formatInches(g),
+                    }))}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={12} sm={12}>
+                <Form.Item
+                  label={t('fabricYardage.extra')}
+                  extra={t(settings.flaws === 'plate' ? 'fabricYardage.extraPlateHelp' : 'fabricYardage.extraHelp')}
+                  style={{ marginBottom: 0 }}
+                >
+                  <Select
+                    size="large"
+                    value={settings.flaws}
+                    onChange={(v) => setSettings((s) => ({ ...s, flaws: v }))}
+                    options={EXTRA_CHOICES.map((x) => ({
+                      value: x,
+                      label: x === 'plate' ? t('fabricYardage.extraPlate') : `${Math.round(x * 100)}%`,
+                    }))}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  label={t('fabricYardage.layout')}
+                  extra={t(settings.byCushion ? 'fabricYardage.togetherHelp' : 'fabricYardage.mixedHelp')}
+                  style={{ marginBottom: 0 }}
+                >
+                  <Checkbox
+                    checked={settings.byCushion}
+                    onChange={(e) =>
+                      setSettings((s) => ({
+                        ...s,
+                        byCushion: e.target.checked,
+                      }))
+                    }
+                  >
+                    {t('fabricYardage.together')}
+                  </Checkbox>
+                </Form.Item>
+              </Col>
+            </Row>
+          </Form>
         </Card>
 
         {fabrics.length === 0 && <Typography.Text type="secondary">{t('fabricYardage.empty')}</Typography.Text>}
 
-        {fabrics.map(({ key, width, cushionNames, plan }) => {
+        {fabrics.map(({ key, listedWidth, direction, cushionNames, plan }) => {
           const cushionIndex = (name: string) => Math.max(0, cushionNames.indexOf(name))
           // Same piece, same size, same way on the roll: one line with a count.
           const lines = new Map<string, PlacedCut & { qty: number; key: string }>()
           for (const p of plan.placed) {
-            const key = [p.cushion, p.name, p.across, p.along, p.turned].join('|')
+            const key = [p.cushion, p.name, p.across, p.along, p.join?.part ?? ''].join('|')
             const line = lines.get(key)
             if (line) line.qty++
             else lines.set(key, { ...p, qty: 1, key })
           }
-          const list = [...lines.values()].sort((a, b) => cushionIndex(a.cushion) - cushionIndex(b.cushion))
+          const rank = (c: string) => (c ? cushionIndex(c) : 1e3)
+          const list = [...lines.values()].sort((a, b) => rank(a.cushion) - rank(b.cushion))
           return (
             <Card key={key || '-'} title={`${t('fabricYardage.rollTitle')}: ${key || t('fabricYardage.noFabric')}`}>
-              <Row gutter={[16, 16]} align="bottom">
-                <Col xs={24} sm={8}>
-                  <Form.Item label={t('fabricYardage.width')} extra={t('fabricYardage.widthHelp')} style={{ marginBottom: 0 }}>
-                    <InputNumber
-                      size="large"
-                      min={10}
-                      max={150}
-                      value={width}
-                      onChange={(v) => setSettings((s) => ({ ...s, widths: { ...s.widths, [key]: v ?? DEFAULT_USABLE_WIDTH } }))}
-                      suffix={t('calc.in')}
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Statistic title={t('fabricYardage.order')} value={t('fabricYardage.yardsN', { n: plan.orderYards })} />
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Typography.Text>{t('fabricYardage.exact', { len: formatInches(plan.totalLength), yd: plan.yards.toFixed(2) })}</Typography.Text>
-                  <br />
-                  <Typography.Text>{t('fabricYardage.withExtra', { pct: Math.round(plan.extra * 100), yd: plan.yardsWithExtra.toFixed(2) })}</Typography.Text>
-                  <br />
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {t('fabricYardage.breakdown', {
-                      pieces: formatInches(plan.piecesLength),
-                      end: formatInches(plan.endAllowance),
-                      cording: formatInches(plan.cordingLength),
-                    })}
-                  </Typography.Text>
-                </Col>
-              </Row>
+              <Form layout="vertical" component="div">
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={10}>
+                    <Form.Item
+                      label={t('fabricYardage.listedWidth')}
+                      extra={t('fabricYardage.listedWidthHelp', {
+                        width: formatInches(plan.width),
+                      })}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber
+                        size="large"
+                        min={10}
+                        max={150}
+                        value={listedWidth}
+                        onChange={(v) =>
+                          setSettings((s) => ({
+                            ...s,
+                            widths: {
+                              ...s.widths,
+                              [key]: v ?? DEFAULT_LISTED_WIDTH,
+                            },
+                          }))
+                        }
+                        suffix={t('calc.in')}
+                        style={{ width: '100%' }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={14}>
+                    <Form.Item
+                      label={t('fabricYardage.direction')}
+                      extra={
+                        direction === 'auto'
+                          ? t('fabricYardage.autoPicked', {
+                              way: t(`fabricYardage.${plan.direction}`),
+                            })
+                          : t(`fabricYardage.${direction}Help`)
+                      }
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Select
+                        size="large"
+                        style={{ width: '100%' }}
+                        value={direction}
+                        onChange={(v) =>
+                          setSettings((s) => ({
+                            ...s,
+                            directions: {
+                              ...s.directions,
+                              [key]: v as DirectionChoice,
+                            },
+                          }))
+                        }
+                        options={(['auto', 'railroaded', 'upTheRoll'] as const).map((d) => ({
+                          value: d,
+                          label: t(`fabricYardage.dir_${d}`),
+                        }))}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={12} sm={10}>
+                    <Statistic title={t('fabricYardage.order')} value={t('fabricYardage.yardsN', { n: plan.orderYards })} />
+                  </Col>
+                  <Col xs={12} sm={14}>
+                    <Typography.Text>
+                      {t('fabricYardage.exact', {
+                        len: formatInches(plan.totalLength),
+                        yd: plan.yards.toFixed(2),
+                      })}
+                    </Typography.Text>
+                    <br />
+                    <Typography.Text>
+                      {plan.extra === 'plate'
+                        ? t('fabricYardage.withSparePlate')
+                        : t('fabricYardage.withExtra', {
+                            pct: Math.round(plan.extra * 100),
+                            yd: plan.yardsWithExtra.toFixed(2),
+                          })}
+                    </Typography.Text>
+                    <br />
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      {t('fabricYardage.breakdown', {
+                        pieces: formatInches(plan.piecesLength),
+                        end: formatInches(plan.endAllowance),
+                        cording: formatInches(plan.cordingLength),
+                      })}
+                    </Typography.Text>
+                  </Col>
+                </Row>
+              </Form>
               <Space size={8} wrap style={{ margin: '12px 0' }}>
                 <Tag>{t('fabricYardage.pieceCount', { count: plan.placed.length })}</Tag>
-                {plan.cordingStrips > 0 && <Tag>{t('fabricYardage.cordingStrips', { count: plan.cordingStrips })}</Tag>}
-                {plan.placed.length > 0 && <Tag>{t('fabricYardage.used', { pct: Math.round(plan.used * 100) })}</Tag>}
+                {plan.cordingStrips > 0 && (
+                  <Tag>
+                    {t('fabricYardage.cordingStrips', {
+                      count: plan.cordingStrips,
+                    })}
+                  </Tag>
+                )}
+                {plan.cordingStrips > 0 && (
+                  <Tag>
+                    {t('fabricYardage.cordingBlockTag', {
+                      len: formatInches(cordingBlock(plan.cordingStrips)),
+                    })}
+                  </Tag>
+                )}
+                {plan.placed.length > 0 && (
+                  <Tag>
+                    {t('fabricYardage.used', {
+                      pct: Math.round(plan.used * 100),
+                    })}
+                  </Tag>
+                )}
               </Space>
               {plan.tooWide.length > 0 && (
                 <Alert
@@ -568,12 +823,22 @@ function FabricYardageScreen() {
                   title={t('fabricYardage.tooWideTitle')}
                   description={
                     <ul style={{ margin: 0, paddingLeft: 18 }}>
-                      {[...new Map(plan.tooWide.map((p) => [`${p.cushion}|${p.name}`, { ...p, n: plan.tooWide.filter((q) => q.cushion === p.cushion && q.name === p.name).length }])).values()].map((p, k) => (
+                      {[
+                        ...new Map(
+                          plan.tooWide.map((p) => [
+                            `${p.cushion}|${p.name}`,
+                            {
+                              ...p,
+                              n: plan.tooWide.filter((q) => q.cushion === p.cushion && q.name === p.name).length,
+                            },
+                          ]),
+                        ).values(),
+                      ].map((p, k) => (
                         <li key={k}>
                           {t('fabricYardage.tooWide', {
                             piece: `${p.cushion} · ${pieceName(p.name)}${p.n > 1 ? ` × ${p.n}` : ''}`,
                             size: `${formatInches(p.across)} × ${formatInches(p.along)}`,
-                            width: formatInches(width),
+                            width: formatInches(plan.width),
                           })}
                         </li>
                       ))}
@@ -582,11 +847,37 @@ function FabricYardageScreen() {
                   style={{ marginBottom: 12 }}
                 />
               )}
-              {plan.totalLength > 0 && <RollDiagram plan={plan} cushionIndex={cushionIndex} pieceName={pieceName} />}
+              {plan.joined.length > 0 && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  title={t('fabricYardage.joinedTitle')}
+                  description={
+                    <>
+                      <Typography.Paragraph style={{ marginBottom: 4 }}>{t('fabricYardage.joinedRule')}</Typography.Paragraph>
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {plan.joined.map((j, k) => (
+                          <li key={k}>
+                            {t('fabricYardage.joined', {
+                              piece: pieceLabel(j) + (j.count > 1 ? ` × ${j.count}` : ''),
+                              center: formatInches(j.center),
+                              end: formatInches(j.end),
+                            })}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  }
+                  style={{ marginBottom: 12 }}
+                />
+              )}
+              {plan.totalLength > 0 && <RollDiagram plan={plan} cushionIndex={cushionIndex} pieceLabel={pieceLabel} />}
               {list.length > 0 && (
                 <>
                   <Typography.Title level={5} style={{ marginTop: 16 }}>
-                    {t('fabricYardage.cutList')}
+                    {t('fabricYardage.cutListWay', {
+                      way: t(`fabricYardage.${plan.direction}`),
+                    })}
                   </Typography.Title>
                   <Table
                     size="small"
@@ -594,18 +885,31 @@ function FabricYardageScreen() {
                     rowKey="key"
                     dataSource={list}
                     columns={[
-                      { title: t('fabricYardage.colPiece'), render: (_, p) => `${p.cushion} · ${pieceName(p.name)}` },
-                      { title: t('fabricYardage.colQty'), dataIndex: 'qty', align: 'center', width: 56 },
+                      {
+                        title: t('fabricYardage.colPiece'),
+                        render: (_, p) => pieceLabel(p),
+                      },
+                      {
+                        title: t('fabricYardage.colQty'),
+                        dataIndex: 'qty',
+                        align: 'center',
+                        width: 56,
+                      },
                       {
                         title: t('fabricYardage.colSize'),
                         align: 'right',
                         render: (_, p) => (
-                          <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                          <Typography.Text
+                            strong
+                            style={{
+                              fontVariantNumeric: 'tabular-nums',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
                             {formatInches(p.across)} × {formatInches(p.along)}
                           </Typography.Text>
                         ),
                       },
-                      { title: t('fabricYardage.colRuns'), render: (_, p) => (p.turned ? t('fabricYardage.runsRR') : t('fabricYardage.runsUp')) },
                     ]}
                   />
                 </>
