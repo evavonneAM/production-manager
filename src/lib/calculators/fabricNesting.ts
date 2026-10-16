@@ -285,13 +285,26 @@ type GridStyle = 'wide' | 'balanced' | 'column'
 /**
  * Group pieces into blocks, the way the cutters lay out: same-size plates in a tidy
  * grid (one straight line cuts a whole row), and every boxing and zipper strip
- * together in one bundle of lanes, apart from the plates.
+ * together in one bundle of lanes, apart from the plates. With `looseZippers`, the boxing
+ * goes down as its own bundle and each zipper strip is tucked into whatever gap fits it.
  */
-function makeBlocks(items: Item[], W: number, gap: number, style: GridStyle, byCushion: boolean, mirror: boolean): Block[] {
+function makeBlocks(
+  items: Item[],
+  W: number,
+  gap: number,
+  style: (w: number, h: number) => GridStyle,
+  byCushion: boolean,
+  mirror: boolean,
+  looseZippers = false,
+): Block[] {
   const blocks: Block[] = []
   const groupKey = (i: Item) => (byCushion ? i.cushion : '')
   const groups = new Map<string, Item[]>()
   for (const it of items) {
+    if (looseZippers && it.name === 'zipper') {
+      blocks.push({ w: it.w, h: it.h, area: it.area, cushion: byCushion ? it.cushion : '', parts: [{ it, dx: 0, dy: 0 }] })
+      continue
+    }
     const kind = STRIPS.includes(it.name) ? 'strip' : 'plate'
     const key = kind === 'strip' ? `${groupKey(it)}|strip` : `${groupKey(it)}|${it.w}|${it.h}`
     if (!groups.has(key)) groups.set(key, [])
@@ -300,7 +313,7 @@ function makeBlocks(items: Item[], W: number, gap: number, style: GridStyle, byC
   for (const [key, list] of groups) {
     const cushion = byCushion ? list[0].cushion : ''
     if (key.endsWith('|strip')) blocks.push(...stripBundles(list, W, gap, cushion, mirror))
-    else blocks.push(...plateGrids(list, W, gap, style, cushion))
+    else blocks.push(...plateGrids(list, W, gap, style(list[0].w, list[0].h), cushion))
   }
   return blocks
 }
@@ -514,12 +527,20 @@ function planOneWay(pieces: CutPiece[], opts: FabricOptions, direction: Directio
   }
   const layout = (list: Item[]) => {
     let best: Layout | null = null
-    for (const style of ['wide', 'balanced', 'column'] as const)
-      for (const mirror of [false, true]) {
-        const r0 = packBest(makeBlocks(list, width, gap, style, together, mirror), width, gap, together ? order : [])
-        const r = r0 && toEdge(r0)
-        if (r && (!best || r.length < best.length - EPS || (r.length < best.length + EPS && offEdge(r) < offEdge(best)))) best = r
-      }
+    // Grid shapes to try: the same shape for every plate size, and (for up to three sizes)
+    // each size on its own as a single column or a wide grid, so a narrow column of plates
+    // can sit beside the strips while the bigger plates go in rows after them.
+    const sizes = [...new Set(list.filter((i) => !STRIPS.includes(i.name)).map((i) => `${i.w}x${i.h}`))]
+    const shapes: ((w: number, h: number) => GridStyle)[] = (['wide', 'balanced', 'column'] as const).map((st) => () => st)
+    if (sizes.length > 1 && sizes.length <= 3)
+      for (let mask = 1; mask < (1 << sizes.length) - 1; mask++) shapes.push((w, h) => ((mask >> sizes.indexOf(`${w}x${h}`)) & 1 ? 'column' : 'wide'))
+    for (const style of shapes)
+      for (const mirror of [false, true])
+        for (const loose of [false, true]) {
+          const r0 = packBest(makeBlocks(list, width, gap, style, together, mirror, loose), width, gap, together ? order : [])
+          const r = r0 && toEdge(r0)
+          if (r && (!best || r.length < best.length - EPS || (r.length < best.length + EPS && offEdge(r) < offEdge(best)))) best = r
+        }
     return best
   }
   let res = items.length ? layout(items) : null
