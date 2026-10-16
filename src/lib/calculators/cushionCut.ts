@@ -199,7 +199,8 @@ export function boardCuts({ qty, width: w, depth: d, height: h, cording: hasCord
     boxing: { qty, x: up8(around), z: up8(h + 2.5) },
     cording: hasCording ? 2 * around * qty : 0,
     board: { qty, width: w, depth: d },
-    foam: { qty, width: w, depth: d, height: h },
+    // Foam is cut ½" over the finished width and depth so it fills the cover snugly.
+    foam: { qty, width: up8(w + 0.5), depth: up8(d + 0.5), height: h },
   }
 }
 
