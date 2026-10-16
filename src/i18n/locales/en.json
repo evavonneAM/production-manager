@@ -484,7 +484,7 @@
     "zipperStyle": "Zipper",
     "wrap": "Wrap-around",
     "back": "Back only",
-    "wrapHelp": "Zipper wraps halfway around the sides",
+    "wrapHelp": "Zipper runs the back and 4\" up each side",
     "backHelp": "Zipper along the back edge only",
     "howMany": "How many",
     "front": "Width",

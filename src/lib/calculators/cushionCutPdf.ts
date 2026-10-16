@@ -3,6 +3,7 @@ import {
   BIAS_STRIP_LENGTH,
   cordingByFabric,
   cordingStrips,
+  zipperWrap,
   formatInches,
   type AnyCuts,
   type CushionCuts,
@@ -310,16 +311,17 @@ function drawPlan(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number
   doc.setLineWidth(1.2)
   doc.roundedRect(x, y, w, d, 4, 4, 'FD')
 
-  // Zipper: back edge only, or back + halfway down each side.
+  // Zipper: back edge only, or back + 4" up each side.
   doc.setDrawColor(...ACCENT)
   doc.setLineWidth(3)
   const inset = Math.min(1.5 * sc, w * 0.1)
   if (c.style === 'back') {
     doc.line(x + inset, y, x + w - inset, y)
   } else {
-    doc.line(x, y + d / 2, x, y)
+    const wrap = zipperWrap(cuts.finishedDepth) * sc
+    doc.line(x, y + wrap, x, y)
     doc.line(x, y, x + w, y)
-    doc.line(x + w, y, x + w, y + d / 2)
+    doc.line(x + w, y, x + w, y + wrap)
   }
   doc.setLineWidth(1)
 

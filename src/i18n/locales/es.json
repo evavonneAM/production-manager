@@ -483,7 +483,7 @@
     "zipperStyle": "Cierre",
     "wrap": "Envolvente",
     "back": "Solo atrás",
-    "wrapHelp": "El cierre rodea la mitad de los lados",
+    "wrapHelp": "El cierre va por atrás y sube 4\" por cada lado",
     "backHelp": "El cierre va solo en el borde de atrás",
     "howMany": "Cantidad",
     "front": "Ancho",

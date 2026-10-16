@@ -63,6 +63,11 @@ export const COVER_DEDUCTION = 0.25
 export const HEIGHT_DEDUCTIONS = [0.25, 0.5, 1, 1.5] as const
 export const DEFAULT_HEIGHT_DEDUCTION = 0.5
 
+/** A wrap-around zipper comes this far up each side from the back (the shop's rule). */
+export const ZIPPER_WRAP = 4
+/** How far a wrap-around zipper runs up each side: 4", or half the depth on a shallow cushion. */
+export const zipperWrap = (finishedDepth: number) => Math.min(ZIPPER_WRAP, finishedDepth / 2)
+
 export function cushionCuts({ qty, front, sides, height, style, heightDeduction: deduction, cording: hasCording }: CushionInput): CushionCuts {
   const c = front - COVER_DEDUCTION
   const d = sides - COVER_DEDUCTION
@@ -85,6 +90,8 @@ export function cushionCuts({ qty, front, sides, height, style, heightDeduction:
       foam,
     }
   }
+  // Wrap-around: the zipper runs the back and 4" up each side; boxing covers the rest.
+  const wrap = zipperWrap(d)
   return {
     kind: 'box',
     finishedWidth: c,
@@ -92,8 +99,8 @@ export function cushionCuts({ qty, front, sides, height, style, heightDeduction:
     finishedHeight: e,
     deduction,
     plate,
-    boxing: { qty, x: c + d + 2, z: e + 1 },
-    zipper: { qty: qty * 2, x: c + d + 2, z: zipZ },
+    boxing: { qty, x: c + 2 * d - 2 * wrap + 2, z: e + 1 },
+    zipper: { qty: qty * 2, x: c + 2 * wrap + 2, z: zipZ },
     cording,
     foam,
   }
