@@ -97,61 +97,65 @@ export const FOAM_INSERTS = ['foam', 'celesteEnv', 'wgEnv', 'gooseEnv', 'bolster
 export const insertName = (insert: string, foamType = '') =>
   (INSERT_NAMES[insert] ?? insert) + (foamType && FOAM_INSERTS.includes(insert) ? ` (${foamType})` : '')
 
-export type EstimateRocketInput = {
-  qty: number
-  width: string
-  depth: string
-  height: string
-  confirmed: boolean
+/** Style and fabric for one cushion of the line (the seat, or a matching back). */
+export type EstimateRocketPart = {
   sewingStyle: string
-  insertLabel: 'Seat Insert' | 'Back Insert'
   insert: string
+  foamType: string
   yardsPerItem: number
   fabric: string
   direction: 'tbd' | 'upTheRoll' | 'railroaded'
   /** What the fabric is centered on (pattern, motif, stripe…). */
   center: string
-  contrastWelt: boolean
+  /** Contrast welt fabric; empty = no contrast welt line. */
   weltFabric: string
-  /** A matching back cushion on the same line (seat + back set). */
-  back?: { depth: string; height: string; insert: string; foamType: string; yardsPerItem: number; fabric: string }
-  foamType: string
-  /** Custom sewn, or upholstered to plywood (plywood is added to the price). */
+}
+
+export type EstimateRocketInput = EstimateRocketPart & {
+  qty: number
+  width: string
+  depth: string
+  height: string
+  confirmed: boolean
+  insertLabel: 'Seat Insert' | 'Back Insert'
+  /** Custom sewn, or upholstered to plywood. */
   plan: 'sewn' | 'plywood'
+  /** A matching back cushion on the same line (seat + back set). */
+  back?: EstimateRocketPart & { depth: string; height: string }
 }
 
 const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up the Roll', railroaded: 'Railroaded' } as const
 
-function directionLine(direction: EstimateRocketInput['direction'], center: string): string {
+function directionLine(direction: EstimateRocketPart['direction'], center: string): string {
   const c = center.trim()
   if (direction === 'tbd' && !c) return 'To Be Determined'
   return c ? `${DIRECTION_TEXT[direction]} - Centered: ${c}` : DIRECTION_TEXT[direction]
 }
 
-
-function fabricLines(label: string, qty: number, yardsPerItem: number, fabric: string): string[] {
+function fabricLines(label: string, qty: number, p: EstimateRocketPart): string[] {
   return [
-    `* **${label} Yardage:** ${wholeYards(yardsPerItem) * qty} Yards of Fabric Required in TOTAL (${wholeYards(yardsPerItem)} Yards Per Item)`,
-    `* **${label} Fabric:** ${fabric.trim() || 'To Be Determined (Price Not Included)'}`,
+    `* **${label} Yardage:** ${wholeYards(p.yardsPerItem) * qty} Yards of Fabric Required in TOTAL (${wholeYards(p.yardsPerItem)} Yards Per Item)`,
+    `* **${label} Fabric:** ${p.fabric.trim() || 'To Be Determined (Price Not Included)'}`,
+    `* **${label} Fabric Direction/Center:** ${directionLine(p.direction, p.center)}`,
+    ...(p.weltFabric.trim() ? [`* **${label === 'Body' ? '' : `${label} `}Contrast Welt:** ${p.weltFabric.trim()}`] : []),
   ]
 }
 
 export function estimateRocketText(e: EstimateRocketInput): string {
+  const dims = (label: string, d: string, h: string) =>
+    `* **${label}:** QTY ${e.qty} @ ${e.width}W x ${d}D x ${h}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`
   return [
     '____',
     '<center>_According To Design Specifications_</center>',
     '____',
     '#### Plan:',
     e.plan === 'plywood' ? '* **Custom Upholstered to Plywood**' : '* **Custom Sewn**',
-    ...(e.back
-      ? [
-          `* **Seat Dimensions:** QTY ${e.qty} @ ${e.width}W x ${e.depth}D x ${e.height}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`,
-          `* **Back Dimensions:** QTY ${e.qty} @ ${e.width}W x ${e.back.depth}D x ${e.back.height}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`,
-        ]
-      : [`* **Dimensions:** QTY ${e.qty} @ ${e.width}W x ${e.depth}D x ${e.height}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`]),
+    ...(e.back ? [dims('Seat Dimensions', e.depth, e.height), dims('Back Dimensions', e.back.depth, e.back.height)] : [dims('Dimensions', e.depth, e.height)]),
     '',
     '#### Style:',
-    `* **Sewing Style:** ${e.sewingStyle}`,
+    ...(e.back
+      ? [`* **Seat Sewing Style:** ${e.sewingStyle}`, `* **Back Sewing Style:** ${e.back.sewingStyle}`]
+      : [`* **Sewing Style:** ${e.sewingStyle}`]),
     '* **Zipper:** Standard',
     '',
     '#### Fill:',
@@ -159,9 +163,7 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     ...(e.back ? [`* **Back Insert:** ${insertName(e.back.insert, e.back.foamType)}`] : []),
     '',
     '#### Fabric:',
-    ...fabricLines(e.back ? 'Seat' : 'Body', e.qty, e.yardsPerItem, e.fabric),
-    ...(e.back ? fabricLines('Back', e.qty, e.back.yardsPerItem, e.back.fabric) : []),
-    `* **Body Fabric Direction/Center:** ${directionLine(e.direction, e.center)}`,
-    ...(e.contrastWelt ? [`* **Contrast Welt:** ${e.weltFabric.trim() || 'To Be Determined (Price Not Included)'}`] : []),
+    ...fabricLines(e.back ? 'Seat' : 'Body', e.qty, e),
+    ...(e.back ? fabricLines('Back', e.qty, e.back) : []),
   ].join('\n')
 }
