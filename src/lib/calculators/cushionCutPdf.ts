@@ -192,8 +192,10 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
     drawWedgeProfile(doc, c, c.cuts, M + 12, y + 6, drawW, 160)
     drawWedgeFront(doc, c, c.cuts, M + 12, y + 196, drawW, 44)
   } else {
-    drawPlan(doc, c, c.cuts, M + 12, y + 6, drawW, 150)
-    drawSide(doc, c, c.cuts, M + 12, y + 186, drawW, 50)
+    // Plan and side views share one scale so they read true to each other.
+    const sc = Math.min((drawW - 100) / c.width, (150 - 48) / c.depth, (50 - 10) / c.height)
+    drawPlan(doc, c, c.cuts, M + 12, y + 6, drawW, sc)
+    drawSide(doc, c, c.cuts, M + 12, y + 186, drawW, sc)
   }
 
   const rx = M + 12 + drawW + 30
@@ -293,9 +295,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
 }
 
 /** Plan (top) view: width across, depth down, zipper on the back edge. */
-function drawPlan(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number, y0: number, boxW: number, boxH: number) {
-  const pad = 30
-  const sc = Math.min((boxW - pad * 2) / c.width, (boxH - pad * 1.6) / c.depth)
+function drawPlan(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number, y0: number, boxW: number, sc: number) {
   const w = c.width * sc
   const d = c.depth * sc
   const x = x0 + (boxW - w) / 2
@@ -347,12 +347,11 @@ function drawPlan(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number
 }
 
 /** Side view: width across, ordered vs finished boxing height. */
-function drawSide(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number, y0: number, boxW: number, boxH: number) {
+function drawSide(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number, y0: number, boxW: number, sc: number) {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
   doc.text('SIDE VIEW', x0, y0)
-  const sc = Math.min((boxW - 100) / c.width, (boxH - 10) / c.height)
   const w = c.width * sc
   const h = c.height * sc
   const fh = cuts.finishedHeight * sc
