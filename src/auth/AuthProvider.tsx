@@ -29,6 +29,7 @@ type AuthContextValue = {
   profile: Profile | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<Result>
+  signInWithGoogle: () => Promise<Result>
   signOut: () => Promise<void>
   setLanguage: (lang: AppLanguage) => Promise<void>
   updateProfile: (
@@ -91,6 +92,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error ? error.message : null }
   }
 
+  // Only emails an Admin has already added can get in: public sign-up is off,
+  // so Google links to the existing account or is turned away.
+  const signInWithGoogle = async (): Promise<Result> => {
+    if (!supabase) return { error: 'not_configured' }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/login` },
+    })
+    return { error: error ? error.message : null }
+  }
+
   const signOut = async () => {
     await supabase?.auth.signOut()
   }
@@ -140,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         signIn,
+        signInWithGoogle,
         signOut,
         setLanguage,
         updateProfile,
