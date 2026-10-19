@@ -571,7 +571,19 @@
     "wedgeSide": "Piezas laterales",
     "wedgeSideSize": "{{h}} de alto, {{top}} arriba, {{bottom}} abajo",
     "wedgeZipper": "Cierre (largo)",
-    "wedgeFoam": "Espuma (L × Al × abajo/arriba)"
+    "wedgeFoam": "Espuma (L × Al × abajo/arriba)",
+    "shape_board": "Sobre tabla",
+    "shape_boardHelp": "Tapizado sobre triplay: una tapa arriba, un costado que da la vuelta y se dobla bajo la tabla, sin cierre.",
+    "boardZipperHelp": "Sobre tabla: engrapado al triplay, sin cierre.",
+    "boardSizeHelp": "Medida terminada, sin descuento",
+    "boardHeightHelp": "Altura terminada (tabla + hule espuma)",
+    "boardFinishes": "Terminado {{size}} sobre triplay · sin descuento",
+    "boardPlate": "Tapa (An × Pr)",
+    "boardBoxing": "Costado, toda la vuelta (L × An)",
+    "boardBoard": "Tabla de triplay",
+    "fabricTitle": "Trazo de la tela",
+    "fabricYards": "{{n}} yd",
+    "fabricHelpLayout": "Todos los cojines de la misma tela (y dirección) se acomodan juntos en un rollo de 54\", con una tapa de repuesto y el bloque de sesgo, igual que la herramienta de Yardas de tela."
   },
   "leafBag": {
     "intro": "Ingresa la medida terminada de la bolsa de cada trabajo. Los cortes se actualizan mientras escribes.",
@@ -863,7 +875,9 @@
     "offCenter_one": "{{count}} pieza no puede quedar centrada en un motivo a lo ancho del rollo y va descentrada. Consúltalo con el diseñador.",
     "offCenter_other": "{{count}} piezas no pueden quedar centradas en un motivo a lo ancho del rollo y van descentradas. Consúltalo con el diseñador.",
     "heldAtPlain": "Este diseño acomoda más apretado que el trazo de tela lisa, así que la cotización se queda en las yardas de tela lisa.",
-    "motifLegend": "Los puntos marcan el motivo en que se centra cada pieza."
+    "motifLegend": "Los puntos marcan el motivo en que se centra cada pieza.",
+    "board": "Tabla",
+    "boardHelp": "Sobre tabla: medidas terminadas, una tapa y un costado que se dobla bajo la tabla, sin cierre."
   },
   "upholstery": {
     "intro": "Sigue \"Cómo cotizar mano de obra de tapicería\": mano de obra base, cojines, espuma, yardaje, materiales y adicionales. La cotización de abajo se copia directo a Estimate Rocket.",

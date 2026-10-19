@@ -26,7 +26,7 @@ import { formatInches, parseInches } from '../../lib/calculators/inches'
 import { FOAM_TYPES } from '../../lib/foamTypes'
 import { SHEET_L, SHEET_PRICE, SHEET_W, fitsSheet, planPlywood, type Board, type Sheet } from '../../lib/calculators/plywoodNesting'
 import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, type PriceOption } from '../../lib/calculators/cushionPricing'
-import { DEFAULT_HEIGHT_DEDUCTION, cushionCuts } from '../../lib/calculators/cushionCut'
+import { DEFAULT_HEIGHT_DEDUCTION, boardCuts, cushionCuts } from '../../lib/calculators/cushionCut'
 import {
   DEFAULT_END_ALLOWANCE,
   DEFAULT_EXTRA,
@@ -231,13 +231,8 @@ function toBackSection(r: Row): Section | null {
  * get cording around the top and the bottom edge.
  */
 function boardPieces(x: Section, welted: boolean): { pieces: CutPiece[]; cording: number } {
-  const around = 2 * x.length + 2 * x.d + 1
-  const pieces: CutPiece[] = []
-  for (let i = 0; i < x.qty; i++) {
-    pieces.push({ name: 'plate', cushion: '', across: x.length + 1, along: x.d + 1 })
-    pieces.push({ name: 'boxing', cushion: '', across: around, along: x.h + 2.5 })
-  }
-  return { pieces, cording: welted ? 2 * around * x.qty : 0 }
+  const cuts = boardCuts({ qty: x.qty, width: x.length, depth: x.d, height: x.h, cording: welted })
+  return { pieces: piecesFor(cuts, ''), cording: cuts.cording }
 }
 
 /**

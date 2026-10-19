@@ -167,6 +167,43 @@ export function wedgeCuts({ qty, length, height: h, bottom: b, top: t, lengthDed
   }
 }
 
-export type AnyCuts = CushionCuts | WedgeCuts
+// ── Board-mounted (upholstered to plywood) ──────────────────────────
+// From the workroom's "Upholstered Cushion Cut List Generator" sheet. Sizes are the
+// finished size (no deduction). One plate on top, one boxing strip that goes all the
+// way around the board and wraps under it, no zipper; cording top and bottom when the
+// style is welted.
+
+export type BoardInput = { qty: number; width: number; depth: number; height: number; cording: boolean }
+
+export type BoardCuts = {
+  kind: 'board'
+  finishedWidth: number
+  finishedDepth: number
+  finishedHeight: number
+  plate: { qty: number; width: number; depth: number }
+  /** Around all four sides; 2" + ½" extra width to wrap and staple under the board. */
+  boxing: { qty: number; x: number; z: number }
+  cording: number
+  board: { qty: number; width: number; depth: number }
+  foam: { qty: number; width: number; depth: number; height: number }
+}
+
+export function boardCuts({ qty, width: w, depth: d, height: h, cording: hasCording }: BoardInput): BoardCuts {
+  const around = 2 * w + 2 * d + 1
+  return {
+    kind: 'board',
+    finishedWidth: w,
+    finishedDepth: d,
+    finishedHeight: h,
+    plate: { qty, width: up8(w + 1), depth: up8(d + 1) },
+    boxing: { qty, x: up8(around), z: up8(h + 2.5) },
+    cording: hasCording ? 2 * around * qty : 0,
+    board: { qty, width: w, depth: d },
+    // Foam is cut ½" over the finished width and depth so it fills the cover snugly.
+    foam: { qty, width: up8(w + 0.5), depth: up8(d + 0.5), height: h },
+  }
+}
+
+export type AnyCuts = CushionCuts | WedgeCuts | BoardCuts
 
 export { formatInches, parseInches } from './inches'

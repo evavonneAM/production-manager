@@ -126,7 +126,11 @@ export function piecesFor(cuts: AnyCuts, cushion: string): CutPiece[] {
   const add = (name: PieceName, qty: number, across: number, along: number) => {
     for (let i = 0; i < qty; i++) out.push({ name, cushion, across, along })
   }
-  if (cuts.kind === 'box') {
+  if (cuts.kind === 'board') {
+    // Board-mounted: one plate on top and one boxing strip around the board, no zipper.
+    add('plate', cuts.plate.qty, cuts.plate.width, cuts.plate.depth)
+    add('boxing', cuts.boxing.qty, cuts.boxing.x, cuts.boxing.z)
+  } else if (cuts.kind === 'box') {
     // Plate: the cushion's width across the roll, front to back along it.
     add('plate', cuts.plate.qty, cuts.plate.width, cuts.plate.depth)
     // Strips go around the cushion, so their length runs across the roll when cut up the roll.
