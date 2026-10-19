@@ -6,6 +6,7 @@ import { AppLogo } from './AppLogo'
 import { useAsync } from '../hooks/useAsync'
 import { getDepartments, getBadgeCounts } from '../lib/data'
 import { replayPendingClockOut } from '../lib/offlineClock'
+import { canSeePage } from '../lib/openPages'
 
 /** Small red count bubble for nav items. */
 export function Badge({ count }: { count: number }) {
@@ -100,6 +101,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
     const proc = departments?.find((d) => d.name === 'Procurement')
     return !!proc && profile?.department_id === proc.id
   }, [profile, departments])
+  // Non-testers only see the pages opened in lib/openPages while the rest is built.
+  const see = (to: string) => canSeePage(profile, to)
+  const limited = !!profile && !profile.is_tester
+  const LIMITED_TABS: Tab[] = [
+    { to: '/tools', key: 'nav.tools', icon: I.tools },
+    { to: '/profile', key: 'nav.profile', icon: I.profile },
+  ].filter((tab) => see(tab.to))
 
   return (
     <div className="min-h-full bg-slate-900 text-slate-100">
@@ -115,7 +123,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <span className="font-semibold">{t('common.appName')}</span>
         </div>
         <nav className="flex flex-col gap-1">
-          {TABS.map((tab) => (
+          {TABS.filter((tab) => see(tab.to)).map((tab) => (
             <NavLink
               key={tab.to}
               to={tab.to}
@@ -132,52 +140,60 @@ export function AppLayout({ children }: { children: ReactNode }) {
               {tab.to === '/inspection' && <Badge count={counts.pendingInspections} />}
             </NavLink>
           ))}
-          <NavLink
-            to="/tools"
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                isActive ? 'bg-amber-600/15 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
-              }`
-            }
-          >
-            <TabIcon icon={I.tools} />
-            {t('nav.tools')}
-          </NavLink>
-          <NavLink
-            to="/priority"
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                isActive ? 'bg-amber-600/15 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
-              }`
-            }
-          >
-            <TabIcon icon={<path d="M4 6h16M7 12h13M10 18h10" />} />
-            {t('priority.title')}
-          </NavLink>
-          <NavLink
-            to="/inbox"
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                isActive ? 'bg-amber-600/15 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
-              }`
-            }
-          >
-            <TabIcon icon={<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9m-4.7 13a2 2 0 0 1-3.4 0" />} />
-            {t('inbox.title')}
-            <Badge count={counts.unread} />
-          </NavLink>
-          <NavLink
-            to="/reports"
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                isActive ? 'bg-amber-600/15 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
-              }`
-            }
-          >
-            <TabIcon icon={<path d="M4 20V10m6 10V4m6 16v-7m4 7H2" />} />
-            {t('reports.title')}
-          </NavLink>
-          {showOrdering && (
+          {see('/tools') && (
+            <NavLink
+              to="/tools"
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  isActive ? 'bg-amber-600/15 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                }`
+              }
+            >
+              <TabIcon icon={I.tools} />
+              {t('nav.tools')}
+            </NavLink>
+          )}
+          {see('/priority') && (
+            <NavLink
+              to="/priority"
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  isActive ? 'bg-amber-600/15 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                }`
+              }
+            >
+              <TabIcon icon={<path d="M4 6h16M7 12h13M10 18h10" />} />
+              {t('priority.title')}
+            </NavLink>
+          )}
+          {see('/inbox') && (
+            <NavLink
+              to="/inbox"
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  isActive ? 'bg-amber-600/15 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                }`
+              }
+            >
+              <TabIcon icon={<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9m-4.7 13a2 2 0 0 1-3.4 0" />} />
+              {t('inbox.title')}
+              <Badge count={counts.unread} />
+            </NavLink>
+          )}
+          {see('/reports') && (
+            <NavLink
+              to="/reports"
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  isActive ? 'bg-amber-600/15 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                }`
+              }
+            >
+              <TabIcon icon={<path d="M4 20V10m6 10V4m6 16v-7m4 7H2" />} />
+              {t('reports.title')}
+            </NavLink>
+          )}
+          {showOrdering && see('/ordering') && (
             <NavLink
               to="/ordering"
               className={({ isActive }) =>
@@ -193,6 +209,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </NavLink>
           )}
         </nav>
+        {!limited && (
         <button
           type="button"
           onClick={() => navigate('/scan')}
@@ -200,12 +217,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
         >
           {t('nav.scan')}
         </button>
+        )}
       </aside>
 
       {/* Content */}
       <div className="flex min-h-full flex-col pb-24 md:ml-60 md:pb-0 print:!ml-0 print:pb-0">{children}</div>
 
       {/* Mobile floating QR button */}
+      {!limited && (
       <button
         type="button"
         onClick={() => navigate('/scan')}
@@ -216,6 +235,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" />
         </svg>
       </button>
+      )}
 
       {/* Mobile "More" sheet: everything that doesn't fit the 5-tab bar. */}
       {moreOpen && (
@@ -233,7 +253,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 ? [{ to: '/ordering', label: t('ordering.title'), icon: <path d="M6 6h15l-1.5 9h-12L5 3H2m5 18a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm10 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />, badge: 0 }]
                 : []),
               { to: '/profile', label: t('nav.profile'), icon: I.profile, badge: 0 },
-            ].map((item) => (
+            ].filter((item) => see(item.to)).map((item) => (
               <button
                 key={item.to}
                 type="button"
@@ -254,7 +274,26 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      {/* Mobile bottom tab bar: 4 core tabs + More (the rest live in the sheet). */}
+      {/* Mobile bottom tab bar for non-testers: just the open pages. */}
+      {limited ? (
+        <nav className="fixed inset-x-0 bottom-0 z-40 flex print:!hidden border-t border-slate-800 bg-slate-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+          {LIMITED_TABS.map((tab) => (
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              className={({ isActive }) =>
+                `flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium ${
+                  isActive ? 'text-amber-400' : 'text-slate-500'
+                }`
+              }
+            >
+              <TabIcon icon={tab.icon} />
+              {t(tab.key)}
+            </NavLink>
+          ))}
+        </nav>
+      ) : (
+      /* Mobile bottom tab bar: 4 core tabs + More (the rest live in the sheet). */
       <nav className="fixed inset-x-0 bottom-0 z-40 flex print:!hidden border-t border-slate-800 bg-slate-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {TABS.filter((tab) => tab.to !== '/profile').map((tab, i) => (
           <NavLink
@@ -298,6 +337,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           {t('nav.more')}
         </button>
       </nav>
+      )}
     </div>
   )
 }
