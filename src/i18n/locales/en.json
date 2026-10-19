@@ -224,7 +224,10 @@
     "forgot": "Forgot password?",
     "forgotSent": "If that email exists, a reset link is on its way.",
     "invalid": "Incorrect email or password.",
-    "needEmailForReset": "Enter your email above first, then tap “Forgot password?”."
+    "needEmailForReset": "Enter your email above first, then tap “Forgot password?”.",
+    "google": "Sign in with Google",
+    "or": "or",
+    "googleNotAllowed": "That Google account isn't on the team list. Ask an Admin to add your email."
   },
   "profile": {
     "title": "Profile",

@@ -214,7 +214,10 @@
     "forgot": "¿Olvidaste tu contraseña?",
     "forgotSent": "Si ese correo existe, el enlace de restablecimiento está en camino.",
     "invalid": "Correo o contraseña incorrectos.",
-    "needEmailForReset": "Primero escribe tu correo arriba y luego toca «¿Olvidaste tu contraseña?»."
+    "needEmailForReset": "Primero escribe tu correo arriba y luego toca «¿Olvidaste tu contraseña?».",
+    "google": "Iniciar sesión con Google",
+    "or": "o",
+    "googleNotAllowed": "Esa cuenta de Google no está en la lista del equipo. Pide a un administrador que agregue tu correo."
   },
   "profile": {
     "title": "Perfil",
