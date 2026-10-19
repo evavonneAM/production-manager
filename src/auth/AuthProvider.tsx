@@ -20,6 +20,7 @@ export type Profile = {
   language: AppLanguage
   active_task_id: string | null
   is_active: boolean
+  is_tester: boolean
 }
 
 type Result = { error: string | null }
