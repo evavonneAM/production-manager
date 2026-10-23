@@ -334,18 +334,15 @@ the owner reviews this section.
 Job Database Google Sheet ("Job Database — Estimates, Work Orders & Emails") is the source of
 truth: 378 jobs keyed by a 4-digit code, audit still open.
 
-- [ ] **One job code everywhere.** Code = business prefix + number, e.g. `HOV-4323`. The
-      prefix (AM / HOV / RHU) says which business the job came through and is required.
-      Until now the number came from QuickBooks or Estimate Rocket; once estimating moves into
-      the app (see the in-app estimates plan), the app issues the number itself when an
-      estimate is created. Owner decision 2026-10-23: keep the prefix, the app must keep
-      track of numbers. *Recommended: one shared counter for all three businesses, starting
-      above the highest number already used in QuickBooks/ER, so a bare "4323" in an email
-      still points at exactly one job and new numbers never collide with old ones. Old jobs
-      keep their numbers; if an old number exists in two businesses, matching uses the prefix
-      or the client's email.* Stored as `business` + `job_number` on projects (unique
-      together; the shared counter also keeps `job_number` unique on its own); `AM1234-A`
-      style suffixes stay for jobs within a project.
+- [ ] **One job code everywhere.** Code = business prefix + number. The prefix (AM / HOV /
+      RHU) says which business the job came through and is required (owner, 2026-10-23).
+      Old jobs keep their QuickBooks/ER 4-digit numbers (e.g. HOV4323). New numbers come from
+      the in-app estimates work (PR #16): they start at 10001, so new codes (HOV10001) can
+      never clash with old 4-digit ones. *Open: PR #16 counts per business, so AM10001 and
+      HOV10001 can both exist. Recommended: one shared counter across all three businesses,
+      so every number is unique even without the prefix (one-line change in PR #16).* If an
+      old 4-digit number exists in two businesses, matching uses the prefix or the client's
+      Gmail label. `AM1234-A` style suffixes stay for jobs within a project.
 - [ ] **Notes approval step.** Extend `notes`: `status` (pending / approved / rejected,
       default approved for notes people type), `source` (manual / email), `email_link`,
       `suggested_stage` (a suggestion only, never applied automatically), `reviewed_by`,
@@ -355,13 +352,17 @@ truth: 378 jobs keyed by a 4-digit code, audit still open.
 - [ ] **Emails tab on each project.** New `email_threads` table (project, Gmail thread id,
       subject, first sender, last date, link). One row per thread, separate from notes, so the
       page lists the whole conversation history.
-- [ ] **How emails get linked** (any of these, all feed the same tables):
-      1. *Code in the subject*, e.g. "[4323] Lathrop banquette". Team habit, no build.
-      2. *Gmail label* "Project" on emails without a code; matched by client email, unsure
-         matches go to a review list instead of guessing.
-      3. *BCC / forward address* (like HubSpot's): reuse the Sprint 12 `email-intake` Zapier
-         route; an email with a code becomes a pending note + email thread on that project.
-- [ ] **Weekday morning Claude run.** Searches Gmail for new emails with codes or the label,
+- [ ] **How emails get linked.** No job labels: most jobs start as client inquiries with the
+      client's own subject lines, sometimes several threads per job, and the team already
+      labels Gmail by client (~230 client labels). So:
+      1. *Client label (main way):* one open job for that client → linked automatically;
+         several → Claude picks the likeliest (item, sidemark, address) and marks the note
+         "please confirm job", approver picks from that client's jobs; no job yet → "New
+         inquiry, start an estimate?" suggestion.
+      2. *Code in the subject (bonus):* estimates sent from the app carry "HOV-4323" in the
+         subject, so client replies link exactly.
+      3. *BCC / forward address (optional, later):* reuse the Sprint 12 `email-intake` route.
+- [ ] **Weekday morning Claude run.** Reads new email under client labels (and any with a job code),
       writes one pending note per thread: who emailed, what was decided, next step + date,
       link. Reads the database through the Supabase connector; writes only pending rows.
 - [ ] **Until projects live in the app:** the same run writes to a new "Email Notes" tab in
