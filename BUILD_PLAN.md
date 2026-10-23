@@ -324,6 +324,48 @@ offline syncs correctly when I reconnect.
 
 ---
 
+## Sprint 15 — Email ↔ project link (planned, not started)
+
+**Goal:** every email about a job shows up on that job's page, and Claude can turn new emails
+into short notes that wait for approval. Owner chose "plan only" on 2026-10-23; no code until
+the owner reviews this section.
+
+**Why now:** the app isn't in daily use yet, so changing codes and notes is cheap. Today the
+Job Database Google Sheet ("Job Database — Estimates, Work Orders & Emails") is the source of
+truth: 378 jobs keyed by a 4-digit code, audit still open.
+
+- [ ] **One job code everywhere (decide first).** Emails and the Sheet use a 4-digit code
+      (e.g. 4323, the tail of "2606-1816-4323"); the app uses `AM1234-A`. Add a `short_code`
+      on projects (unique per business) so a 4-digit number in an email finds exactly one
+      project. *Open question for owner: is the 4-digit number the team's code going forward,
+      and can the same number exist in two businesses (AM / HOV / RHU)?*
+- [ ] **Notes approval step.** Extend `notes`: `status` (pending / approved / rejected,
+      default approved for notes people type), `source` (manual / email), `email_link`,
+      `suggested_stage` (a suggestion only, never applied automatically), `reviewed_by`,
+      `reviewed_at`. A "Claude" system user is the author of email notes. Pending notes show
+      on the project with Approve / Reject for Admins and Leads; translation runs only after
+      approval. Nothing is ever deleted: rejected notes stay, hidden by default.
+- [ ] **Emails tab on each project.** New `email_threads` table (project, Gmail thread id,
+      subject, first sender, last date, link). One row per thread, separate from notes, so the
+      page lists the whole conversation history.
+- [ ] **How emails get linked** (any of these, all feed the same tables):
+      1. *Code in the subject*, e.g. "[4323] Lathrop banquette". Team habit, no build.
+      2. *Gmail label* "Project" on emails without a code; matched by client email, unsure
+         matches go to a review list instead of guessing.
+      3. *BCC / forward address* (like HubSpot's): reuse the Sprint 12 `email-intake` Zapier
+         route; an email with a code becomes a pending note + email thread on that project.
+- [ ] **Weekday morning Claude run.** Searches Gmail for new emails with codes or the label,
+      writes one pending note per thread: who emailed, what was decided, next step + date,
+      link. Reads the database through the Supabase connector; writes only pending rows.
+- [ ] **Until projects live in the app:** the same run writes to a new "Email Notes" tab in
+      the Job Database Sheet (its own tab, because the other tabs are rebuilt automatically),
+      and approved rows move into the app later.
+
+**Done when:** I put "[4323]" in an email subject, and the next morning that project shows the
+thread on its Emails tab plus a pending note I can approve in one tap.
+
+---
+
 ## A note on sequencing risk
 
 Sprint 6 (the workflow engine) is where the project succeeds or struggles. Everything before
