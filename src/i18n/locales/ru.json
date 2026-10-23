@@ -684,6 +684,7 @@
     "opt_cleanSeam": "Пошив, чистый шов (только чехол)",
     "opt_frenchCover": "Французский матрас (только чехол)",
     "opt_foam": "Поролон высокой плотности/упругости",
+    "opt_outdoorFoam": "Уличный поролон",
     "opt_celesteSolid": "Celeste цельный",
     "opt_celesteEnv": "Конверт Celeste с поролоном",
     "opt_wgSolid": "Пух WG 50/50 цельный",
