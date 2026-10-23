@@ -407,18 +407,15 @@ the owner reviews this section.
 Job Database Google Sheet ("Job Database — Estimates, Work Orders & Emails") is the source of
 truth: 378 jobs keyed by a 4-digit code, audit still open.
 
-- [ ] **One job code everywhere.** Code = business prefix + number, e.g. `HOV-4323`. The
-      prefix (AM / HOV / RHU) says which business the job came through and is required.
-      Until now the number came from QuickBooks or Estimate Rocket; once estimating moves into
-      the app (see the in-app estimates plan), the app issues the number itself when an
-      estimate is created. Owner decision 2026-10-23: keep the prefix, the app must keep
-      track of numbers. *Recommended: one shared counter for all three businesses, starting
-      above the highest number already used in QuickBooks/ER, so a bare "4323" in an email
-      still points at exactly one job and new numbers never collide with old ones. Old jobs
-      keep their numbers; if an old number exists in two businesses, matching uses the prefix
-      or the client's email.* Stored as `business` + `job_number` on projects (unique
-      together; the shared counter also keeps `job_number` unique on its own); `AM1234-A`
-      style suffixes stay for jobs within a project.
+- [ ] **One job code everywhere.** Code = business prefix + number. The prefix (AM / HOV /
+      RHU) says which business the job came through and is required (owner, 2026-10-23).
+      Old jobs keep their QuickBooks/ER 4-digit numbers (e.g. HOV4323). New numbers come from
+      the in-app estimates work (PR #16): they start at 10001, so new codes (HOV10001) can
+      never clash with old 4-digit ones. *Open: PR #16 counts per business, so AM10001 and
+      HOV10001 can both exist. Recommended: one shared counter across all three businesses,
+      so every number is unique even without the prefix (one-line change in PR #16).* If an
+      old 4-digit number exists in two businesses, matching uses the prefix or the client's
+      Gmail label. `AM1234-A` style suffixes stay for jobs within a project.
 - [ ] **Notes approval step.** Extend `notes`: `status` (pending / approved / rejected,
       default approved for notes people type), `source` (manual / email), `email_link`,
       `suggested_stage` (a suggestion only, never applied automatically), `reviewed_by`,
