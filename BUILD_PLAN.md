@@ -428,13 +428,17 @@ truth: 378 jobs keyed by a 4-digit code, audit still open.
 - [ ] **Emails tab on each project.** New `email_threads` table (project, Gmail thread id,
       subject, first sender, last date, link). One row per thread, separate from notes, so the
       page lists the whole conversation history.
-- [ ] **How emails get linked** (any of these, all feed the same tables):
-      1. *Code in the subject*, e.g. "[4323] Lathrop banquette". Team habit, no build.
-      2. *Gmail label* "Project" on emails without a code; matched by client email, unsure
-         matches go to a review list instead of guessing.
-      3. *BCC / forward address* (like HubSpot's): reuse the Sprint 12 `email-intake` Zapier
-         route; an email with a code becomes a pending note + email thread on that project.
-- [ ] **Weekday morning Claude run.** Searches Gmail for new emails with codes or the label,
+- [ ] **How emails get linked.** No job labels: most jobs start as client inquiries with the
+      client's own subject lines, sometimes several threads per job, and the team already
+      labels Gmail by client (~230 client labels). So:
+      1. *Client label (main way):* one open job for that client → linked automatically;
+         several → Claude picks the likeliest (item, sidemark, address) and marks the note
+         "please confirm job", approver picks from that client's jobs; no job yet → "New
+         inquiry, start an estimate?" suggestion.
+      2. *Code in the subject (bonus):* estimates sent from the app carry "HOV-4323" in the
+         subject, so client replies link exactly.
+      3. *BCC / forward address (optional, later):* reuse the Sprint 12 `email-intake` route.
+- [ ] **Weekday morning Claude run.** Reads new email under client labels (and any with a job code),
       writes one pending note per thread: who emailed, what was decided, next step + date,
       link. Reads the database through the Supabase connector; writes only pending rows.
 - [ ] **Until projects live in the app:** the same run writes to a new "Email Notes" tab in
