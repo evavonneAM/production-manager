@@ -334,11 +334,18 @@ the owner reviews this section.
 Job Database Google Sheet ("Job Database — Estimates, Work Orders & Emails") is the source of
 truth: 378 jobs keyed by a 4-digit code, audit still open.
 
-- [ ] **One job code everywhere (decide first).** Emails and the Sheet use a 4-digit code
-      (e.g. 4323, the tail of "2606-1816-4323"); the app uses `AM1234-A`. Add a `short_code`
-      on projects (unique per business) so a 4-digit number in an email finds exactly one
-      project. *Open question for owner: is the 4-digit number the team's code going forward,
-      and can the same number exist in two businesses (AM / HOV / RHU)?*
+- [ ] **One job code everywhere.** Code = business prefix + number, e.g. `HOV-4323`. The
+      prefix (AM / HOV / RHU) says which business the job came through and is required.
+      Until now the number came from QuickBooks or Estimate Rocket; once estimating moves into
+      the app (see the in-app estimates plan), the app issues the number itself when an
+      estimate is created. Owner decision 2026-10-23: keep the prefix, the app must keep
+      track of numbers. *Recommended: one shared counter for all three businesses, starting
+      above the highest number already used in QuickBooks/ER, so a bare "4323" in an email
+      still points at exactly one job and new numbers never collide with old ones. Old jobs
+      keep their numbers; if an old number exists in two businesses, matching uses the prefix
+      or the client's email.* Stored as `business` + `job_number` on projects (unique
+      together; the shared counter also keeps `job_number` unique on its own); `AM1234-A`
+      style suffixes stay for jobs within a project.
 - [ ] **Notes approval step.** Extend `notes`: `status` (pending / approved / rejected,
       default approved for notes people type), `source` (manual / email), `email_link`,
       `suggested_stage` (a suggestion only, never applied automatically), `reviewed_by`,
