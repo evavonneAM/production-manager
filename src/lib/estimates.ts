@@ -243,13 +243,14 @@ export async function saveClient(c: Omit<Client, 'id'> & { id?: string }): Promi
   return data
 }
 
-export async function getCounters(): Promise<Record<Store, number>> {
-  const { data, error } = await db().from('estimate_counters').select('*')
+/** The next estimate number, shared by all three businesses (one counter row, store 'ALL'). */
+export async function getNextNumber(): Promise<number | null> {
+  const { data, error } = await db().from('estimate_counters').select('next_number').eq('store', 'ALL').maybeSingle()
   if (error) throw error
-  return Object.fromEntries((data ?? []).map((r) => [r.store, r.next_number])) as Record<Store, number>
+  return data?.next_number ?? null
 }
 
-export async function setCounter(store: Store, next: number) {
-  const { error } = await db().from('estimate_counters').update({ next_number: next }).eq('store', store)
+export async function setNextNumber(next: number) {
+  const { error } = await db().from('estimate_counters').update({ next_number: next }).eq('store', 'ALL')
   if (error) throw error
 }

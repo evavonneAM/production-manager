@@ -7,32 +7,30 @@ import { useAsync } from '../hooks/useAsync'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { formatDate } from '../lib/format'
 import {
-  BUSINESSES,
   ESTIMATE_STATUSES,
   STATUS_COLOR,
   STORES,
   estimateCode,
-  getCounters,
+  getNextNumber,
   listEstimates,
   money,
-  setCounter,
+  setNextNumber,
   type EstimateStatus,
   type Store,
 } from '../lib/estimates'
 
-/** Next estimate number per business (Admins can move it forward or back). */
+/** Next estimate number, shared by all three businesses (Admins can move it forward or back). */
 function Numbering() {
   const { t } = useTranslation()
   const [msg, ctx] = message.useMessage()
-  const counters = useAsync(getCounters, [])
-  const [edits, setEdits] = useState<Partial<Record<Store, number>>>({})
-  if (counters.loading) return null
-  if (counters.error) return <Alert type="error" title={counters.error} />
-  const save = async (s: Store) => {
-    const n = edits[s]
-    if (!n) return
+  const next = useAsync(getNextNumber, [])
+  const [edit, setEdit] = useState<number | undefined>()
+  if (next.loading) return null
+  if (next.error) return <Alert type="error" title={next.error} />
+  const save = async () => {
+    if (!edit) return
     try {
-      await setCounter(s, n)
+      await setNextNumber(edit)
       msg.success(t('estimates.saved'))
     } catch (e) {
       msg.error(e instanceof Error ? e.message : String(e))
@@ -42,26 +40,18 @@ function Numbering() {
     <>
       {ctx}
       <Typography.Paragraph type="secondary">{t('estimates.numberingHelp')}</Typography.Paragraph>
-      <Space orientation="vertical" style={{ width: '100%' }}>
-        {STORES.map((s) => (
-          <Space key={s} wrap>
-            <Typography.Text strong style={{ display: 'inline-block', width: 190 }}>
-              {BUSINESSES[s].name}
-            </Typography.Text>
-            <InputNumber
-              aria-label={t('estimates.nextNumber', { name: BUSINESSES[s].name })}
-              min={1}
-              precision={0}
-              prefix={s}
-              value={edits[s] ?? counters.data?.[s]}
-              onChange={(v) => setEdits((e) => ({ ...e, [s]: v ?? undefined }))}
-              style={{ width: 160 }}
-            />
-            <Button disabled={!edits[s] || edits[s] === counters.data?.[s]} onClick={() => save(s)}>
-              {t('common.save')}
-            </Button>
-          </Space>
-        ))}
+      <Space wrap>
+        <InputNumber
+          aria-label={t('estimates.nextNumber')}
+          min={1}
+          precision={0}
+          value={edit ?? next.data ?? undefined}
+          onChange={(v) => setEdit(v ?? undefined)}
+          style={{ width: 160 }}
+        />
+        <Button disabled={!edit || edit === next.data} onClick={save}>
+          {t('common.save')}
+        </Button>
       </Space>
     </>
   )
