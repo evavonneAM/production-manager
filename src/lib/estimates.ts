@@ -195,6 +195,24 @@ export async function deleteEstimate(id: string) {
   if (error) throw error
 }
 
+/** Only the columns the app writes. Lines read back from the database also
+ *  carry `total` (calculated by the database) and `created_at`, which must not
+ *  be sent back — the database refuses a write to `total`. */
+function lineRow(l: NewLine & { id?: string }, estimateId: string, position: number) {
+  return {
+    ...(l.id ? { id: l.id } : {}),
+    estimate_id: estimateId,
+    position,
+    section: l.section,
+    name: l.name,
+    description: l.description,
+    quantity: l.quantity,
+    unit: l.unit,
+    unit_price: cents(l.unit_price),
+    source: l.source,
+  }
+}
+
 /** Adds lines after the estimate's existing ones. */
 export async function appendLines(estimateId: string, lines: NewLine[]) {
   const { data: last } = await db()
@@ -207,7 +225,7 @@ export async function appendLines(estimateId: string, lines: NewLine[]) {
   const start = (last?.position ?? -1) + 1
   const { error } = await db()
     .from('estimate_lines')
-    .insert(lines.map((l, i) => ({ ...l, unit_price: cents(l.unit_price), estimate_id: estimateId, position: start + i })))
+    .insert(lines.map((l, i) => lineRow(l, estimateId, start + i)))
   if (error) throw error
 }
 
@@ -220,7 +238,7 @@ export async function saveLines(estimateId: string, lines: EstimateLine[], remov
   if (lines.length) {
     const { error } = await db()
       .from('estimate_lines')
-      .upsert(lines.map((l, i) => ({ ...l, unit_price: cents(l.unit_price), estimate_id: estimateId, position: i })))
+      .upsert(lines.map((l, i) => lineRow(l, estimateId, i)))
     if (error) throw error
   }
 }
