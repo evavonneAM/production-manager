@@ -338,9 +338,9 @@ truth: 378 jobs keyed by a 4-digit code, audit still open.
       RHU) says which business the job came through and is required (owner, 2026-10-23).
       Old jobs keep their QuickBooks/ER 4-digit numbers (e.g. HOV4323). New numbers come from
       the in-app estimates work (PR #16): they start at 10001, so new codes (HOV10001) can
-      never clash with old 4-digit ones. *Open: PR #16 counts per business, so AM10001 and
-      HOV10001 can both exist. Recommended: one shared counter across all three businesses,
-      so every number is unique even without the prefix (one-line change in PR #16).* If an
+      never clash with old 4-digit ones. **Decided (owner, 2026-10-23): one shared counter
+      across all three businesses**, so every number is unique even without the prefix (PR #16
+      currently counts per business; change it there). If an
       old 4-digit number exists in two businesses, matching uses the prefix or the client's
       Gmail label. `AM1234-A` style suffixes stay for jobs within a project.
 - [ ] **Notes approval step.** Extend `notes`: `status` (pending / approved / rejected,
