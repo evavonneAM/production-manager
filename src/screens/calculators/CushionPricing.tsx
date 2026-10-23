@@ -218,6 +218,16 @@ function toSection(r: Row): Section | null {
   return { length, qty: Math.max(1, r.qty || 1), d, h }
 }
 
+/**
+ * The picks of the card's own cushion. A card switched to Back shows (and edits) the back
+ * fields, so its price and Estimate Rocket text must read those too.
+ */
+function mainPicks(r: Row) {
+  return r.part === 'back'
+    ? { labor: r.backLabor, style: r.backStyle, insert: r.backInsert, foamType: r.backFoamType, fabric: r.backFabric, direction: r.backDirection, center: r.backCenter, weltFabric: r.backWeltFabric }
+    : { labor: r.labor, style: r.erStyle, insert: r.insert, foamType: r.foamType, fabric: r.erFabric, direction: r.erDirection, center: r.erCenter, weltFabric: r.erWeltFabric }
+}
+
 /** The matching back cushion of a seat + back set, or null. */
 function toBackSection(r: Row): Section | null {
   if (r.part !== 'seat' || !r.withBack) return null
@@ -440,6 +450,7 @@ function Converters() {
 /** Estimate Rocket text for one cushion line (with its matching back when it has one). */
 function erTextFor(r: Row, s: Section): string {
   const b = toBackSection(r)
+  const m = mainPicks(r)
   const welt = (style: string, f: string) => (isWelted(style) ? f : '')
   return estimateRocketText({
     qty: s.qty,
@@ -449,15 +460,15 @@ function erTextFor(r: Row, s: Section): string {
     confirmed: r.erConfirmed,
     insertLabel: r.part === 'back' ? 'Back Insert' : 'Seat Insert',
     plan: r.plan,
-    sewingStyle: r.erStyle,
-    insert: r.insert,
-    foamType: r.foamType,
+    sewingStyle: m.style,
+    insert: m.insert,
+    foamType: m.foamType,
     yardsPerItem: lineYards(r, s, r.part === 'back' ? 'back' : 'seat') / s.qty,
     yardsTotal: lineYards(r, s, r.part === 'back' ? 'back' : 'seat'),
-    fabric: r.erFabric,
-    direction: r.erDirection,
-    center: r.erCenter,
-    weltFabric: welt(r.erStyle, r.erWeltFabric),
+    fabric: m.fabric,
+    direction: m.direction,
+    center: m.center,
+    weltFabric: welt(m.style, m.weltFabric),
     back: b
       ? {
           depth: formatInches(b.d),
@@ -521,7 +532,8 @@ export default function CushionPricing() {
         if (r.com === 'com15') picks.push({ label: t('cushionPricing.pickCom'), amount: l * (ADD_ONS.com15 - 1) })
         return { labor: l, insert: ins, addOns: sectionAddOns(r, l, welted), picks }
       }
-      const seat = part(s, r.labor, r.insert, r.erStyle)
+      const m = mainPicks(r)
+      const seat = part(s, m.labor, m.insert, m.style)
       const back = b ? part(b, r.backLabor, r.backInsert, r.backStyle) : null
       const labor = seat.labor + (back?.labor ?? 0)
       const insert = seat.insert + (back?.insert ?? 0)
