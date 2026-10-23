@@ -25,7 +25,7 @@ import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, FilePdfOutlined, PlusO
 import { formatInches, parseInches } from '../../lib/calculators/inches'
 import { FOAM_TYPES } from '../../lib/foamTypes'
 import { SHEET_L, SHEET_PRICE, SHEET_W, fitsSheet, planPlywood, type Board, type Sheet } from '../../lib/calculators/plywoodNesting'
-import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, type PriceOption } from '../../lib/calculators/cushionPricing'
+import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, slashStyle, type PriceOption } from '../../lib/calculators/cushionPricing'
 import { DEFAULT_HEIGHT_DEDUCTION, cushionCuts } from '../../lib/calculators/cushionCut'
 import {
   DEFAULT_END_ALLOWANCE,
@@ -147,6 +147,8 @@ function loadDraft(): Row[] {
           if (old.backLabor === undefined) r.backLabor = r.labor
           if (old.backStyle === undefined) r.backStyle = r.erStyle
           if (r.com !== 'com15') r.com = 'none'
+          r.erStyle = slashStyle(r.erStyle)
+          r.backStyle = slashStyle(r.backStyle)
           // Labor used to include foam; now it is the cover only and foam is the insert.
           const cover = ({ customFoam: 'cleanSeam', frenchFoam: 'frenchCover' } as Record<string, string>)[r.labor]
           if (cover) {
@@ -216,6 +218,16 @@ function toSection(r: Row): Section | null {
   const h = parseInches(r.thickness)
   if (length === null || d === null || h === null || length <= 0 || d <= 0 || h <= 0) return null
   return { length, qty: Math.max(1, r.qty || 1), d, h }
+}
+
+/**
+ * The picks of the card's own cushion. A card switched to Back shows (and edits) the back
+ * fields, so its price and Estimate Rocket text must read those too.
+ */
+function mainPicks(r: Row) {
+  return r.part === 'back'
+    ? { labor: r.backLabor, style: r.backStyle, insert: r.backInsert, foamType: r.backFoamType, fabric: r.backFabric, direction: r.backDirection, center: r.backCenter, weltFabric: r.backWeltFabric }
+    : { labor: r.labor, style: r.erStyle, insert: r.insert, foamType: r.foamType, fabric: r.erFabric, direction: r.erDirection, center: r.erCenter, weltFabric: r.erWeltFabric }
 }
 
 /** The matching back cushion of a seat + back set, or null. */
@@ -440,6 +452,7 @@ function Converters() {
 /** Estimate Rocket text for one cushion line (with its matching back when it has one). */
 function erTextFor(r: Row, s: Section): string {
   const b = toBackSection(r)
+  const m = mainPicks(r)
   const welt = (style: string, f: string) => (isWelted(style) ? f : '')
   return estimateRocketText({
     qty: s.qty,
@@ -449,15 +462,15 @@ function erTextFor(r: Row, s: Section): string {
     confirmed: r.erConfirmed,
     insertLabel: r.part === 'back' ? 'Back Insert' : 'Seat Insert',
     plan: r.plan,
-    sewingStyle: r.erStyle,
-    insert: r.insert,
-    foamType: r.foamType,
+    sewingStyle: m.style,
+    insert: m.insert,
+    foamType: m.foamType,
     yardsPerItem: lineYards(r, s, r.part === 'back' ? 'back' : 'seat') / s.qty,
     yardsTotal: lineYards(r, s, r.part === 'back' ? 'back' : 'seat'),
-    fabric: r.erFabric,
-    direction: r.erDirection,
-    center: r.erCenter,
-    weltFabric: welt(r.erStyle, r.erWeltFabric),
+    fabric: m.fabric,
+    direction: m.direction,
+    center: m.center,
+    weltFabric: welt(m.style, m.weltFabric),
     back: b
       ? {
           depth: formatInches(b.d),
@@ -521,7 +534,8 @@ export default function CushionPricing() {
         if (r.com === 'com15') picks.push({ label: t('cushionPricing.pickCom'), amount: l * (ADD_ONS.com15 - 1) })
         return { labor: l, insert: ins, addOns: sectionAddOns(r, l, welted), picks }
       }
-      const seat = part(s, r.labor, r.insert, r.erStyle)
+      const m = mainPicks(r)
+      const seat = part(s, m.labor, m.insert, m.style)
       const back = b ? part(b, r.backLabor, r.backInsert, r.backStyle) : null
       const labor = seat.labor + (back?.labor ?? 0)
       const insert = seat.insert + (back?.insert ?? 0)
@@ -637,8 +651,8 @@ export default function CushionPricing() {
   const styleOptions = SEWING_STYLES.map((v) => ({ value: v, label: v }))
   const directionOptions = [
     { value: 'tbd', label: t('cushionPricing.erTbd') },
-    { value: 'upTheRoll', label: t('cushionCut.upTheRoll') },
-    { value: 'railroaded', label: t('cushionCut.railroaded') },
+    { value: 'upTheRoll', label: t('cushionPricing.dirUpTheRoll') },
+    { value: 'railroaded', label: t('cushionPricing.dirRailroaded') },
   ]
   const tbd = 'To Be Determined (Price Not Included)'
 
@@ -917,7 +931,7 @@ export default function CushionPricing() {
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item label={t('cushionCut.howMany')} htmlFor={`qty-${r.id}`} style={{ marginBottom: 8 }}>
+                    <Form.Item label={t('cushionPricing.howMany')} htmlFor={`qty-${r.id}`} style={{ marginBottom: 8 }}>
                       <InputNumber
                         id={`qty-${r.id}`}
                         size="large"

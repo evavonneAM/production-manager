@@ -20,7 +20,7 @@ const foam = (w: number, d: number, h: number) => ((w * d * h) / 144) * 7 + 30
 
 // Labor is the cover only; foam and every other fill is picked as the insert, so it is never charged twice.
 export const PRICE_OPTIONS: PriceOption[] = [
-  { id: 'cleanSeam', group: 'labor', formula: 'W × $7', price: (w) => w * 7 },
+  { id: 'cleanSeam', group: 'labor', formula: 'W × $6', price: (w) => w * 6 },
   { id: 'frenchCover', group: 'labor', formula: 'W × $18', price: (w) => w * 18 },
 
   { id: 'foam', group: 'insert', formula: '(W×D×H)/144 × $7 + $30', price: foam },
@@ -56,29 +56,35 @@ export const money = (n: number) => (isFinite(n) ? `$${n.toLocaleString('en-US',
 
 export const SEWING_STYLES = [
   'To Be Determined',
-  'Boxed-Clean Seam',
-  'Boxed-Welted',
-  'Boxed-French Seam',
-  'Boxed-Baseball Stitch',
-  'Boxed-French Mattress',
-  'Boxed-Flange',
-  'Knife Edge-Clean Seam',
-  'Knife Edge-Welted',
-  'Knife Edge-French Seam',
-  'Knife Edge-Baseball Stitch',
-  'Knife Edge-French Mattress',
-  'Knife Edge-Flange',
-  'Knife Edge-Butterfly Corner',
+  'Boxed/Clean Seam',
+  'Boxed/Self Welted',
+  'Boxed/French Seam',
+  'Boxed/Baseball Stitch',
+  'Boxed/French Mattress',
+  'Boxed/Contrast Welted',
+  'Boxed/Flange',
+  'Knife Edge/Clean Seam',
+  'Knife Edge/Self Welted',
+  'Knife Edge/French Seam',
+  'Knife Edge/Baseball Stitch',
+  'Knife Edge/French Mattress',
+  'Knife Edge/Contrast Welted',
+  'Knife Edge/Flange',
+  'Knife Edge/Butterfly Corner',
   'Pocket Corner',
-  'Pocket Corner-Welted',
-  'Closed Corner-Welted',
+  'Pocket Corner/Welted',
+  'Closed Corner/Welted',
 ] as const
+
+/** Styles used to read "Boxed-Welted"; saved drafts get the current names (plain welted is self welted). */
+export const slashStyle = (style: string) =>
+  style.replace(/^(Boxed|Knife Edge|Pocket Corner|Closed Corner)-/, '$1/').replace(/^(Boxed|Knife Edge)\/Welted$/, '$1/Self Welted')
 
 /** Insert names as they read on the estimate. */
 export const INSERT_NAMES: Record<string, string> = {
   tbd: 'To Be Determined',
   existing: 'Use Existing',
-  foam: 'Foam',
+  foam: 'High Density/Resiliency Foam',
   celesteSolid: 'Solid Celeste',
   celesteEnv: 'Celeste Envelope w/ Foam',
   wgSolid: '50/50 WG Down Solid',
@@ -125,7 +131,7 @@ export type EstimateRocketInput = EstimateRocketPart & {
   back?: EstimateRocketPart & { depth: string; height: string }
 }
 
-const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up the Roll', railroaded: 'Railroaded' } as const
+const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up The Roll', railroaded: 'Railroaded' } as const
 
 function directionLine(direction: EstimateRocketPart['direction'], center: string): string {
   const c = center.trim()
@@ -155,7 +161,7 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     '<center>_According To Design Specifications_</center>',
     '____',
     '#### Plan:',
-    e.plan === 'plywood' ? '* **Custom Upholstered to Plywood**' : '* **Custom Sewn**',
+    e.plan === 'plywood' ? '* **Custom Upholstered To Plywood**' : '* **Custom Sewn**',
     ...(e.back ? [dims('Seat Dimensions', e.depth, e.height), dims('Back Dimensions', e.back.depth, e.back.height)] : [dims('Dimensions', e.depth, e.height)]),
     '',
     '#### Style:',
