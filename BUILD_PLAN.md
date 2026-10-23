@@ -1,15 +1,83 @@
 # BUILD_PLAN.md — Production Manager
 
-A sprint-by-sprint build order for Claude Code. Each sprint produces something testable.
-Do them **in order** — later sprints depend on earlier ones. Don't skip ahead, and don't
-start a sprint until the previous one is committed and I've confirmed it works.
+**This is the one plan for the app.** There is no other build plan. Decisions and the rules
+the owner has set live in [`docs/DECISIONS.md`](docs/DECISIONS.md); standing instructions for
+Claude live in `CLAUDE.md`. If work needs a new planning document, put it in `docs/` in this
+repo and link it from here. Never keep plans in side copies of the repo (git worktrees);
+delete a side copy once its branch is merged.
 
-How to use this with Claude Code: at the start of a sprint, say *"Let's start Sprint N. Read
-the goal and tasks, propose a plan, and wait for my approval."* Work task by task. Commit
-after each working task.
+The file has three parts: **Live now**, **Next** (in order), and the **sprint history**
+(Phase 1, Sprints 0–14, plus newer sprints) below it.
 
-A "sprint" here is a unit of work, not a fixed number of days. Expect roughly 1–2 sessions
-each, more for the workflow engine.
+*Last updated 2026-10-23.*
+
+---
+
+## Live now
+
+App: https://production-manager-henna.vercel.app (Vercel, updates within a minute of a merge).
+
+- **Team sign-in:** Admin / Lead / Staff roles, email + password and Google sign-in, public
+  sign-up off (people are added by an Admin). Privacy page.
+- **What the team sees:** Tools and Profile only (PR #31). Testers (`users.is_tester`) see every
+  page. To open a page to everyone, add it to `src/lib/openPages.ts`.
+- **Tools (in the app):** Cushion Cut Dimensions (incl. wedge, board-mounted), Fabric Yardage
+  (solid + patterned, roll layouts), Cushion Pricing (Admins), Upholstery Estimate with
+  History check (Admins), Work Order Builder (drapery / roman / top treatments, Admins),
+  Drapery Pleat, Leaf Bag, Floorplan Measure.
+- **Still outside the app:** Ripplefold calculator (ripplefold-calculator.vercel.app).
+- **Look:** Ant Design (`antd`), light mode default, Light / Dark / Auto per device.
+- **Built but hidden from the team (Phase 1, Sprints 0–14):** projects, jobs, stages,
+  inspections, tasks, clock-in, notes with translation, materials + Google Sheets sync,
+  files, calendar, priority board, Estimate Rocket intake, labor reports.
+- **In the database but not in the app's main code:** the estimates tables (Oct 15, branch
+  `estimates`, PR #16). Decision 6: merge it, hidden from staff (Round 4 below).
+
+---
+
+## Next (in this order)
+
+Code review of 2026-10-23 (review doc in the project): 16 findings. The owner approved
+every fix except #10 (insert size warning), in five rounds:
+
+- [ ] **Round 1: plan and security.** One plan (this file), `docs/DECISIONS.md`, updated
+      `CLAUDE.md`; remove the side copies of the repo. Fixes #1 (priced PDFs readable through
+      file storage), #3 (Sheets / Calendar / translation functions callable with the public
+      key), #8 (page hiding opens everything when the profile fails to load), #9 (materials
+      and jobs update locks miss newer columns).
+- [ ] **Round 2: pricing match.** #4 one shared cushion price book for Cushion Pricing and
+      Upholstery Estimate (clean seam $6, roll-layout yardage), #11 round each line to the
+      cent. Waits until the corner-styles / outdoor-foam Cushion Pricing branch is live.
+- [ ] **Round 3: people and shared computers.** #6 inactive people lose access, #7 queued
+      clock-out, drafts and cached data tied to the person and cleared on sign-out. Before
+      the remaining ~14 logins go out.
+- [ ] **Round 4: estimates platform** (decisions 1–6 in `docs/DECISIONS.md`). Merge
+      `estimates` (#5); move the 1,300-row price history into the database, Admins only (#2);
+      every tool saves its inputs with each estimate line.
+- [ ] **Round 5: clean-up.** #12 "moved" pages on the old standalone calculators (keep
+      Floorplan Measure; Ripplefold until it moves in), #13 automated checks for the pricing
+      and cutting math + fix the code checker's errors, #14 smaller first download, #15 no
+      badge polling for non-testers, #16 "new version ready" instead of an instant reload.
+
+After the review rounds:
+
+- [ ] **Sprint 15: email ↔ project link** (planned, below).
+- [ ] **Past projects:** finished jobs and projects leave the active lists and queues by
+      default but stay in the app, searchable, with their notes, files, materials and labor.
+      Nothing is deleted (owner, 2026-10-23).
+- [ ] Ripplefold into the app (owner to send changes).
+- [ ] Ant Design redesign of the main screens, one screen at a time.
+- [ ] Upholstery piece formulas (parametric relationships), cutting formulas per style
+      (owner to provide styles and formulas).
+- [ ] Open the main pages to the team, one at a time, as the owner names them ready.
+
+---
+
+# Sprint history
+
+Phase 1 was planned as a sprint-by-sprint build order: each sprint produces something
+testable, done in order, each confirmed by the owner before the next. To start a sprint, say
+*"Let's start Sprint N. Read the goal and tasks, propose a plan, and wait for my approval."*
 
 ---
 
@@ -309,8 +377,11 @@ Note: no real labor logged yet — clock-in rollout is the adoption step after S
 
 **Goal:** make it robust for daily shop use.
 
-- [ ] Offline read cache (service worker) for My Work, department queue, recent jobs.
-- [ ] Clock-out resilience offline (queue the action, sync on reconnect, keep the tap time).
+- [x] Offline read cache (service worker) for My Work, department queue, recent jobs.
+      *(In code: service worker caches database reads network-first. Not owner-verified.)*
+- [x] Clock-out resilience offline (queue the action, sync on reconnect, keep the tap time).
+      *(In code: `offlineClock.ts` + `clock_out(p_at)`. Not owner-verified. Review finding #7:
+      the queue must be tied to the person on shared computers.)*
 - [ ] Real-time updates verified across devices (queues, inspection badges, clock events).
 - [x] Full RLS audit against SPEC.md Section 17. *(2026-07-30: 38 live checks across
       anon/staff/lead/admin — matrix matches spec; one finding fixed: internal definer
@@ -321,6 +392,48 @@ Note: no real labor logged yet — clock-in rollout is the adoption step after S
 
 **Done when:** I can look up a job with the phone in airplane mode, and a clock-out done
 offline syncs correctly when I reconnect.
+
+---
+
+## Sprint 15 — Email ↔ project link (planned, not started)
+
+**Goal:** every email about a job shows up on that job's page, and Claude can turn new emails
+into short notes that wait for approval. Owner chose "plan only" on 2026-10-23; no code until
+the owner reviews this section.
+
+**Why now:** the app isn't in daily use yet, so changing codes and notes is cheap. Today the
+Job Database Google Sheet ("Job Database — Estimates, Work Orders & Emails") is the source of
+truth: 378 jobs keyed by a 4-digit code, audit still open.
+
+- [ ] **One job code everywhere (decide first).** Emails and the Sheet use a 4-digit code
+      (e.g. 4323, the tail of "2606-1816-4323"); the app uses `AM1234-A`. Add a `short_code`
+      on projects (unique per business) so a 4-digit number in an email finds exactly one
+      project. *Open question for owner: is the 4-digit number the team's code going forward,
+      and can the same number exist in two businesses (AM / HOV / RHU)?*
+- [ ] **Notes approval step.** Extend `notes`: `status` (pending / approved / rejected,
+      default approved for notes people type), `source` (manual / email), `email_link`,
+      `suggested_stage` (a suggestion only, never applied automatically), `reviewed_by`,
+      `reviewed_at`. A "Claude" system user is the author of email notes. Pending notes show
+      on the project with Approve / Reject for Admins and Leads; translation runs only after
+      approval. Nothing is ever deleted: rejected notes stay, hidden by default.
+- [ ] **Emails tab on each project.** New `email_threads` table (project, Gmail thread id,
+      subject, first sender, last date, link). One row per thread, separate from notes, so the
+      page lists the whole conversation history.
+- [ ] **How emails get linked** (any of these, all feed the same tables):
+      1. *Code in the subject*, e.g. "[4323] Lathrop banquette". Team habit, no build.
+      2. *Gmail label* "Project" on emails without a code; matched by client email, unsure
+         matches go to a review list instead of guessing.
+      3. *BCC / forward address* (like HubSpot's): reuse the Sprint 12 `email-intake` Zapier
+         route; an email with a code becomes a pending note + email thread on that project.
+- [ ] **Weekday morning Claude run.** Searches Gmail for new emails with codes or the label,
+      writes one pending note per thread: who emailed, what was decided, next step + date,
+      link. Reads the database through the Supabase connector; writes only pending rows.
+- [ ] **Until projects live in the app:** the same run writes to a new "Email Notes" tab in
+      the Job Database Sheet (its own tab, because the other tabs are rebuilt automatically),
+      and approved rows move into the app later.
+
+**Done when:** I put "[4323]" in an email subject, and the next morning that project shows the
+thread on its Emails tab plus a pending note I can approve in one tap.
 
 ---
 
