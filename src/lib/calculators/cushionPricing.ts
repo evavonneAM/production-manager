@@ -78,7 +78,7 @@ export const SEWING_STYLES = [
 export const INSERT_NAMES: Record<string, string> = {
   tbd: 'To Be Determined',
   existing: 'Use Existing',
-  foam: 'Foam',
+  foam: 'High Density/Resiliency Foam',
   celesteSolid: 'Solid Celeste',
   celesteEnv: 'Celeste Envelope w/ Foam',
   wgSolid: '50/50 WG Down Solid',

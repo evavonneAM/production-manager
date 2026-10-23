@@ -123,7 +123,7 @@ export const STYLE_NAMES: Record<CushionStyle, string> = {
 
 export const INSERT_NAMES: Record<CushionInsert, string> = {
   '': 'No insert',
-  foam: 'Foam (insert only)',
+  foam: 'High Density/Resiliency Foam (insert only)',
   celeste: 'Solid Celeste',
   celesteEnv: 'Celeste envelope w/ foam',
   wg: '50/50 WG down, solid',
