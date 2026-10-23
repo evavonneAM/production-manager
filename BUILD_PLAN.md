@@ -44,7 +44,9 @@ every fix except #10 (insert size warning), in five rounds:
       `CLAUDE.md`; remove the side copies of the repo. Fixes #1 (priced PDFs readable through
       file storage), #3 (Sheets / Calendar / translation functions callable with the public
       key), #8 (page hiding opens everything when the profile fails to load), #9 (materials
-      and jobs update locks miss newer columns).
+      and jobs update locks miss newer columns), and #17, found while testing #9: the jobs
+      lock also fired inside the app's own functions, so a Lead could not clock out (after
+      any real time on the clock) or approve an inspection. Deploy steps: `docs/DEPLOY-round-1.md`.
 - [ ] **Round 2: pricing match.** #4 one shared cushion price book for Cushion Pricing and
       Upholstery Estimate (clean seam $6, roll-layout yardage), #11 round each line to the
       cent. Waits until the corner-styles / outdoor-foam Cushion Pricing branch is live.

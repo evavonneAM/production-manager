@@ -6,6 +6,7 @@
 // The app is authoritative for existence: rows deleted in the app are removed
 // from the sheet; brand-new sheet rows (no ID, valid job code) become materials.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { allowedCaller } from '../_shared/caller.ts'
 import * as jose from 'https://esm.sh/jose@5'
 
 const CORS = {
@@ -132,13 +133,15 @@ Deno.serve(async (req) => {
     new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
   try {
+    const supa = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+    if (!(await allowedCaller(req, supa))) return json({ ok: false, error: 'unauthorized' }, 401)
+
     const sheetId = Deno.env.get('SHEET_ID')
     if (!sheetId) return json({ ok: false, error: 'SHEET_ID not set' }, 500)
     const token = await googleToken()
     const gauth = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     const base = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}`
 
-    const supa = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 
     // --- sheet metadata (first tab) ------------------------------------------
     const metaRes = await fetch(`${base}?fields=sheets(properties(sheetId,title,gridProperties(rowCount)))`, { headers: gauth })

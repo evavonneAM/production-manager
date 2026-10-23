@@ -6,6 +6,7 @@
 //    number (the team's naming convention, e.g. "AM1234 — delivery") are copied
 //    into calendar_events, attached to that job/project.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { allowedCaller } from '../_shared/caller.ts'
 import * as jose from 'https://esm.sh/jose@5'
 
 const CORS = {
@@ -47,12 +48,14 @@ Deno.serve(async (req) => {
     new Response(JSON.stringify(b), { status, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
   try {
+    const supa = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+    if (!(await allowedCaller(req, supa))) return json({ ok: false, error: 'unauthorized' }, 401)
+
     const calId = Deno.env.get('GCAL_ID')
     if (!calId) return json({ ok: false, error: 'GCAL_ID not set' }, 500)
     const token = await googleToken()
     const gauth = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     const base = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}`
-    const supa = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
     const appUrl = 'https://production-manager-henna.vercel.app'
 
     let pushed = 0, deleted = 0, pulled = 0, pruned = 0

@@ -3,6 +3,7 @@
 // relevant field(s) into en/ru/es with DeepL, and writes the results back. The
 // DeepL key lives only here (a Supabase secret) — never in the browser.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { allowedCaller } from '../_shared/caller.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -57,6 +58,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
+    if (!(await allowedCaller(req, supa))) return json({ ok: false, error: 'unauthorized' }, 401)
 
     // Notes: translate original_text into the two other languages; the source
     // language column just mirrors the original. Track translation_status.
