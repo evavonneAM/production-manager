@@ -56,23 +56,26 @@ export const money = (n: number) => (isFinite(n) ? `$${n.toLocaleString('en-US',
 
 export const SEWING_STYLES = [
   'To Be Determined',
-  'Boxed-Clean Seam',
-  'Boxed-Welted',
-  'Boxed-French Seam',
-  'Boxed-Baseball Stitch',
-  'Boxed-French Mattress',
-  'Boxed-Flange',
-  'Knife Edge-Clean Seam',
-  'Knife Edge-Welted',
-  'Knife Edge-French Seam',
-  'Knife Edge-Baseball Stitch',
-  'Knife Edge-French Mattress',
-  'Knife Edge-Flange',
-  'Knife Edge-Butterfly Corner',
+  'Boxed/Clean Seam',
+  'Boxed/Welted',
+  'Boxed/French Seam',
+  'Boxed/Baseball Stitch',
+  'Boxed/French Mattress',
+  'Boxed/Flange',
+  'Knife Edge/Clean Seam',
+  'Knife Edge/Welted',
+  'Knife Edge/French Seam',
+  'Knife Edge/Baseball Stitch',
+  'Knife Edge/French Mattress',
+  'Knife Edge/Flange',
+  'Knife Edge/Butterfly Corner',
   'Pocket Corner',
-  'Pocket Corner-Welted',
-  'Closed Corner-Welted',
+  'Pocket Corner/Welted',
+  'Closed Corner/Welted',
 ] as const
+
+/** Styles used to read "Boxed-Welted"; saved drafts get the slash names. */
+export const slashStyle = (style: string) => style.replace(/^(Boxed|Knife Edge|Pocket Corner|Closed Corner)-/, '$1/')
 
 /** Insert names as they read on the estimate. */
 export const INSERT_NAMES: Record<string, string> = {

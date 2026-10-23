@@ -25,7 +25,7 @@ import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, FilePdfOutlined, PlusO
 import { formatInches, parseInches } from '../../lib/calculators/inches'
 import { FOAM_TYPES } from '../../lib/foamTypes'
 import { SHEET_L, SHEET_PRICE, SHEET_W, fitsSheet, planPlywood, type Board, type Sheet } from '../../lib/calculators/plywoodNesting'
-import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, type PriceOption } from '../../lib/calculators/cushionPricing'
+import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, slashStyle, type PriceOption } from '../../lib/calculators/cushionPricing'
 import { DEFAULT_HEIGHT_DEDUCTION, cushionCuts } from '../../lib/calculators/cushionCut'
 import {
   DEFAULT_END_ALLOWANCE,
@@ -147,6 +147,8 @@ function loadDraft(): Row[] {
           if (old.backLabor === undefined) r.backLabor = r.labor
           if (old.backStyle === undefined) r.backStyle = r.erStyle
           if (r.com !== 'com15') r.com = 'none'
+          r.erStyle = slashStyle(r.erStyle)
+          r.backStyle = slashStyle(r.backStyle)
           // Labor used to include foam; now it is the cover only and foam is the insert.
           const cover = ({ customFoam: 'cleanSeam', frenchFoam: 'frenchCover' } as Record<string, string>)[r.labor]
           if (cover) {
