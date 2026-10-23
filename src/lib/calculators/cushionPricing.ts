@@ -17,6 +17,7 @@ export type PriceOption = {
 }
 
 const foam = (w: number, d: number, h: number) => ((w * d * h) / 144) * 7 + 30
+const outdoorFoam = (w: number, d: number, h: number) => ((w * d * h) / 144) * 12 + 30
 
 // Labor is the cover only; foam and every other fill is picked as the insert, so it is never charged twice.
 export const PRICE_OPTIONS: PriceOption[] = [
@@ -24,6 +25,7 @@ export const PRICE_OPTIONS: PriceOption[] = [
   { id: 'frenchCover', group: 'labor', formula: 'W × $18', price: (w) => w * 18 },
 
   { id: 'foam', group: 'insert', formula: '(W×D×H)/144 × $7 + $30', price: foam },
+  { id: 'outdoorFoam', group: 'insert', formula: '(W×D×H)/144 × $12 + $30', price: outdoorFoam },
   { id: 'celesteSolid', group: 'insert', formula: '(W×D) ÷ 4', maxBox: 6, price: (w, d) => (w * d) / 4 },
   { id: 'celesteEnv', group: 'insert', formula: '(W×D) ÷ 7.8 + foam at H − 1"', maxBox: 6, price: (w, d, h) => (w * d) / 7.8 + foam(w, d, h - 1) },
   { id: 'wgSolid', group: 'insert', formula: '(W×D) ÷ 0.87', maxBox: 6, price: (w, d) => (w * d) / 0.87 },
@@ -71,20 +73,22 @@ export const SEWING_STYLES = [
   'Knife Edge/Contrast Welted',
   'Knife Edge/Flange',
   'Knife Edge/Butterfly Corner',
+  'Knife Edge/Butterfly Corner Self Welted',
   'Pocket Corner',
-  'Pocket Corner/Welted',
-  'Closed Corner/Welted',
+  'Pocket Corner/Self Welted',
+  'Closed Corner/Self Welted',
 ] as const
 
 /** Styles used to read "Boxed-Welted"; saved drafts get the current names (plain welted is self welted). */
 export const slashStyle = (style: string) =>
-  style.replace(/^(Boxed|Knife Edge|Pocket Corner|Closed Corner)-/, '$1/').replace(/^(Boxed|Knife Edge)\/Welted$/, '$1/Self Welted')
+  style.replace(/^(Boxed|Knife Edge|Pocket Corner|Closed Corner)-/, '$1/').replace(/^(Boxed|Knife Edge|Pocket Corner|Closed Corner)\/Welted$/, '$1/Self Welted')
 
 /** Insert names as they read on the estimate. */
 export const INSERT_NAMES: Record<string, string> = {
   tbd: 'To Be Determined',
   existing: 'Use Existing',
   foam: 'High Density/Resiliency Foam',
+  outdoorFoam: 'Outdoor Foam',
   celesteSolid: 'Solid Celeste',
   celesteEnv: 'Celeste Envelope w/ Foam',
   wgSolid: '50/50 WG Down Solid',

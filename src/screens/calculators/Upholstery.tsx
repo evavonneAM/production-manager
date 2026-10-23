@@ -390,6 +390,7 @@ export default function Upholstery() {
     ['french', 'French mattress cover ($ / in of W)'],
     ['foamRate', 'Foam ($ / board ft)'],
     ['foamFee', 'Foam fee ($ / cushion)'],
+    ['outdoorFoamRate', 'Outdoor foam ($ / board ft)'],
     ['pillow', 'Throw pillow ($ each)'],
     ['welt', 'Welting ($ / piece)'],
     ['supplies', 'Upholstery supplies ($ / yard)'],

@@ -86,6 +86,7 @@ export type Rates = {
   french: number
   foamRate: number
   foamFee: number
+  outdoorFoamRate: number
   pillow: number
   welt: number
   supplies: number
@@ -97,10 +98,11 @@ export type Rates = {
 }
 
 export const DEFAULT_RATES: Rates = {
-  clean: 7,
+  clean: 6,
   french: 18,
   foamRate: 7,
   foamFee: 30,
+  outdoorFoamRate: 12,
   pillow: 125,
   welt: 10,
   supplies: 15,
@@ -113,7 +115,7 @@ export const DEFAULT_RATES: Rates = {
 
 /** Cushion labor is the cover only; foam and other fills are chosen as the insert. */
 export type CushionStyle = 'clean' | 'french' | 'pillow'
-export type CushionInsert = '' | 'foam' | 'celeste' | 'celesteEnv' | 'wg' | 'wgEnv' | 'goose' | 'gooseEnv' | 'bolster' | 'ply'
+export type CushionInsert = '' | 'foam' | 'outdoorFoam' | 'celeste' | 'celesteEnv' | 'wg' | 'wgEnv' | 'goose' | 'gooseEnv' | 'bolster' | 'ply'
 
 export const STYLE_NAMES: Record<CushionStyle, string> = {
   clean: 'Clean seam, cover only',
@@ -124,6 +126,7 @@ export const STYLE_NAMES: Record<CushionStyle, string> = {
 export const INSERT_NAMES: Record<CushionInsert, string> = {
   '': 'No insert',
   foam: 'High Density/Resiliency Foam (insert only)',
+  outdoorFoam: 'Outdoor Foam',
   celeste: 'Solid Celeste',
   celesteEnv: 'Celeste envelope w/ foam',
   wg: '50/50 WG down, solid',
@@ -239,6 +242,7 @@ export function estimate(s: EstimateInput, R: Rates): Estimate {
     const fp = (((H - 1) * A) / 144) * R.foamRate + R.foamFee
     const I: Partial<Record<CushionInsert, number>> = {
       foam: bd * R.foamRate + R.foamFee,
+      outdoorFoam: bd * R.outdoorFoamRate + R.foamFee,
       celeste: A / 4,
       celesteEnv: A / 7.8 + fp,
       wg: A / 0.87,

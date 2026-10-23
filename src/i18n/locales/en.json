@@ -681,6 +681,7 @@
     "opt_cleanSeam": "Custom Sewn Clean Seam (Cover Only)",
     "opt_frenchCover": "French Mattress (Cover Only)",
     "opt_foam": "High Density/Resiliency Foam",
+    "opt_outdoorFoam": "Outdoor Foam",
     "opt_celesteSolid": "Solid Celeste",
     "opt_celesteEnv": "Celeste Envelope w/ Foam",
     "opt_wgSolid": "50/50 WG Down Solid",
