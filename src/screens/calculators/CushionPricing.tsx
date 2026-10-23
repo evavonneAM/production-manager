@@ -651,8 +651,8 @@ export default function CushionPricing() {
   const styleOptions = SEWING_STYLES.map((v) => ({ value: v, label: v }))
   const directionOptions = [
     { value: 'tbd', label: t('cushionPricing.erTbd') },
-    { value: 'upTheRoll', label: t('cushionCut.upTheRoll') },
-    { value: 'railroaded', label: t('cushionCut.railroaded') },
+    { value: 'upTheRoll', label: t('cushionPricing.dirUpTheRoll') },
+    { value: 'railroaded', label: t('cushionPricing.dirRailroaded') },
   ]
   const tbd = 'To Be Determined (Price Not Included)'
 
@@ -931,7 +931,7 @@ export default function CushionPricing() {
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item label={t('cushionCut.howMany')} htmlFor={`qty-${r.id}`} style={{ marginBottom: 8 }}>
+                    <Form.Item label={t('cushionPricing.howMany')} htmlFor={`qty-${r.id}`} style={{ marginBottom: 8 }}>
                       <InputNumber
                         id={`qty-${r.id}`}
                         size="large"

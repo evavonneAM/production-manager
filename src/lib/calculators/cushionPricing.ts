@@ -131,7 +131,7 @@ export type EstimateRocketInput = EstimateRocketPart & {
   back?: EstimateRocketPart & { depth: string; height: string }
 }
 
-const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up the Roll', railroaded: 'Railroaded' } as const
+const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up The Roll', railroaded: 'Railroaded' } as const
 
 function directionLine(direction: EstimateRocketPart['direction'], center: string): string {
   const c = center.trim()
@@ -161,7 +161,7 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     '<center>_According To Design Specifications_</center>',
     '____',
     '#### Plan:',
-    e.plan === 'plywood' ? '* **Custom Upholstered to Plywood**' : '* **Custom Sewn**',
+    e.plan === 'plywood' ? '* **Custom Upholstered To Plywood**' : '* **Custom Sewn**',
     ...(e.back ? [dims('Seat Dimensions', e.depth, e.height), dims('Back Dimensions', e.back.depth, e.back.height)] : [dims('Dimensions', e.depth, e.height)]),
     '',
     '#### Style:',

@@ -737,7 +737,10 @@
     "fabricMapsTitle": "Trazos de la tela",
     "fabricMapsHelp": "Los cojines de la misma tela se acomodan juntos en un solo rollo: {{order}} yd para pedir en total. Las líneas de arriba cotizan cada cojín por separado ({{separate}} yd).",
     "fabricUnnamed": "Tela sin nombre todavía",
-    "separately": "{{n}} yd si se cortan por separado"
+    "separately": "{{n}} yd si se cortan por separado",
+    "howMany": "Cantidad",
+    "dirUpTheRoll": "A lo largo del rollo",
+    "dirRailroaded": "Railroaded (tela de lado)"
   },
   "fabricYardage": {
     "intro": "Agrega los cojines o tráelos de Medidas de corte de cojines. Cada pieza se acomoda en el rollo y el yardaje se actualiza al escribir.",
