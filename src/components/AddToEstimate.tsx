@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button, Empty, List, Modal, Spin, Tag, Typography, message } from 'antd'
 import { FileAddOutlined, PlusOutlined } from '@ant-design/icons'
-import { appendLines, estimateCode, listDraftEstimates, money, type EstimateSummary, type NewLine } from '../lib/estimates'
+import { appendLines, errorText, estimateCode, listDraftEstimates, money, type EstimateSummary, type NewLine } from '../lib/estimates'
 
 /**
  * "Add to estimate" for the pricing tools: sends every line at once, either to
@@ -23,7 +23,7 @@ export function AddToEstimate({ lines, disabled }: { lines: () => NewLine[]; dis
     try {
       setDrafts(await listDraftEstimates())
     } catch (e) {
-      msg.error(e instanceof Error ? e.message : String(e))
+      msg.error(errorText(e))
       setDrafts([])
     }
   }
@@ -35,7 +35,7 @@ export function AddToEstimate({ lines, disabled }: { lines: () => NewLine[]; dis
       setOpen(false)
       navigate(`/estimates/${e.id}`)
     } catch (err) {
-      msg.error(err instanceof Error ? err.message : String(err))
+      msg.error(errorText(err))
     } finally {
       setBusy(null)
     }

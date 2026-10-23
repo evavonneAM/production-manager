@@ -135,6 +135,13 @@ export function erToPlain(text: string): string {
     .trim()
 }
 
+/** Readable text for any error. Database errors are plain objects, not Error
+ *  instances, so String(e) would show "[object Object]". */
+export function errorText(e: unknown): string {
+  if (e && typeof e === 'object' && 'message' in e && typeof e.message === 'string') return e.message
+  return String(e)
+}
+
 function db() {
   if (!supabase) throw new Error('Supabase is not configured')
   return supabase

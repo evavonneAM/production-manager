@@ -17,6 +17,7 @@ import {
   setNextNumber,
   type EstimateStatus,
   type Store,
+  errorText,
 } from '../lib/estimates'
 
 /** Next estimate number, shared by all three businesses (Admins can move it forward or back). */
@@ -33,7 +34,7 @@ function Numbering() {
       await setNextNumber(edit)
       msg.success(t('estimates.saved'))
     } catch (e) {
-      msg.error(e instanceof Error ? e.message : String(e))
+      msg.error(errorText(e))
     }
   }
   return (

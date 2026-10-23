@@ -54,6 +54,7 @@ import {
   type EstimateStatus,
   type NewLine,
   type Store,
+  errorText,
 } from '../lib/estimates'
 
 const today = () => {
@@ -87,7 +88,7 @@ function ClientModal({ client, onClose, onSaved }: { client: ClientDraft; onClos
     try {
       onSaved(await saveClient({ ...c, name: c.name.trim() }))
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
+      setErr(errorText(e))
     } finally {
       setBusy(false)
     }
@@ -339,7 +340,7 @@ export default function EstimateDetail() {
       )
       navigate(`/estimates/${id}`, { replace: true })
     } catch (e) {
-      msg.error(e instanceof Error ? e.message : String(e))
+      msg.error(errorText(e))
     } finally {
       setBusy(false)
     }
@@ -365,7 +366,7 @@ export default function EstimateDetail() {
       setDirty(false)
       msg.success(t('estimates.saved'))
     } catch (e) {
-      msg.error(e instanceof Error ? e.message : String(e))
+      msg.error(errorText(e))
     } finally {
       setBusy(false)
     }
@@ -377,7 +378,7 @@ export default function EstimateDetail() {
       const { downloadEstimatePdf } = await import('../lib/estimatePdf')
       await downloadEstimatePdf({ ...loaded, ...fields, client, lines })
     } catch (e) {
-      msg.error(e instanceof Error ? e.message : String(e))
+      msg.error(errorText(e))
     }
   }
 
@@ -388,7 +389,7 @@ export default function EstimateDetail() {
       await deleteEstimate(loaded.id)
       navigate('/estimates', { replace: true })
     } catch (e) {
-      msg.error(e instanceof Error ? e.message : String(e))
+      msg.error(errorText(e))
     }
   }
 
