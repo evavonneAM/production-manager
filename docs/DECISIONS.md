@@ -9,6 +9,7 @@ in [`BUILD_PLAN.md`](../BUILD_PLAN.md).
 | Date | Rule |
 | --- | --- |
 | 2026-10-23 | A client is a company (designer firm, business or household) with people under it. The client page shows all of the company's projects from every person. |
+| 2026-10-23 | One person who works for several companies gets one client card per company plus a personal card (each with that role's email and address). When unsure, keep cards separate; merging later is easy. |
 | 2026-10-23 | One estimate number shared by AM / HOV / RHU (no AM10001 and HOV10001 both). |
 | 2026-10-23 | One plan only: `BUILD_PLAN.md` in this repo. Decisions here. No plans in side copies of the repo. |
 | 2026-10-23 | QuickBooks is not used (since April 2026). Revenue for AM / HOV / RHU is tracked in the app. |

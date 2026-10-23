@@ -76,6 +76,10 @@ After the review rounds:
       - Data: today's `clients` table becomes `contacts` under a new `companies` table;
         `estimates` and `projects` get `company_id` + `contact_id`, all Admins only. Estimate
         Rocket intake matches incoming clients to an existing person by email, then phone.
+      - Someone who works for several companies (or also hires us personally) gets one
+        card per company plus a personal card, each with that role's email and address,
+        because the card is what the estimate is made out to. Cards with the same phone
+        or name are shown as "same person as…" so their work can be seen together.
       - First load: the master client list from the three Estimate Rocket exports (Oct 23
         merge, reviewed by the owner). People are grouped under a company by company
         name or work email domain (not gmail / yahoo and so on); the owner confirms the
