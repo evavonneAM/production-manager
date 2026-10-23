@@ -359,18 +359,30 @@ truth: 378 jobs keyed by a 4-digit code, audit still open.
          several → Claude picks the likeliest (item, sidemark, address) and marks the note
          "please confirm job", approver picks from that client's jobs; no job yet → "New
          inquiry, start an estimate?" suggestion.
-      2. *Code in the subject (bonus):* estimates sent from the app carry "HOV-4323" in the
-         subject, so client replies link exactly.
-      3. *BCC / forward address (optional, later):* reuse the Sprint 12 `email-intake` route.
+      2. *Code in the subject (bonus):* estimates sent from the app carry the job code (e.g.
+         "HOV10001") in the subject, so client replies link exactly.
+      3. *BCC / forward address (optional, later):* BCC or forward to one address and the
+         email lands on the project within minutes instead of next morning; for urgent mail
+         or teammates replying from their own inboxes. Reuses the Sprint 12 `email-intake`
+         route. Add only if label matching misses emails or speed matters.
 - [ ] **Weekday morning Claude run.** Reads new email under client labels (and any with a job code),
       writes one pending note per thread: who emailed, what was decided, next step + date,
       link. Reads the database through the Supabase connector; writes only pending rows.
+- [ ] **Start an estimate from an inquiry email** (owner liked it 2026-10-23; needs in-app
+      estimates, PR #16, first). For a new inquiry, the morning run creates a DRAFT estimate
+      marked "From email": client name/email/company, business (from the inbox it came to),
+      items and sizes as written, photos, email link, and calculator inputs (Cushion Pricing,
+      Upholstery Estimate) where the email gives them. It lists what's missing (foam type,
+      COM or ours, ...) and can write a Gmail DRAFT to the client asking for it. Never sends
+      anything, never prices on its own; the estimator reviews, prices and sends, and the
+      number is assigned then.
 - [ ] **Until projects live in the app:** the same run writes to a new "Email Notes" tab in
       the Job Database Sheet (its own tab, because the other tabs are rebuilt automatically),
       and approved rows move into the app later.
 
-**Done when:** I put "[4323]" in an email subject, and the next morning that project shows the
-thread on its Emails tab plus a pending note I can approve in one tap.
+**Done when:** a client emails about their job (filed under their client label), and the next
+morning that project shows the thread on its Emails tab plus a pending note I can approve in
+one tap; and a new inquiry shows up as a draft estimate with a "still needed" list.
 
 ---
 
