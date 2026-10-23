@@ -64,6 +64,23 @@ every fix except #10 (insert size warning), in five rounds:
 After the review rounds:
 
 - [ ] **Sprint 15: email ↔ project link** (planned, below).
+- [ ] **Clients and the Clients page** (owner, 2026-10-23). A client is a **company**: a
+      designer's firm, a business, or a homeowner's household. Each company has its
+      **people** (contacts), each with their own email and phone, and one or more can get
+      invoices. Every estimate and project belongs to a company and names the person who
+      asked for it.
+      - The client page shows the company's details, its people, open projects (with
+        stage), estimates, past projects, and total billed overall and per business (AM / HOV / RHU).
+      - Clients list: search by company or person, with the open-project count and the
+        last job date.
+      - Data: today's `clients` table becomes `contacts` under a new `companies` table;
+        `estimates` and `projects` get `company_id` + `contact_id`, all Admins only. Estimate
+        Rocket intake matches incoming clients to an existing person by email, then phone.
+      - First load: the master client list from the three Estimate Rocket exports (Oct 23
+        merge, reviewed by the owner). People are grouped under a company by company
+        name or work email domain (not gmail / yahoo and so on); the owner confirms the
+        groupings before they load. Past Estimate Rocket projects link to their
+        company so repeat clients show their full history.
 - [ ] **Past projects:** finished jobs and projects leave the active lists and queues by
       default but stay in the app, searchable, with their notes, files, materials and labor.
       Nothing is deleted (owner, 2026-10-23).

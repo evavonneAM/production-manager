@@ -8,6 +8,8 @@ in [`BUILD_PLAN.md`](../BUILD_PLAN.md).
 
 | Date | Rule |
 | --- | --- |
+| 2026-10-23 | A client is a company (designer firm, business or household) with people under it. The client page shows all of the company's projects from every person. |
+| 2026-10-23 | One estimate number shared by AM / HOV / RHU (no AM10001 and HOV10001 both). |
 | 2026-10-23 | One plan only: `BUILD_PLAN.md` in this repo. Decisions here. No plans in side copies of the repo. |
 | 2026-10-23 | QuickBooks is not used (since April 2026). Revenue for AM / HOV / RHU is tracked in the app. |
 | 2026-10-23 | Finished jobs and projects stay in the app for reference; hide them from active lists, never delete. |
