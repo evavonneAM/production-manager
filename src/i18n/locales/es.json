@@ -1067,6 +1067,7 @@
     "lineTotal": "Total de línea",
     "description": "Descripción (la ve el cliente)",
     "unsaved": "Sin guardar",
+    "allSaved": "Todos los cambios guardados",
     "business": "Empresa",
     "businessHelp": "Define el logo, la dirección del PDF y el número de presupuesto. No se puede cambiar después.",
     "client": "Cliente",

@@ -1067,6 +1067,7 @@
     "lineTotal": "Line total",
     "description": "Description (the client sees this)",
     "unsaved": "Not saved yet",
+    "allSaved": "All changes saved",
     "business": "Business",
     "businessHelp": "Sets the logo, the address on the PDF and the estimate number. It can't be changed later.",
     "client": "Client",

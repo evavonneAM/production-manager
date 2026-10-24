@@ -25,6 +25,7 @@ import {
   ArrowDownOutlined,
   ArrowLeftOutlined,
   ArrowUpOutlined,
+  CheckOutlined,
   DeleteOutlined,
   EditOutlined,
   FilePdfOutlined,
@@ -547,9 +548,9 @@ export default function EstimateDetail() {
           <Card size="small" styles={{ body: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' } }}>
             <Typography.Text strong style={{ marginRight: 'auto', fontVariantNumeric: 'tabular-nums' }}>
               {t('estimates.total')}: {money(total)}
-              {dirty && !isNew && (
-                <Typography.Text type="warning" style={{ marginLeft: 8, fontWeight: 400 }}>
-                  {t('estimates.unsaved')}
+              {!isNew && (
+                <Typography.Text type={dirty ? 'warning' : 'success'} style={{ marginLeft: 8, fontWeight: 400 }}>
+                  {dirty ? t('estimates.unsaved') : t('estimates.allSaved')}
                 </Typography.Text>
               )}
             </Typography.Text>
@@ -562,8 +563,15 @@ export default function EstimateDetail() {
                 <Button size="large" icon={<FilePdfOutlined />} onClick={pdf}>
                   {t('estimates.pdf')}
                 </Button>
-                <Button type="primary" size="large" loading={busy} disabled={!dirty} onClick={save}>
-                  {t('common.save')}
+                <Button
+                  type="primary"
+                  size="large"
+                  loading={busy}
+                  disabled={!dirty}
+                  icon={dirty ? undefined : <CheckOutlined />}
+                  onClick={save}
+                >
+                  {dirty ? t('common.save') : t('estimates.saved')}
                 </Button>
               </>
             )}
