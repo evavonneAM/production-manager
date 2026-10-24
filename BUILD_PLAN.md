@@ -1,15 +1,118 @@
 # BUILD_PLAN.md — Production Manager
 
-A sprint-by-sprint build order for Claude Code. Each sprint produces something testable.
-Do them **in order** — later sprints depend on earlier ones. Don't skip ahead, and don't
-start a sprint until the previous one is committed and I've confirmed it works.
+**This is the one plan for the app.** There is no other build plan. Decisions and the rules
+the owner has set live in [`docs/DECISIONS.md`](docs/DECISIONS.md); standing instructions for
+Claude live in `CLAUDE.md`. If work needs a new planning document, put it in `docs/` in this
+repo and link it from here. Never keep plans in side copies of the repo (git worktrees);
+delete a side copy once its branch is merged.
 
-How to use this with Claude Code: at the start of a sprint, say *"Let's start Sprint N. Read
-the goal and tasks, propose a plan, and wait for my approval."* Work task by task. Commit
-after each working task.
+The file has three parts: **Live now**, **Next** (in order), and the **sprint history**
+(Phase 1, Sprints 0–14, plus newer sprints) below it.
 
-A "sprint" here is a unit of work, not a fixed number of days. Expect roughly 1–2 sessions
-each, more for the workflow engine.
+*Last updated 2026-10-23.*
+
+---
+
+## Live now
+
+App: https://production-manager-henna.vercel.app (Vercel, updates within a minute of a merge).
+
+- **Team sign-in:** Admin / Lead / Staff roles, email + password and Google sign-in, public
+  sign-up off (people are added by an Admin). Privacy page.
+- **What the team sees:** Tools and Profile only (PR #31). Testers (`users.is_tester`) see every
+  page. To open a page to everyone, add it to `src/lib/openPages.ts`.
+- **Tools (in the app):** Cushion Cut Dimensions (incl. wedge, board-mounted), Fabric Yardage
+  (solid + patterned, roll layouts), Cushion Pricing (Admins), Upholstery Estimate with
+  History check (Admins), Work Order Builder (drapery / roman / top treatments, Admins),
+  Drapery Pleat, Leaf Bag, Floorplan Measure.
+- **Still outside the app:** Ripplefold calculator (ripplefold-calculator.vercel.app).
+- **Look:** Ant Design (`antd`), light mode default, Light / Dark / Auto per device.
+- **Built but hidden from the team (Phase 1, Sprints 0–14):** projects, jobs, stages,
+  inspections, tasks, clock-in, notes with translation, materials + Google Sheets sync,
+  files, calendar, priority board, Estimate Rocket intake, labor reports.
+- **In the database but not in the app's main code:** the estimates tables (Oct 15, branch
+  `estimates`, PR #16). Decision 6: merge it, hidden from staff (Round 4 below).
+
+---
+
+## Next (in this order)
+
+Code review of 2026-10-23 (review doc in the project): 16 findings. The owner approved
+every fix except #10 (insert size warning), in five rounds:
+
+- [ ] **Round 1: plan and security.** One plan (this file), `docs/DECISIONS.md`, updated
+      `CLAUDE.md`; remove the side copies of the repo. Fixes #1 (priced PDFs readable through
+      file storage), #3 (Sheets / Calendar / translation functions callable with the public
+      key), #8 (page hiding opens everything when the profile fails to load), #9 (materials
+      and jobs update locks miss newer columns), and #17, found while testing #9: the jobs
+      lock also fired inside the app's own functions, so a Lead could not clock out (after
+      any real time on the clock) or approve an inspection. Deploy steps: `docs/DEPLOY-round-1.md`.
+- [ ] **Round 2: pricing match.** #4 one shared cushion price book for Cushion Pricing and
+      Upholstery Estimate (clean seam $6, roll-layout yardage), #11 round each line to the
+      cent. Waits until the corner-styles / outdoor-foam Cushion Pricing branch is live.
+- [ ] **Round 3: people and shared computers.** #6 inactive people lose access, #7 queued
+      clock-out, drafts and cached data tied to the person and cleared on sign-out. Before
+      the remaining ~14 logins go out.
+- [ ] **Round 4: estimates platform** (decisions 1–6 in `docs/DECISIONS.md`). Merge
+      `estimates` (#5); move the 1,300-row price history into the database, Admins only (#2);
+      every tool saves its inputs with each estimate line.
+- [ ] **Round 4b: estimate items, fabric and window treatments** (owner workshop 2026-10-24,
+      plan in [`docs/estimate-items-plan.md`](docs/estimate-items-plan.md)). Design settled
+      2026-10-24: optional room/window groups, each with its own fabric and subtotal and a
+      "Client approved" switch; Install at address; real logos; Workroom diagrams tab. Build
+      waits for the owner's "go". Then, in order: groups + Install at; worksheets
+      saved on each line + "Open in tool"; Add cushion / Add upholstery buttons; Fabric
+      section (pooled per fabric, wholesale × 2 with $75/yd minimum, COM, to-be-determined,
+      overrides) + plywood per estimate; Velcro ($5/ft of length); estimated deposit (50%);
+      revised copies after Sent; Work Order Builder into the app with Add window treatment
+      (lining included, hardware × 2, install $95/shade or drapery ½ day $800 / full day $1,600).
+- [ ] **Round 5: clean-up.** #12 "moved" pages on the old standalone calculators (keep
+      Floorplan Measure; Ripplefold until it moves in), #13 automated checks for the pricing
+      and cutting math + fix the code checker's errors, #14 smaller first download, #15 no
+      badge polling for non-testers, #16 "new version ready" instead of an instant reload.
+
+After the review rounds:
+
+- [ ] **Sprint 15: email ↔ project link** (planned, below).
+- [ ] **Clients and the Clients page** (owner, 2026-10-23). A client is a **company**: a
+      designer's firm, a business, or a homeowner's household. Each company has its
+      **people** (contacts), each with their own email and phone, and one or more can get
+      invoices. Every estimate and project belongs to a company and names the person who
+      asked for it.
+      - The client page shows the company's details, its people, open projects (with
+        stage), estimates, past projects, and total billed overall and per business (AM / HOV / RHU).
+      - Clients list: search by company or person, with the open-project count and the
+        last job date.
+      - Data: today's `clients` table becomes `contacts` under a new `companies` table;
+        `estimates` and `projects` get `company_id` + `contact_id`, all Admins only. Estimate
+        Rocket intake matches incoming clients to an existing person by email, then phone.
+      - Someone who works for several companies (or also hires us personally) gets one
+        card per company plus a personal card, each with that role's email and address,
+        because the card is what the estimate is made out to. Cards with the same phone
+        or name are shown as "same person as…" so their work can be seen together.
+      - First load: the master client list from the three Estimate Rocket exports plus the
+        old HOV QuickBooks list (Oct 23 merge, reviewed by the owner). **Done 2026-10-23:
+        3,110 clients loaded into `clients`**; 63 company groupings (157 people) confirmed,
+        to be applied when `companies` exists. People are grouped under a company by company
+        name or work email domain (not gmail / yahoo and so on); the owner confirms the
+        groupings before they load. Past Estimate Rocket projects link to their
+        company so repeat clients show their full history.
+- [ ] **Past projects:** finished jobs and projects leave the active lists and queues by
+      default but stay in the app, searchable, with their notes, files, materials and labor.
+      Nothing is deleted (owner, 2026-10-23).
+- [ ] Ripplefold into the app (owner to send changes).
+- [ ] Ant Design redesign of the main screens, one screen at a time.
+- [ ] Upholstery piece formulas (parametric relationships), cutting formulas per style
+      (owner to provide styles and formulas).
+- [ ] Open the main pages to the team, one at a time, as the owner names them ready.
+
+---
+
+# Sprint history
+
+Phase 1 was planned as a sprint-by-sprint build order: each sprint produces something
+testable, done in order, each confirmed by the owner before the next. To start a sprint, say
+*"Let's start Sprint N. Read the goal and tasks, propose a plan, and wait for my approval."*
 
 ---
 
@@ -309,8 +412,11 @@ Note: no real labor logged yet — clock-in rollout is the adoption step after S
 
 **Goal:** make it robust for daily shop use.
 
-- [ ] Offline read cache (service worker) for My Work, department queue, recent jobs.
-- [ ] Clock-out resilience offline (queue the action, sync on reconnect, keep the tap time).
+- [x] Offline read cache (service worker) for My Work, department queue, recent jobs.
+      *(In code: service worker caches database reads network-first. Not owner-verified.)*
+- [x] Clock-out resilience offline (queue the action, sync on reconnect, keep the tap time).
+      *(In code: `offlineClock.ts` + `clock_out(p_at)`. Not owner-verified. Review finding #7:
+      the queue must be tied to the person on shared computers.)*
 - [ ] Real-time updates verified across devices (queues, inspection badges, clock events).
 - [x] Full RLS audit against SPEC.md Section 17. *(2026-07-30: 38 live checks across
       anon/staff/lead/admin — matrix matches spec; one finding fixed: internal definer
@@ -321,6 +427,68 @@ Note: no real labor logged yet — clock-in rollout is the adoption step after S
 
 **Done when:** I can look up a job with the phone in airplane mode, and a clock-out done
 offline syncs correctly when I reconnect.
+
+---
+
+## Sprint 15 — Email ↔ project link (planned, not started)
+
+**Goal:** every email about a job shows up on that job's page, and Claude can turn new emails
+into short notes that wait for approval. Owner chose "plan only" on 2026-10-23; no code until
+the owner reviews this section.
+
+**Why now:** the app isn't in daily use yet, so changing codes and notes is cheap. Today the
+Job Database Google Sheet ("Job Database — Estimates, Work Orders & Emails") is the source of
+truth: 378 jobs keyed by a 4-digit code, audit still open.
+
+- [ ] **One job code everywhere.** Code = business prefix + number. The prefix (AM / HOV /
+      RHU) says which business the job came through and is required (owner, 2026-10-23).
+      Old jobs keep their QuickBooks/ER 4-digit numbers (e.g. HOV4323). New numbers come from
+      the in-app estimates work (PR #16): they start at 10001, so new codes (HOV10001) can
+      never clash with old 4-digit ones. **Decided (owner, 2026-10-23): one shared counter
+      across all three businesses**, so every number is unique even without the prefix (PR #16
+      currently counts per business; change it there). If an
+      old 4-digit number exists in two businesses, matching uses the prefix or the client's
+      Gmail label. `AM1234-A` style suffixes stay for jobs within a project.
+- [ ] **Notes approval step.** Extend `notes`: `status` (pending / approved / rejected,
+      default approved for notes people type), `source` (manual / email), `email_link`,
+      `suggested_stage` (a suggestion only, never applied automatically), `reviewed_by`,
+      `reviewed_at`. A "Claude" system user is the author of email notes. Pending notes show
+      on the project with Approve / Reject for Admins and Leads; translation runs only after
+      approval. Nothing is ever deleted: rejected notes stay, hidden by default.
+- [ ] **Emails tab on each project.** New `email_threads` table (project, Gmail thread id,
+      subject, first sender, last date, link). One row per thread, separate from notes, so the
+      page lists the whole conversation history.
+- [ ] **How emails get linked.** No job labels: most jobs start as client inquiries with the
+      client's own subject lines, sometimes several threads per job, and the team already
+      labels Gmail by client (~230 client labels). So:
+      1. *Client label (main way):* one open job for that client → linked automatically;
+         several → Claude picks the likeliest (item, sidemark, address) and marks the note
+         "please confirm job", approver picks from that client's jobs; no job yet → "New
+         inquiry, start an estimate?" suggestion.
+      2. *Code in the subject (bonus):* estimates sent from the app carry the job code (e.g.
+         "HOV10001") in the subject, so client replies link exactly.
+      3. *BCC / forward address (optional, later):* BCC or forward to one address and the
+         email lands on the project within minutes instead of next morning; for urgent mail
+         or teammates replying from their own inboxes. Reuses the Sprint 12 `email-intake`
+         route. Add only if label matching misses emails or speed matters.
+- [ ] **Weekday morning Claude run.** Reads new email under client labels (and any with a job code),
+      writes one pending note per thread: who emailed, what was decided, next step + date,
+      link. Reads the database through the Supabase connector; writes only pending rows.
+- [ ] **Start an estimate from an inquiry email** (owner liked it 2026-10-23; needs in-app
+      estimates, PR #16, first). For a new inquiry, the morning run creates a DRAFT estimate
+      marked "From email": client name/email/company, business (from the inbox it came to),
+      items and sizes as written, photos, email link, and calculator inputs (Cushion Pricing,
+      Upholstery Estimate) where the email gives them. It lists what's missing (foam type,
+      COM or ours, ...) and can write a Gmail DRAFT to the client asking for it. Never sends
+      anything, never prices on its own; the estimator reviews, prices and sends, and the
+      number is assigned then.
+- [ ] **Until projects live in the app:** the same run writes to a new "Email Notes" tab in
+      the Job Database Sheet (its own tab, because the other tabs are rebuilt automatically),
+      and approved rows move into the app later.
+
+**Done when:** a client emails about their job (filed under their client label), and the next
+morning that project shows the thread on its Emails tab plus a pending note I can approve in
+one tap; and a new inquiry shows up as a draft estimate with a "still needed" list.
 
 ---
 

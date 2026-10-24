@@ -6,7 +6,10 @@
     "saving": "Guardando…",
     "cancel": "Cancelar",
     "loading": "Cargando…",
-    "error": "Algo salió mal. Inténtalo de nuevo."
+    "error": "Algo salió mal. Inténtalo de nuevo.",
+    "profileLoadFailed": "No se pudo cargar tu perfil",
+    "profileLoadFailedBody": "Revisa tu conexión e inténtalo de nuevo.",
+    "tryAgain": "Intentar de nuevo"
   },
   "units": {
     "h": "h",
