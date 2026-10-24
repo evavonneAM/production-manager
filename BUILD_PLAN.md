@@ -56,6 +56,14 @@ every fix except #10 (insert size warning), in five rounds:
 - [ ] **Round 4: estimates platform** (decisions 1–6 in `docs/DECISIONS.md`). Merge
       `estimates` (#5); move the 1,300-row price history into the database, Admins only (#2);
       every tool saves its inputs with each estimate line.
+- [ ] **Round 4b: estimate items, fabric and window treatments** (owner workshop 2026-10-24,
+      plan in [`docs/estimate-items-plan.md`](docs/estimate-items-plan.md)). First settle the
+      look of the estimate screen and client PDF with the owner. Then, in order: worksheets
+      saved on each line + "Open in tool"; Add cushion / Add upholstery buttons; Fabric
+      section (pooled per fabric, wholesale × 2 with $75/yd minimum, COM, to-be-determined,
+      overrides) + plywood per estimate; Velcro ($5/ft of length); estimated deposit (50%);
+      revised copies after Sent; Work Order Builder into the app with Add window treatment
+      (lining included, hardware × 2, install $95/shade or drapery ½ day $800 / full day $1,600).
 - [ ] **Round 5: clean-up.** #12 "moved" pages on the old standalone calculators (keep
       Floorplan Measure; Ripplefold until it moves in), #13 automated checks for the pricing
       and cutting math + fix the code checker's errors, #14 smaller first download, #15 no
@@ -80,8 +88,10 @@ After the review rounds:
         card per company plus a personal card, each with that role's email and address,
         because the card is what the estimate is made out to. Cards with the same phone
         or name are shown as "same person as…" so their work can be seen together.
-      - First load: the master client list from the three Estimate Rocket exports (Oct 23
-        merge, reviewed by the owner). People are grouped under a company by company
+      - First load: the master client list from the three Estimate Rocket exports plus the
+        old HOV QuickBooks list (Oct 23 merge, reviewed by the owner). **Done 2026-10-23:
+        3,110 clients loaded into `clients`**; 63 company groupings (157 people) confirmed,
+        to be applied when `companies` exists. People are grouped under a company by company
         name or work email domain (not gmail / yahoo and so on); the owner confirms the
         groupings before they load. Past Estimate Rocket projects link to their
         company so repeat clients show their full history.

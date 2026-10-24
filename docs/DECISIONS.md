@@ -8,6 +8,11 @@ in [`BUILD_PLAN.md`](../BUILD_PLAN.md).
 
 | Date | Rule |
 | --- | --- |
+| 2026-10-24 | Fabric is its own estimate line per fabric, yards summed from every item using it (each item rounded up on its own; typed override allowed). Price/yd = wholesale × 2, minimum $75. COM shows yards needed, no charge. Not chosen = "to be determined (not included)". |
+| 2026-10-24 | Purchase list shows pooled yards (one roll, rounded once) as a suggestion beside the estimate's yards; the buyer picks or types their own. |
+| 2026-10-24 | Estimates show "Estimated deposit: 50% to secure the job" (editable per estimate). Changes after Sent make a revised copy (e.g. HOV10001-R1). |
+| 2026-10-24 | Window treatments: lining inside the drapery price; hardware own line at cost × 2; install $95 per shade, drapery ½ day $800 or full day $1,600. |
+| 2026-10-24 | Board-mounted cushions: Velcro $5 per linear foot of the cushion's length, rounded up to the next foot. |
 | 2026-10-23 | A client is a company (designer firm, business or household) with people under it. The client page shows all of the company's projects from every person. |
 | 2026-10-23 | One person who works for several companies gets one client card per company plus a personal card (each with that role's email and address). When unsure, keep cards separate; merging later is easy. |
 | 2026-10-23 | One estimate number shared by AM / HOV / RHU (no AM10001 and HOV10001 both). |
