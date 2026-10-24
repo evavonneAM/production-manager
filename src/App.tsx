@@ -33,6 +33,9 @@ const Upholstery = lazy(() => import('./screens/calculators/Upholstery'))
 const DraperyPleat = lazy(() => import('./screens/calculators/DraperyPleat'))
 const FloorplanMeasure = lazy(() => import('./screens/calculators/floorplan/FloorplanMeasure'))
 const WorkOrder = lazy(() => import('./screens/calculators/WorkOrder'))
+// Estimates show prices: Admins only, and loaded only when opened.
+const Estimates = lazy(() => import('./screens/Estimates'))
+const EstimateDetail = lazy(() => import('./screens/EstimateDetail'))
 const page = (el: React.ReactNode) => <Suspense fallback={<FullScreenLoader />}>{el}</Suspense>
 
 function ProtectedLayout() {
@@ -104,6 +107,8 @@ export default function App() {
         <Route path="/tools/cushion-pricing" element={<AdminOnly>{page(<CushionPricing />)}</AdminOnly>} />
         <Route path="/tools/upholstery" element={<AdminOnly>{page(<Upholstery />)}</AdminOnly>} />
         <Route path="/tools/work-order" element={<AdminOnly>{page(<WorkOrder />)}</AdminOnly>} />
+        <Route path="/estimates" element={<AdminOnly>{page(<Estimates />)}</AdminOnly>} />
+        <Route path="/estimates/:estimateId" element={<AdminOnly>{page(<EstimateDetail />)}</AdminOnly>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

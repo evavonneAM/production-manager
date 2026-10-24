@@ -27,6 +27,8 @@ import { FOAM_TYPES } from '../../lib/foamTypes'
 import { SHEET_L, SHEET_PRICE, SHEET_W, fitsSheet, planPlywood, type Board, type Sheet } from '../../lib/calculators/plywoodNesting'
 import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, slashStyle, type PriceOption } from '../../lib/calculators/cushionPricing'
 import { DEFAULT_HEIGHT_DEDUCTION, cushionCuts } from '../../lib/calculators/cushionCut'
+import { cents, erToPlain, type NewLine } from '../../lib/estimates'
+import { AddToEstimate } from '../../components/AddToEstimate'
 import {
   DEFAULT_END_ALLOWANCE,
   DEFAULT_EXTRA,
@@ -622,6 +624,40 @@ export default function CushionPricing() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, sections, t])
 
+  // Every priced cushion line as one estimate line, with its Estimate Rocket
+  // text (made plain) as the client-facing description, plus plywood sheets.
+  const estimateLines = (): NewLine[] => [
+    ...rows.flatMap((r, i) => {
+      const s = sections[i]
+      const l = quote.lines.find((x) => x.key === r.id)
+      if (!s || !l) return []
+      return [
+        {
+          section: 'Cushions',
+          name: l.name,
+          description: erToPlain(erTextFor(r, s)),
+          quantity: l.qty,
+          unit: 'ea',
+          unit_price: cents(l.each),
+          source: 'cushionPricing',
+        },
+      ]
+    }),
+    ...(quote.plywood.sheets.length > 0
+      ? [
+          {
+            section: 'Cushions',
+            name: t('cushionPricing.plywoodStat', { n: quote.plywood.sheets.length }),
+            description: null,
+            quantity: quote.plywood.sheets.length,
+            unit: 'ea',
+            unit_price: cents(SHEET_PRICE),
+            source: 'cushionPricing',
+          },
+        ]
+      : []),
+  ]
+
   const addPasted = () => {
     const pasted = parsePasted(paste)
     if (!pasted.length) return
@@ -1118,7 +1154,7 @@ export default function CushionPricing() {
           </Card>
         )}
 
-        <Card title={t('cushionPricing.quoteTitle')}>
+        <Card title={t('cushionPricing.quoteTitle')} extra={<AddToEstimate lines={estimateLines} disabled={quote.lines.length === 0} />}>
           {quote.lines.length > 0 ? (
             <Table
               size="small"
