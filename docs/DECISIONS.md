@@ -13,6 +13,8 @@ in [`BUILD_PLAN.md`](../BUILD_PLAN.md).
 | 2026-10-24 | Estimates show "Estimated deposit: 50% to secure the job" (editable per estimate). Changes after Sent make a revised copy (e.g. HOV10001-R1). |
 | 2026-10-24 | Window treatments: lining inside the drapery price; hardware own line at cost × 2; install $95 per shade, drapery ½ day $800 or full day $1,600. |
 | 2026-10-24 | Board-mounted cushions: Velcro $5 per linear foot of the cushion's length, rounded up to the next foot. |
+| 2026-10-24 | Estimates can be grouped by room or window (optional, just named). Each group holds its own fabric and subtotal; the client approves room by room, only approved rooms become jobs and fabric orders, and the deposit is 50% of approved rooms. |
+| 2026-10-24 | Estimates have an "Install at" address separate from the client's (designer billed, install at the client's home). |
 | 2026-10-23 | A client is a company (designer firm, business or household) with people under it. The client page shows all of the company's projects from every person. |
 | 2026-10-23 | One person who works for several companies gets one client card per company plus a personal card (each with that role's email and address). When unsure, keep cards separate; merging later is easy. |
 | 2026-10-23 | One estimate number shared by AM / HOV / RHU (no AM10001 and HOV10001 both). |

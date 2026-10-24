@@ -59,7 +59,26 @@ the rules themselves are logged in [`DECISIONS.md`](DECISIONS.md).
   pooled yards (all items on one roll, rounded once) as a **suggestion** beside the estimate's
   yards; the buyer picks either or types their own.
 
-## Still to design before building
+## Estimate design (settled with the owner 2026-10-24)
 
-- Look of the estimate screen and the client PDF with the new sections (fabric, hardware,
-  install, deposit, revision label).
+Picture: https://claude.ai/artifact/9Ezs4SSmRJBAucST49527P
+
+- **Groups by room or window** (optional). "+ Add room or window group" splits an estimate;
+  items move between groups with "Move to group". Groups are just named (no letters). With
+  no groups the estimate is one list, as today.
+- Each group holds its own items, its own **fabric** at the bottom and its own **subtotal**.
+  A fabric used in two rooms shows each room's own yards there, so each room's price stands
+  alone; the purchase list adds them up.
+- The client PDF has a **summary by group** above the total.
+- **Approve by room:** each group has a "Client approved" switch. On Accepted only approved
+  groups become jobs and fabric orders, and the deposit is 50% of the approved groups.
+- **Install at** address, separate from the client's (designer billed, install at the
+  client's home). Defaults to "Same as client"; carries to the job, schedule and work orders.
+- The PDF uses the business's real logo (HOV, AM, RHU).
+- A revised copy says "REVISION 1", with its new number and "Replaces HOV10001, <date>".
+- Item descriptions use the Estimate Rocket bullet list (Location, Style, Lining, Mounting…).
+- Fabric table on screen: Vendor, Fabric, Sidemark (defaults client / project), Yards,
+  Wholesale, Client price, Total. Vendor and sidemark are internal and carry to the fabric
+  order; never on the client PDF.
+- **Workroom diagrams** tab (fabric roll maps, plywood sheets, cushion drawings) plus a
+  Workroom PDF.

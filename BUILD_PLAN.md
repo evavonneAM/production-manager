@@ -57,8 +57,10 @@ every fix except #10 (insert size warning), in five rounds:
       `estimates` (#5); move the 1,300-row price history into the database, Admins only (#2);
       every tool saves its inputs with each estimate line.
 - [ ] **Round 4b: estimate items, fabric and window treatments** (owner workshop 2026-10-24,
-      plan in [`docs/estimate-items-plan.md`](docs/estimate-items-plan.md)). First settle the
-      look of the estimate screen and client PDF with the owner. Then, in order: worksheets
+      plan in [`docs/estimate-items-plan.md`](docs/estimate-items-plan.md)). Design settled
+      2026-10-24: optional room/window groups, each with its own fabric and subtotal and a
+      "Client approved" switch; Install at address; real logos; Workroom diagrams tab. Build
+      waits for the owner's "go". Then, in order: groups + Install at; worksheets
       saved on each line + "Open in tool"; Add cushion / Add upholstery buttons; Fabric
       section (pooled per fabric, wholesale × 2 with $75/yd minimum, COM, to-be-determined,
       overrides) + plywood per estimate; Velcro ($5/ft of length); estimated deposit (50%);
