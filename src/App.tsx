@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { Alert, Button, Space } from 'antd'
 import { useAuth } from './auth/AuthProvider'
 import { AppLayout } from './components/AppLayout'
 import { FullScreenLoader } from './components/FullScreenLoader'
@@ -36,10 +38,33 @@ const WorkOrder = lazy(() => import('./screens/calculators/WorkOrder'))
 const page = (el: React.ReactNode) => <Suspense fallback={<FullScreenLoader />}>{el}</Suspense>
 
 function ProtectedLayout() {
-  const { session, profile, loading } = useAuth()
+  const { session, profile, profileError, loading, refreshProfile, signOut } = useAuth()
+  const { t } = useTranslation()
   const location = useLocation()
   if (loading) return <FullScreenLoader />
   if (!session) return <Navigate to="/login" replace />
+  // Never guess pages without a profile: wait for it, or offer a retry.
+  if (!profile) {
+    if (!profileError) return <FullScreenLoader />
+    return (
+      <div style={{ maxWidth: 520, margin: '48px auto', padding: '0 16px' }}>
+        <Alert
+          type="warning"
+          showIcon
+          title={t('common.profileLoadFailed')}
+          description={t('common.profileLoadFailedBody')}
+          action={
+            <Space orientation="vertical">
+              <Button type="primary" onClick={() => void refreshProfile()}>
+                {t('common.tryAgain')}
+              </Button>
+              <Button onClick={() => void signOut()}>{t('common.signOut')}</Button>
+            </Space>
+          }
+        />
+      </div>
+    )
+  }
   // Pages still being built are for testers only; everyone else goes to Tools.
   if (!canSeePage(profile, location.pathname)) return <Navigate to={homePath(profile)} replace />
   return (
