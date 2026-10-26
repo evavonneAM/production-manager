@@ -301,34 +301,6 @@ export default function CushionCut() {
 
   const done = results.filter((c): c is AnyCuts => c !== null)
 
-  const downloadPdf = async () => {
-    const cushions: WorkOrderCushion[] = []
-    rows.forEach((r, i) => {
-      const cuts = results[i]
-      if (!cuts) return
-      cushions.push({
-        name: r.label.trim(),
-        qty: Math.max(1, r.qty || 1),
-        fabric: r.fabric.trim(),
-        style: r.style,
-        sewingStyle: r.sewingStyle,
-        direction: r.direction,
-        width: parseInches(r.front)!,
-        depth: parseInches(r.sides)!,
-        height: parseInches(r.height)!,
-        top: r.shape === 'wedge' ? parseInches(r.topDepth)! : 0,
-        foamWrap: r.foamWrap,
-        foamNotes: r.foamNotes.trim(),
-        cuts,
-      })
-    })
-    setPdfBusy(true)
-    try {
-      await downloadCushionWorkOrder(job, cushions)
-    } finally {
-      setPdfBusy(false)
-    }
-  }
   const totals = done.reduce(
     (a, c) => ({
       cording: a.cording + c.cording,
@@ -392,6 +364,35 @@ export default function CushionCut() {
     [rows, results, t],
   )
   const fromEstimate = rows.some((r) => r.fromEstimate)
+
+  const downloadPdf = async () => {
+    const cushions: WorkOrderCushion[] = []
+    rows.forEach((r, i) => {
+      const cuts = results[i]
+      if (!cuts) return
+      cushions.push({
+        name: r.label.trim(),
+        qty: Math.max(1, r.qty || 1),
+        fabric: r.fabric.trim(),
+        style: r.style,
+        sewingStyle: r.sewingStyle,
+        direction: r.direction,
+        width: parseInches(r.front)!,
+        depth: parseInches(r.sides)!,
+        height: parseInches(r.height)!,
+        top: r.shape === 'wedge' ? parseInches(r.topDepth)! : 0,
+        foamWrap: r.foamWrap,
+        foamNotes: r.foamNotes.trim(),
+        cuts,
+      })
+    })
+    setPdfBusy(true)
+    try {
+      await downloadCushionWorkOrder(job, cushions, fabricPlans)
+    } finally {
+      setPdfBusy(false)
+    }
+  }
   const fabricYards = fabricPlans.reduce((n, f) => n + f.plan.orderYards, 0)
 
   return (
@@ -790,6 +791,30 @@ export default function CushionCut() {
                         {f.names.join(', ')}
                       </Typography.Text>
                     </div>
+                  )}
+                  {(f.plan.joined.length > 0 || f.plan.tooWide.length > 0) && (
+                    <Alert
+                      type={f.plan.tooWide.length ? 'error' : 'warning'}
+                      showIcon
+                      style={{ margin: '6px 0' }}
+                      title={t('cushionCut.joinsTitle')}
+                      description={
+                        <ul style={{ margin: 0, paddingLeft: 18 }}>
+                          {f.plan.joined.map((j, k) => (
+                            <li key={`j${k}`}>
+                              {t('cushionCut.joinLine', {
+                                piece: `${j.cushion ? `${j.cushion} · ` : ''}${t(`fabricYardage.piece_${j.name}`)}${j.count > 1 ? ` × ${j.count}` : ''}`,
+                                n: j.pieces,
+                                sizes: j.center === j.end ? formatInches(j.center) : `${formatInches(j.center)} + 2 × ${formatInches(j.end)}`,
+                              })}
+                            </li>
+                          ))}
+                          {f.plan.tooWide.map((p, k) => (
+                            <li key={`w${k}`}>{t('cushionCut.tooWideLine', { piece: `${p.cushion ? `${p.cushion} · ` : ''}${t(`fabricYardage.piece_${p.name}`)}` })}</li>
+                          ))}
+                        </ul>
+                      }
+                    />
                   )}
                   {f.plan.offCenter > 0 && <Alert type="warning" showIcon style={{ margin: '6px 0' }} title={t('fabricYardage.offCenter', { count: f.plan.offCenter })} />}
                   <RollDiagram

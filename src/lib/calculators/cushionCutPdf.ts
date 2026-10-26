@@ -11,6 +11,7 @@ import {
   type WedgeCuts,
   type ZipperStyle,
 } from './cushionCut'
+import type { FabricPlan } from './fabricNesting'
 
 export type FabricDirection = 'none' | 'railroaded' | 'upTheRoll'
 
@@ -54,18 +55,51 @@ const WRAP_TEXT: Record<FoamWrap, string> = {
 }
 const DIRECTION_TEXT: Record<FabricDirection, string> = { none: '', railroaded: 'Railroaded', upTheRoll: 'Up the roll' }
 
+const PIECE_TEXT: Record<string, string> = {
+  plate: 'Plate',
+  boxing: 'Boxing',
+  zipper: 'Zipper',
+  wedgePanel: 'Main panel',
+  wedgeSide: 'Side',
+  sparePlate: 'Spare plate',
+}
+const FILL: [number, number, number][] = [
+  [212, 227, 242],
+  [246, 227, 200],
+  [217, 238, 219],
+  [238, 220, 242],
+  [245, 214, 214],
+  [214, 239, 240],
+  [236, 233, 207],
+  [226, 226, 226],
+]
+const STROKE: [number, number, number][] = [
+  [22, 119, 255],
+  [212, 136, 6],
+  [56, 158, 13],
+  [146, 84, 222],
+  [207, 19, 34],
+  [8, 151, 156],
+  [124, 111, 0],
+  [89, 89, 89],
+]
+const f2 = (n: number) => formatInches(n)
+
 const clean = (s: string) =>
   s.replace(/[″”“]/g, '"').replace(/[−–—]/g, '-').replace(/→/g, '->').replace(/×/g, 'x')
 
+/** One fabric's roll layout for the work order: every cushion in that fabric on one roll. */
+export type WorkOrderFabric = { fabric: string; names: string[]; plan: FabricPlan }
+
 /** Builds the cushion work order and starts the download. */
-export async function downloadCushionWorkOrder(job: WorkOrderJob, cushions: WorkOrderCushion[]): Promise<void> {
+export async function downloadCushionWorkOrder(job: WorkOrderJob, cushions: WorkOrderCushion[], fabrics: WorkOrderFabric[] = []): Promise<void> {
   const { jsPDF } = await import('jspdf')
-  const doc = buildCushionWorkOrder(new jsPDF({ unit: 'pt', format: 'letter' }), job, cushions)
+  const doc = buildCushionWorkOrder(new jsPDF({ unit: 'pt', format: 'letter' }), job, cushions, fabrics)
   const base = [job.workOrder, job.sidemark || job.client].filter(Boolean).join(' - ') || 'Cushions'
   doc.save(`${base} - cushion work order.pdf`.replace(/[\\/:*?"<>|]/g, '-'))
 }
 
-export function buildCushionWorkOrder(doc: JsPDF, job: WorkOrderJob, cushions: WorkOrderCushion[]): JsPDF {
+export function buildCushionWorkOrder(doc: JsPDF, job: WorkOrderJob, cushions: WorkOrderCushion[], fabrics: WorkOrderFabric[] = []): JsPDF {
   const date = new Date().toLocaleDateString('en-US')
   const jobLine = [job.workOrder, job.client, job.sidemark && `Sidemark: ${job.sidemark}`]
     .filter(Boolean)
@@ -140,6 +174,129 @@ export function buildCushionWorkOrder(doc: JsPDF, job: WorkOrderJob, cushions: W
     }
     drawCushion(doc, c, i, y)
     y += BLOCK_H
+  })
+
+  // Fabric layouts: each fabric's roll, wrapped into rows of up to 5 yards.
+  fabrics.forEach((f) => {
+    const plan = f.plan
+    if (plan.totalLength <= 0) return
+    const ROW = 180
+    const sc = CW / ROW
+    const rowH = plan.width * sc
+    const rows = Math.ceil(plan.totalLength / ROW - 1e-9)
+    const blockH = 44 + rows * (rowH + 30) + (plan.pattern ? 14 : 0)
+    if (y + Math.min(blockH, 44 + rowH + 30) > PH - M) {
+      doc.addPage()
+      header(false)
+    }
+    doc.setFillColor(...ACCENT)
+    doc.rect(M, y - 11, 4, 16, 'F')
+    doc.setTextColor(...INK)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(14)
+    doc.text(clean(`Fabric layout: ${f.fabric || 'No fabric entered'}`), M + 12, y + 2)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.setTextColor(...MUTED)
+    const how = [
+      `${plan.orderYards} yd to order`,
+      plan.direction === 'railroaded' ? 'Railroaded' : 'Up the roll',
+      plan.pattern ? `${f2(plan.pattern.vertical)} repeat${plan.pattern.halfDrop ? ' (half-drop)' : ''}` : '',
+      `${f2(plan.width)} usable width`,
+    ].filter(Boolean)
+    doc.text(clean(how.join('   |   ')), M + 12, y + 18)
+    if (f.names.length > 1) doc.text(clean(f.names.join(', ')), M + 12, y + 31, { maxWidth: CW - 12 })
+    y += f.names.length > 1 ? 50 : 38
+    // Pieces too long for the roll are seamed: say so, so the cutter isn't surprised.
+    const joins = [
+      ...plan.joined.map(
+        (j) =>
+          `${j.cushion ? `${j.cushion}: ` : ''}${PIECE_TEXT[j.name] ?? j.name}${j.count > 1 ? ` x ${j.count}` : ''} cut in ${j.pieces} parts (${j.center === j.end ? f2(j.center) : `${f2(j.center)} + 2 x ${f2(j.end)}`})`,
+      ),
+      ...plan.tooWide.map((p) => `${p.cushion ? `${p.cushion}: ` : ''}${PIECE_TEXT[p.name] ?? p.name} does not fit the roll`),
+    ]
+    if (joins.length) {
+      doc.setFontSize(8.5)
+      doc.setTextColor(180, 90, 0)
+      joins.forEach((l) => {
+        doc.text(clean(`Joined: ${l}`), M + 12, y - 4)
+        y += 11
+      })
+      y += 4
+    }
+    const off = plan.endAllowance
+    for (let r = 0; r < rows; r++) {
+      if (y + rowH + 22 > PH - M) {
+        doc.addPage()
+        header(false)
+      }
+      const r0 = r * ROW
+      const r1 = Math.min(plan.totalLength, r0 + ROW)
+      const x0 = M
+      const top = y + 12
+      // Yard marks above the row.
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      doc.setTextColor(...MUTED)
+      for (let yd = Math.ceil(r0 / 36); yd * 36 <= r1; yd++) {
+        const X = x0 + (yd * 36 - r0) * sc
+        doc.setDrawColor(...MUTED)
+        doc.setLineWidth(0.5)
+        doc.line(X, top - 4, X, top)
+        doc.text(`${yd} yd`, X, top - 6, { align: 'center' })
+      }
+      doc.setDrawColor(...INK)
+      doc.setFillColor(236, 236, 236)
+      doc.setLineWidth(0.6)
+      doc.rect(x0, top, (r1 - r0) * sc, rowH, 'FD')
+      const clip = (a: number, b: number) => [Math.max(a, r0), Math.min(b, r1)] as const
+      plan.placed.forEach((p) => {
+        // On paper the roll runs left to right: a piece's length along the roll is its width here.
+        const [a, b] = clip(off + p.y, off + p.y + p.h)
+        if (b - a <= 0.01) return
+        const ci = Math.max(0, f.names.indexOf(p.cushion)) % FILL.length
+        doc.setFillColor(...FILL[ci])
+        doc.setDrawColor(...STROKE[ci])
+        doc.setLineWidth(0.5)
+        const px = x0 + (a - r0) * sc
+        const py = top + p.x * sc
+        const pw = (b - a) * sc
+        const ph = p.w * sc
+        doc.rect(px, py, pw, ph, 'FD')
+        if (p.matched) {
+          doc.setDrawColor(192, 57, 43)
+          doc.circle(x0 + (off + p.y + p.h / 2 - r0) * sc, py + ph / 2, 2.2, 'S')
+        }
+        if (pw > 26 && ph > 9) {
+          doc.setTextColor(...INK)
+          doc.setFontSize(Math.max(5, Math.min(7.5, ph / 2.2)))
+          const label = `${f.names.length > 1 && p.cushion ? `${p.cushion}: ` : ''}${PIECE_TEXT[p.name] ?? p.name}`
+          const size = `${f2(p.across)} x ${f2(p.along)}`
+          const cx = px + pw / 2
+          const lines = (ph > 18 ? [label, size] : [label]).map((l) => (doc.getTextWidth(clean(l)) > pw - 4 ? (doc.splitTextToSize(clean(l), pw - 4) as string[])[0] : clean(l)))
+          lines.forEach((l, k) => doc.text(l, cx, py + ph / 2 + 2.5 + (k - (lines.length - 1) / 2) * 8, { align: 'center' }))
+        }
+      })
+      if (plan.cordingLength > 0) {
+        const [a, b] = clip(off + plan.piecesLength, off + plan.piecesLength + plan.cordingLength)
+        if (b - a > 0.01) {
+          doc.setFillColor(255, 247, 230)
+          doc.setDrawColor(212, 136, 6)
+          doc.rect(x0 + (a - r0) * sc, top, (b - a) * sc, rowH, 'FD')
+          doc.setTextColor(135, 77, 0)
+          doc.setFontSize(7)
+          doc.text('Bias cording block', x0 + ((a + b) / 2 - r0) * sc, top + rowH / 2, { align: 'center' })
+        }
+      }
+      y = top + rowH + 22
+    }
+    if (plan.pattern) {
+      doc.setFontSize(8)
+      doc.setTextColor(...MUTED)
+      doc.text('Red rings: the motif each piece is centered on. Have the cutter check motif placement before cutting.', M, y - 8)
+      y += 6
+    }
+    y += 10
   })
 
   // Page numbers.

@@ -166,6 +166,19 @@ export function splitSymmetric(len: number, W: number, minEnd: number): { center
   return { center, end }
 }
 
+/**
+ * A strip too long to cut in three parts (a board-mounted boxing goes all the way round)
+ * is cut in more equal parts: 5, 7, 9… Each join takes the usual seam allowance.
+ * Returns the part length and count, or null.
+ */
+export function splitStrip(len: number, W: number, minEnd: number): { part: number; count: number } | null {
+  for (let n = 5; n <= 15; n += 2) {
+    const part = up8((len + (n - 1) * JOIN_ALLOWANCE) / n)
+    if (part <= W + EPS && part >= minEnd - EPS) return { part, count: n }
+  }
+  return null
+}
+
 type Item = CutPiece & { w: number; h: number; area: number }
 type Free = { x: number; y: number; w: number; h: number }
 
@@ -487,6 +500,19 @@ function planOneWay(pieces: CutPiece[], opts: FabricOptions, direction: Directio
       // Too wide across the roll: join it from a center and two mirrored ends.
       const isPlate = p.name === 'plate' || p.name === 'wedgePanel' || p.name === 'sparePlate'
       const split = splitSymmetric(acrossLen, width, isPlate ? MIN_PLATE_END : MIN_STRIP_END)
+      const many = !split && !isPlate ? splitStrip(acrossLen, width, MIN_STRIP_END) : null
+      if (many) {
+        for (let k = 0; k < many.count; k++) {
+          const part = k === (many.count - 1) / 2 ? 'center' : 'end'
+          push(direction === 'upTheRoll' ? { ...p, across: many.part, join: { part, of: many.count } } : { ...p, along: many.part, join: { part, of: many.count } })
+        }
+        if (!track) continue
+        const key = `${p.cushion}|${p.name}`
+        const j = joinedMap.get(key)
+        if (j) j.count++
+        else joinedMap.set(key, { cushion: p.cushion, name: p.name, center: many.part, end: many.part, pieces: many.count, count: 1 })
+        continue
+      }
       if (!split) {
         if (track) tooWide.push(p)
         continue
@@ -773,6 +799,23 @@ function planPattern(pieces: CutPiece[], opts: FabricOptions, direction: Directi
             break
           }
         }
+      if (!center && !isPlate(p.name)) {
+        // Too long for three parts: equal parts all the way round, cut where they fit.
+        const many = splitStrip(w, width, MIN_STRIP_END)
+        if (many) {
+          for (let k = 0; k < many.count; k++) {
+            const part = k === (many.count - 1) / 2 ? 'center' : 'end'
+            const piece: CutPiece = direction === 'upTheRoll' ? { ...p, across: many.part, join: { part, of: many.count } } : { ...p, along: many.part, join: { part, of: many.count } }
+            items.push({ ...piece, w: many.part, h, matched: false })
+          }
+          offCenter++
+          const key = `${p.cushion}|${p.name}`
+          const j = joined.get(key)
+          if (j) j.count++
+          else joined.set(key, { cushion: p.cushion, name: p.name, center: many.part, end: many.part, pieces: many.count, count: 1 })
+          continue
+        }
+      }
       if (!center) {
         tooWide.push(p)
         continue

@@ -597,7 +597,10 @@
     "styleNoCording": "No cording for this style.",
     "styleSoon": "formulas coming",
     "stylePick": "Pick a sewing style before printing the cut list.",
-    "styleNoFormula": "There are no cut formulas for this style yet: the sizes below are for a boxed cushion."
+    "styleNoFormula": "There are no cut formulas for this style yet: the sizes below are for a boxed cushion.",
+    "joinsTitle": "Seams needed: some pieces are longer than the roll is wide",
+    "joinLine": "{{piece}}: cut in {{n}} parts ({{sizes}})",
+    "tooWideLine": "{{piece}} doesn't fit this roll even when joined"
   },
   "leafBag": {
     "intro": "Enter each job's finished bag size. The cuts update as you type.",

@@ -596,7 +596,10 @@
     "styleNoCording": "Sin vivo para este estilo.",
     "styleSoon": "fórmulas pronto",
     "stylePick": "Elige un estilo de costura antes de imprimir la lista de cortes.",
-    "styleNoFormula": "Todavía no hay fórmulas de corte para este estilo: las medidas son de un cojín con costado."
+    "styleNoFormula": "Todavía no hay fórmulas de corte para este estilo: las medidas son de un cojín con costado.",
+    "joinsTitle": "Hay que unir: algunas piezas son más largas que el ancho del rollo",
+    "joinLine": "{{piece}}: se corta en {{n}} partes ({{sizes}})",
+    "tooWideLine": "{{piece}} no cabe en este rollo ni uniéndola"
   },
   "leafBag": {
     "intro": "Ingresa la medida terminada de la bolsa de cada trabajo. Los cortes se actualizan mientras escribes.",
