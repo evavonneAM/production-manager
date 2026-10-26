@@ -365,8 +365,8 @@ function InchField({ id, label, value, onChange, help }: { id: string; label: st
   )
 }
 
-/** Velcro runs the length of the cushion, counted in whole feet (rounded up). */
-const velcroFeet = (length: number) => Math.ceil(length / 12 - 1e-9)
+/** Velcro runs the length of the cushion, counted to the nearest whole foot (6" rounds up). */
+const velcroFeet = (length: number) => Math.max(1, Math.round(length / 12 + 1e-9))
 const velcroPrice = (rows: Row['velcroRows'], length: number) =>
   rows ? velcroFeet(length) * (rows === 2 ? ADD_ONS.velcro2 : ADD_ONS.velcro1) : 0
 

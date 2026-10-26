@@ -751,7 +751,7 @@
     "velcro1": "1 Row Velcro ({{price}}/Ft)",
     "velcro2": "2 Rows Velcro ({{price}}/Ft)",
     "pickVelcro": "Velcro ({{rows}} Row, {{ft}} Ft)",
-    "velcroHelp": "Runs the length of each cushion, rounded up to the next foot."
+    "velcroHelp": "Runs the length of each cushion, rounded to the nearest foot."
   },
   "fabricYardage": {
     "intro": "Add the cushions, or bring them in from Cushion Cut Dimensions. Every piece is laid out on the roll and the yardage updates as you type.",

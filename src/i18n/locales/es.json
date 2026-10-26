@@ -750,7 +750,7 @@
     "velcro1": "Velcro 1 fila ({{price}}/pie)",
     "velcro2": "Velcro 2 filas ({{price}}/pie)",
     "pickVelcro": "Velcro {{rows}} fila × {{ft}} pies",
-    "velcroHelp": "Va a lo largo de cada cojín, redondeado al pie siguiente."
+    "velcroHelp": "Va a lo largo de cada cojín, redondeado al pie más cercano."
   },
   "fabricYardage": {
     "intro": "Agrega los cojines o tráelos de Medidas de corte de cojines. Cada pieza se acomoda en el rollo y el yardaje se actualiza al escribir.",
