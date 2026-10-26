@@ -171,7 +171,7 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     ...(e.back
       ? [dims('Seat Dimensions', e.depth, e.height), dims('Back Dimensions', e.back.depth, e.back.height)]
       : e.sizes?.length
-        ? e.sizes.map((z, i) => `${i ? '' : '* **Dimensions:** '}QTY ${z.qty} @ ${z.width}W x ${z.depth}D x ${z.height}H - ${z.confirmed ? 'Confirmed' : 'Not Confirmed'}`)
+        ? ['* **Dimensions:** ', ...e.sizes.map((z) => ` *QTY ${z.qty} @ ${z.width}W x ${z.depth}D x ${z.height}H - ${z.confirmed ? 'Confirmed' : 'Not Confirmed'}`)]
         : [dims('Dimensions', e.depth, e.height)]),
     '',
     '#### Style:',
