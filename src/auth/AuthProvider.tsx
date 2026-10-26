@@ -29,6 +29,8 @@ type AuthContextValue = {
   session: Session | null
   profile: Profile | null
   loading: boolean
+  /** Signed in, but the profile could not be loaded (e.g. no signal). */
+  profileError: boolean
   signIn: (email: string, password: string) => Promise<Result>
   signInWithGoogle: () => Promise<Result>
   signOut: () => Promise<void>
@@ -47,14 +49,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profileError, setProfileError] = useState(false)
 
   async function loadProfile(userId: string) {
     if (!supabase) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
       .single()
+    setProfileError(!!error || !data)
     if (data) {
       const p = data as Profile
       setProfile(p)
@@ -152,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         profile,
         loading,
+        profileError,
         signIn,
         signInWithGoogle,
         signOut,

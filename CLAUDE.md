@@ -5,6 +5,16 @@ start of every session. The authoritative product spec lives in `SPEC.md` in thi
 when this file and the spec disagree, the spec wins, and you should ask me before deviating
 from either.
 
+**Where things live (one of each, never copies):**
+
+- `BUILD_PLAN.md` is the only build plan: Live now, Next (in order), and the sprint history.
+  Update it in the same change as the work it describes.
+- `docs/DECISIONS.md` holds my decisions and standing rules (rounding, shop rules, who sees
+  prices). Add a dated row when I decide something; don't keep rules anywhere else.
+- A new planning document goes in `docs/` and is linked from `BUILD_PLAN.md`.
+- Side copies of the repo (git worktrees) are temporary: never put plans in them, and delete
+  them once their branch is merged.
+
 ---
 
 ## What we are building
@@ -35,7 +45,7 @@ Full detail is in `SPEC.md` (v2.0). Key concepts you must internalize:
 |---|---|
 | Frontend | React + Vite |
 | Delivery | PWA (installable, offline read cache, service worker) |
-| Styling | Tailwind CSS |
+| Styling | Ant Design (`antd`) for new and redesigned screens; Tailwind CSS on the older Phase 1 screens |
 | Backend / DB / Auth / Storage | Supabase (PostgreSQL) |
 | Realtime | Supabase Realtime |
 | Translation | DeepL API |
@@ -94,6 +104,17 @@ width and on desktop.
   exposed.
 - **Row-Level Security is the real boundary.** The frontend is not trusted. Every table needs
   RLS policies matching the matrix in SPEC.md Section 17.
+  That includes Storage: a file hidden in the `files` table must also be unreadable in the
+  storage bucket.
+- **Prices are for Admins only, enforced by RLS.** Prices may be stored in the app (owner,
+  2026-10-15), but only in Admin-only tables. Anything compiled into the app's JavaScript is
+  public on Vercel, even without signing in, so price lists, price history and client names
+  never ship in the bundle. `AdminOnly` hides screens; it is not a security boundary.
+- **Every Edge Function checks who is calling.** The public (anon) key is in every browser,
+  so a function must require a signed-in user with the right role, the service role, or a
+  shared secret.
+- **One price book per thing.** When two tools price the same item (e.g. cushions in Cushion
+  Pricing and Upholstery Estimate), they import the same formulas; never copy them.
 
 ---
 
