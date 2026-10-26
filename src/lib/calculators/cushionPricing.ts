@@ -131,6 +131,8 @@ export type EstimateRocketInput = EstimateRocketPart & {
   insertLabel: 'Seat Insert' | 'Back Insert'
   /** Custom sewn, or upholstered to plywood. */
   plan: 'sewn' | 'plywood'
+  /** Several cushions on one line (same style, fill and fabric): one Dimensions entry each. */
+  sizes?: { qty: number; width: string; depth: string; height: string; confirmed: boolean }[]
   /** A matching back cushion on the same line (seat + back set). */
   back?: EstimateRocketPart & { depth: string; height: string }
 }
@@ -166,7 +168,11 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     '____',
     '#### Plan:',
     e.plan === 'plywood' ? '* **Custom Upholstered To Plywood**' : '* **Custom Sewn**',
-    ...(e.back ? [dims('Seat Dimensions', e.depth, e.height), dims('Back Dimensions', e.back.depth, e.back.height)] : [dims('Dimensions', e.depth, e.height)]),
+    ...(e.back
+      ? [dims('Seat Dimensions', e.depth, e.height), dims('Back Dimensions', e.back.depth, e.back.height)]
+      : e.sizes?.length
+        ? e.sizes.map((z, i) => `${i ? '' : '* **Dimensions:** '}QTY ${z.qty} @ ${z.width}W x ${z.depth}D x ${z.height}H - ${z.confirmed ? 'Confirmed' : 'Not Confirmed'}`)
+        : [dims('Dimensions', e.depth, e.height)]),
     '',
     '#### Style:',
     ...(e.back ? [`* **Seat Sewing Style:** ${e.sewingStyle}`, `* **Back Sewing Style:** ${e.back.sewingStyle}`] : [`* **Sewing Style:** ${e.sewingStyle}`]),

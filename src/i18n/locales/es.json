@@ -741,7 +741,10 @@
     "separately": "{{n}} yd si se cortan por separado",
     "howMany": "Cantidad",
     "dirUpTheRoll": "A lo largo del rollo",
-    "dirRailroaded": "Railroaded (tela de lado)"
+    "dirRailroaded": "Railroaded (tela de lado)",
+    "joinAbove": "Agregar a la línea de Estimate Rocket de arriba",
+    "joinHelp": "Márquelo cuando este cojín tenga el mismo estilo, relleno y tela que el de arriba, para que compartan una línea con todas las medidas.",
+    "joinedNote": "Mismo estilo, relleno y tela que {{name}}. Cámbielos en esa tarjeta."
   },
   "fabricYardage": {
     "intro": "Agrega los cojines o tráelos de Medidas de corte de cojines. Cada pieza se acomoda en el rollo y el yardaje se actualiza al escribir.",

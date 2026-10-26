@@ -742,7 +742,10 @@
     "separately": "{{n}} yd if cut separately",
     "howMany": "How Many",
     "dirUpTheRoll": "Up The Roll",
-    "dirRailroaded": "Railroaded"
+    "dirRailroaded": "Railroaded",
+    "joinAbove": "Add To The Estimate Rocket Line Above",
+    "joinHelp": "Tick this when this cushion has the same style, fill and fabric as the one above, so they share one line with every size listed.",
+    "joinedNote": "Same style, fill and fabric as {{name}}. Change them on that card."
   },
   "fabricYardage": {
     "intro": "Add the cushions, or bring them in from Cushion Cut Dimensions. Every piece is laid out on the roll and the yardage updates as you type.",
