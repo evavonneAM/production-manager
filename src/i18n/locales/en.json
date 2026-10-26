@@ -584,7 +584,14 @@
     "boardBoard": "Plywood board (⅛\" in on every side)",
     "fabricTitle": "Fabric layout",
     "fabricYards": "{{n}} yd",
-    "fabricHelpLayout": "Every cushion in the same fabric (and direction) is laid out together on a 54\" roll, with one spare plate and the bias cording block, the same as the Fabric Yardage tool."
+    "fabricHelpLayout": "Every cushion in the same fabric (and direction) is laid out together on a 54\" roll, with one spare plate and the bias cording block, the same as the Fabric Yardage tool.",
+    "fromEstimate": "From the estimate: check zipper style, boxing deduction and foam before printing.",
+    "reviewed": "Reviewed",
+    "fromEstimateTop": "These cushions came from the estimate. Review each one (zipper, boxing deduction, foam) before printing the cut list.",
+    "repeat": "Pattern repeat",
+    "repeatHelp": "Leave blank for a solid fabric",
+    "repeatPlain": "Solid",
+    "patternCheck": "Patterned layouts are a starting point: have the cutter check motif placement before cutting."
   },
   "leafBag": {
     "intro": "Enter each job's finished bag size. The cuts update as you type.",
@@ -648,7 +655,7 @@
     "total": "Total",
     "fabric": "Fabric",
     "clearConfirm": "Clear every cushion and start over?",
-    "withBack": "Matching Back Cushion (Same Length, Same Line On The Quote)",
+    "withBack": "Matching Back Or Wedge Cushion (Same Length, Same Line On The Quote)",
     "backHeight": "Back Height",
     "backThickness": "Back Thickness",
     "backInsert": "Back Insert",
@@ -740,7 +747,7 @@
     "depth": "Depth / Height",
     "depthHelp": "Seat depth, or back height",
     "thickness": "Thickness",
-    "part": "Seat Or Back",
+    "part": "Seat, Back Or Wedge",
     "priceEach": "Price Each",
     "cushionN": "Cushion {{n}}",
     "fRepeat": "{{part}} Pattern Repeat",
@@ -765,7 +772,13 @@
     "pickVelcro": "Velcro ({{rows}} Row, {{ft}} Ft)",
     "velcroHelp": "Runs the length of each cushion, rounded to the nearest foot.",
     "designer": "Designer",
-    "designerHelp": "Shown on every Estimate Rocket line: \"According To (Designer) Design Specifications\". Leave blank for \"According To Design Specifications\"."
+    "designerHelp": "Shown on every Estimate Rocket line: \"According To (Designer) Design Specifications\". Leave blank for \"According To Design Specifications\".",
+    "wedge": "Wedge",
+    "wedgeTop": "Top Thickness",
+    "wedgeTopHelp": "Wedge: the thin end at the top (Thickness is the thick end at the bottom)",
+    "estimateOnly": "Estimate only. The cut list is made in Cushion Cut Dimensions after the project manager reviews it.",
+    "sendToCut": "Send to Cushion Cut",
+    "sendToCutConfirm": "This replaces the cushions in Cushion Cut Dimensions on this device. Continue?"
   },
   "fabricYardage": {
     "intro": "Add the cushions, or bring them in from Cushion Cut Dimensions. Every piece is laid out on the roll and the yardage updates as you type.",

@@ -55,6 +55,8 @@ import {
   type FabricPlan,
 } from '../../lib/calculators/fabricNesting'
 import { RollDiagram } from '../../components/FabricRollDiagram'
+import { PlywoodSheets } from '../../components/PlywoodSheets'
+import { planPlywood } from '../../lib/calculators/plywoodNesting'
 
 type Shape = 'box' | 'wedge' | 'board'
 
@@ -76,6 +78,11 @@ type Row = {
   topDepth: string
   lengthDeduction: number
   cording: boolean
+  /** Pattern repeat of the fabric, inches; empty = plain. */
+  repeat: string
+  halfDrop: boolean
+  /** Sent over from the cushion estimate and not reviewed yet. */
+  fromEstimate: boolean
 }
 type Draft = { job: WorkOrderJob; rows: Row[] }
 
@@ -98,6 +105,9 @@ const blank = (): Row => ({
   topDepth: '',
   lengthDeduction: DEFAULT_LENGTH_DEDUCTION,
   cording: true,
+  repeat: '',
+  halfDrop: false,
+  fromEstimate: false,
 })
 const blankJob = (): WorkOrderJob => ({ client: '', workOrder: '', sidemark: '' })
 
@@ -324,12 +334,14 @@ export default function CushionCut() {
   // Fabric: every cushion in the same fabric and direction laid out together on one 54" roll,
   // the same way the Fabric Yardage tool does it (one spare plate, bias cording block).
   const fabricPlans = useMemo(() => {
-    const groups = new Map<string, { fabric: string; direction: FabricDirection; names: string[]; idx: number[] }>()
+    const groups = new Map<string, { fabric: string; direction: FabricDirection; repeat: number; halfDrop: boolean; names: string[]; idx: number[] }>()
     rows.forEach((r, i) => {
       if (!results[i]) return
       const fabric = r.fabric.trim()
-      const key = fabric ? `${fabric.toLowerCase()}|${r.direction}` : `#${i}`
-      const g = groups.get(key) ?? { fabric, direction: r.direction, names: [], idx: [] }
+      const repeat = parseInches(r.repeat) ?? 0
+      const halfDrop = repeat > 0 && r.halfDrop
+      const key = fabric ? JSON.stringify([fabric.toLowerCase(), r.direction, repeat, halfDrop]) : `#${i}`
+      const g = groups.get(key) ?? { fabric, direction: r.direction, repeat, halfDrop, names: [], idx: [] }
       g.names.push(r.label.trim() || t('cushionCut.cushionN', { n: i + 1 }))
       g.idx.push(i)
       groups.set(key, g)
@@ -349,10 +361,26 @@ export default function CushionCut() {
           together: false,
           extra: DEFAULT_EXTRA,
           oneWay: false,
+          pattern: g.repeat > 0 ? { vertical: g.repeat, horizontal: g.repeat, halfDrop: g.halfDrop } : null,
         },
       ),
     }))
   }, [rows, results, t])
+
+  // Upholstered to plywood: every board nested onto full 4 × 8 sheets, the same as the estimate.
+  const plywood = useMemo(
+    () =>
+      planPlywood(
+        rows.flatMap((r, i) => {
+          const c = results[i]
+          return c && c.kind === 'board'
+            ? [{ name: r.label.trim() || t('cushionCut.cushionN', { n: i + 1 }), qty: c.board.qty, length: c.board.width, depth: c.board.depth }]
+            : []
+        }),
+      ),
+    [rows, results, t],
+  )
+  const fromEstimate = rows.some((r) => r.fromEstimate)
   const fabricYards = fabricPlans.reduce((n, f) => n + f.plan.orderYards, 0)
 
   return (
@@ -368,6 +396,7 @@ export default function CushionCut() {
       <Typography.Paragraph type="secondary">{t('cushionCut.intro')}</Typography.Paragraph>
 
       <Alert type="info" showIcon title={t('cushionCut.ruleTitle')} description={t('cushionCut.rule')} style={{ marginBottom: 16 }} />
+      {fromEstimate && <Alert type="warning" showIcon title={t('cushionCut.fromEstimateTop')} style={{ marginBottom: 16 }} />}
 
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         <Card title={t('cushionCut.jobTitle')} extra={<Typography.Text type="secondary">{t('cushionCut.optional')}</Typography.Text>}>
@@ -390,6 +419,7 @@ export default function CushionCut() {
           return (
             <Card
               key={r.id}
+              style={r.fromEstimate ? { borderColor: '#faad14' } : undefined}
               title={
                 <Space size={8} wrap>
                   {r.label.trim() || t('cushionCut.cushionN', { n: i + 1 })}
@@ -410,6 +440,19 @@ export default function CushionCut() {
                 )
               }
             >
+              {r.fromEstimate && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  style={{ marginBottom: 16 }}
+                  title={t('cushionCut.fromEstimate')}
+                  action={
+                    <Button size="small" onClick={() => update(r.id, { fromEstimate: false })}>
+                      {t('cushionCut.reviewed')}
+                    </Button>
+                  }
+                />
+              )}
               <Form layout="vertical" component="div">
                 <Row gutter={12}>
                   <Col xs={24}>
@@ -507,6 +550,31 @@ export default function CushionCut() {
                           </Checkbox>
                         ))}
                       </Space>
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={16}>
+                    <Form.Item label={t('cushionCut.repeat')} htmlFor={`rep-${r.id}`} extra={t('cushionCut.repeatHelp')} style={{ marginBottom: 20 }}>
+                      <Space.Compact style={{ width: '100%' }}>
+                        <Input
+                          id={`rep-${r.id}`}
+                          size="large"
+                          allowClear
+                          inputMode="decimal"
+                          value={r.repeat}
+                          onChange={(e) => update(r.id, { repeat: e.target.value })}
+                          placeholder={t('cushionCut.repeatPlain')}
+                          suffix={t('calc.in')}
+                          status={r.repeat.trim() !== '' && parseInches(r.repeat) === null ? 'error' : undefined}
+                        />
+                        <Select
+                          size="large"
+                          style={{ width: 150 }}
+                          disabled={!(parseInches(r.repeat) ?? 0)}
+                          value={r.halfDrop ? 'halfDrop' : 'straight'}
+                          onChange={(v) => update(r.id, { halfDrop: v === 'halfDrop' })}
+                          options={(['straight', 'halfDrop'] as const).map((m) => ({ value: m, label: t(`fabricYardage.match_${m}`) }))}
+                        />
+                      </Space.Compact>
                     </Form.Item>
                   </Col>
                   {r.shape === 'board' ? (
@@ -689,6 +757,7 @@ export default function CushionCut() {
                       </Typography.Text>
                     </div>
                   )}
+                  {f.plan.offCenter > 0 && <Alert type="warning" showIcon style={{ margin: '6px 0' }} title={t('fabricYardage.offCenter', { count: f.plan.offCenter })} />}
                   <RollDiagram
                     plan={f.plan}
                     cushionIndex={(c) => Math.max(0, f.names.indexOf(c))}
@@ -701,8 +770,15 @@ export default function CushionCut() {
                 </div>
               ))}
             </Space>
+            {fabricPlans.some((f) => f.plan.pattern) && (
+              <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
+                {t('fabricYardage.motifLegend')} {t('cushionCut.patternCheck')}
+              </Typography.Paragraph>
+            )}
           </Card>
         )}
+
+        {(plywood.pieces > 0 || plywood.tooBig.length > 0) && <PlywoodSheets plan={plywood} />}
 
         <Space wrap className="no-print">
           <Button type="primary" size="large" icon={<FilePdfOutlined />} onClick={downloadPdf} loading={pdfBusy} disabled={!done.length}>
