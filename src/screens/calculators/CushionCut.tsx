@@ -213,7 +213,7 @@ function CutsTable({ cuts }: { cuts: AnyCuts }) {
           ...(cuts.bottomPlates
             ? [
                 { key: 'plate', piece: t('cushionCut.topPlate'), qty: cuts.plate.qty, size: `${f(cuts.plate.width)} × ${f(cuts.plate.depth)}` },
-                { key: 'bottom', piece: t('cushionCut.bottomHalves'), qty: cuts.bottomPlates.qty, size: `${f(cuts.bottomPlates.width)} × ${f(cuts.bottomPlates.depth)}` },
+                { key: 'bottom', piece: t('cushionCut.bottomHalves'), qty: cuts.bottomPlates.qty, size: t('cushionCut.calcPlateWithZipper') },
               ]
             : [{ key: 'plate', piece: t('cushionCut.plate'), qty: cuts.plate.qty, size: `${f(cuts.plate.width)} × ${f(cuts.plate.depth)}` }]),
           ...boxingRows(t('cushionCut.boxing')),

@@ -609,9 +609,10 @@
     "boxingPart_sides": "Boxing, sides",
     "boxingPart_frontBack": "Boxing, front & back",
     "bottom": "On the bottom",
-    "bottomHelp": "Zipper across the middle of the bottom plate, side to side. The top plate is whole, the bottom plate is cut in two halves (½\" outside edge, ¾\" on the zipper side), and the boxing is one strip all the way around.",
+    "bottomHelp": "Zipper in the bottom plate. Top plate as usual; the boxing is the full perimeter plus ½\" + ½\" for its one seam. Calculate the bottom plate with the zipper.",
     "topPlate": "Top plate",
-    "bottomHalves": "Bottom plate halves"
+    "bottomHalves": "Bottom plate (with zipper)",
+    "calcPlateWithZipper": "Calculate plate with zipper"
   },
   "leafBag": {
     "intro": "Enter each job's finished bag size. The cuts update as you type.",

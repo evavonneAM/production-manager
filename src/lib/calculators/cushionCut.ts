@@ -31,7 +31,11 @@ export type CushionCuts = {
   finishedHeight: number
   deduction: number
   plate: { qty: number; width: number; depth: number }
-  /** Zipper on the bottom: the bottom plate is cut in two halves with the zipper between them (top plates are then `plate`). */
+  /**
+   * Zipper on the bottom: the bottom plate with the zipper in it. Its cut isn't set yet (the
+   * workroom will say), so the cut list says "calculate plate with zipper"; the size here is a
+   * whole plate, only so the fabric layout doesn't come up short.
+   */
   bottomPlates?: { qty: number; width: number; depth: number }
   boxing: { qty: number; x: number; z: number }
   /** Boxing seamed at the front corners (needs a manager's OK): front piece and two side pieces, instead of `boxing`. */
@@ -103,9 +107,9 @@ function cushionCutsOnePiece({ qty, front, sides, height, style, heightDeduction
   const cording = hasCording ? (c + d) * 2 * 2 * qty : 0
   const zipZ = e / 2 + 1.25
   if (style === 'bottom') {
-    // Zipper on the bottom, side to side across the middle of the bottom plate: the top plate
-    // is whole, the bottom plate is two halves (½" on the outside edge, ¾" on the zipper side),
-    // and the boxing is one strip all the way round (½" each end for its one seam).
+    // Zipper on the bottom: the top plate as usual, the boxing the full perimeter plus the
+    // allowance for its one seam. The bottom plate with the zipper is worked out by the
+    // workroom for now; a whole plate stands in for it in the fabric layout.
     return {
       kind: 'box',
       finishedWidth: c,
@@ -113,7 +117,7 @@ function cushionCutsOnePiece({ qty, front, sides, height, style, heightDeduction
       finishedHeight: e,
       deduction,
       plate: { qty, width: c + 1, depth: d + 1 },
-      bottomPlates: { qty: qty * 2, width: c + 1, depth: d / 2 + 1.25 },
+      bottomPlates: { qty, width: c + 1, depth: d + 1 },
       boxing: { qty, x: 2 * c + 2 * d + 1, z: e + 1 },
       zipper: { qty: 0, x: 0, z: 0 },
       cording,

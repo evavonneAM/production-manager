@@ -419,7 +419,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
           ...(k.bottomPlates
             ? ([
                 ['Top plate', String(k.plate.qty), `${f(k.plate.width)} x ${f(k.plate.depth)}`],
-                ['Bottom halves', String(k.bottomPlates.qty), `${f(k.bottomPlates.width)} x ${f(k.bottomPlates.depth)}`],
+                ['Bottom plate', String(k.bottomPlates.qty), 'Calculate plate with zipper'],
               ] as [string, string, string][])
             : ([['Plates (W x D)', String(k.plate.qty), `${f(k.plate.width)} x ${f(k.plate.depth)}`]] as [string, string, string][])),
           ...boxingRows(k, 'Boxing (X x Z)'),

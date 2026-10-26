@@ -608,9 +608,10 @@
     "boxingPart_sides": "Costado, laterales",
     "boxingPart_frontBack": "Costado, frente y atrás",
     "bottom": "Abajo",
-    "bottomHelp": "Cierre por el centro de la tapa de abajo, de lado a lado. La tapa de arriba va entera, la de abajo en dos mitades (½\" en la orilla, ¾\" del lado del cierre), y el costado es una sola tira alrededor.",
+    "bottomHelp": "Cierre en la tapa de abajo. La tapa de arriba como siempre; el costado es el perímetro completo más ½\" + ½\" para su única costura. Calcula la tapa de abajo con el cierre.",
     "topPlate": "Tapa de arriba",
-    "bottomHalves": "Mitades de la tapa de abajo"
+    "bottomHalves": "Tapa de abajo (con cierre)",
+    "calcPlateWithZipper": "Calcular la tapa con el cierre"
   },
   "leafBag": {
     "intro": "Ingresa la medida terminada de la bolsa de cada trabajo. Los cortes se actualizan mientras escribes.",
