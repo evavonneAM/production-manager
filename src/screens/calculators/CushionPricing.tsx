@@ -99,6 +99,7 @@ type Section = { length: number; qty: number; d: number; h: number }
 type OldRow = Partial<Row> & { seatD?: string; seatH?: string; ibD?: string; ibH?: string; erSeatInsert?: string; erBackInsert?: string }
 
 const DRAFT_KEY = 'pm-calc-cushion-pricing'
+const DESIGNER_KEY = 'pm-calc-cushion-pricing-designer'
 let nextId = 1
 const blank = (patch: Partial<Row> = {}): Row => ({
   id: nextId++,
@@ -484,7 +485,7 @@ function Converters() {
 }
 
 /** Estimate Rocket text for one cushion line (with its matching back when it has one). */
-function erTextFor(r: Row, s: Section, more: { r: Row; s: Section }[] = []): string {
+function erTextFor(r: Row, s: Section, more: { r: Row; s: Section }[] = [], designer = ''): string {
   const b = more.length ? null : toBackSection(r)
   const m = mainPicks(r)
   const side = r.part === 'back' ? 'back' : 'seat'
@@ -500,6 +501,8 @@ function erTextFor(r: Row, s: Section, more: { r: Row; s: Section }[] = []): str
   const welt = (style: string, f: string) => (isWelted(style) ? f : '')
   return estimateRocketText({
     qty: count,
+    designer,
+    velcroRows: r.velcroRows,
     sizes: more.length
       ? all.map((x) => ({ qty: x.s.qty, width: formatInches(x.s.length), depth: formatInches(x.s.d), height: formatInches(x.s.h), confirmed: x.r.erConfirmed }))
       : undefined,
@@ -544,6 +547,20 @@ export default function CushionPricing() {
   const { t } = useTranslation()
   const [rows, setRows] = useState<Row[]>(loadDraft)
   const [paste, setPaste] = useState('')
+  const [designer, setDesigner] = useState(() => {
+    try {
+      return localStorage.getItem(DESIGNER_KEY) ?? ''
+    } catch {
+      return ''
+    }
+  })
+  useEffect(() => {
+    try {
+      localStorage.setItem(DESIGNER_KEY, designer)
+    } catch {
+      // Draft saving is a convenience only.
+    }
+  }, [designer])
   const [msg, msgCtx] = message.useMessage()
 
   useEffect(() => {
@@ -571,7 +588,7 @@ export default function CushionPricing() {
   }, [rows, sections])
   const erTextForGroup = (g: { members: number[] }) => {
     const [first, ...rest] = g.members.map((i) => ({ r: effRows[i], s: sections[i]! }))
-    return erTextFor(first.r, first.s, rest)
+    return erTextFor(first.r, first.s, rest, designer)
   }
   const optionLabel = (id: string) => (id === 'none' ? t('cushionPricing.none') : t(`cushionPricing.opt_${id}`))
   const insertLabel = (id: string) => (id === 'tbd' ? t('cushionPricing.insertTbd') : id === 'existing' ? t('cushionPricing.insertExisting') : optionLabel(id))
@@ -947,6 +964,14 @@ export default function CushionPricing() {
             },
           ]}
         />
+
+        <Card>
+          <Form layout="vertical" component="div">
+            <Form.Item label={t('cushionPricing.designer')} htmlFor="designer" extra={t('cushionPricing.designerHelp')} style={{ marginBottom: 0 }}>
+              <Input id="designer" size="large" allowClear value={designer} onChange={(e) => setDesigner(e.target.value)} placeholder="Axiom Custom" />
+            </Form.Item>
+          </Form>
+        </Card>
 
         {rows.map((r, i) => {
           const s = sections[i]

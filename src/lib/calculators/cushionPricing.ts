@@ -136,6 +136,10 @@ export type EstimateRocketInput = EstimateRocketPart & {
   plan: 'sewn' | 'plywood'
   /** Several cushions on one line (same style, fill and fabric): one Dimensions entry each. */
   sizes?: { qty: number; width: string; depth: string; height: string; confirmed: boolean }[]
+  /** Designer whose specifications these are; empty = "According To Design Specifications". */
+  designer?: string
+  /** Rows of Velcro on the base (0 = none). */
+  velcroRows?: number
   /** A matching back cushion on the same line (seat + back set). */
   back?: EstimateRocketPart & { depth: string; height: string }
 }
@@ -167,19 +171,20 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     `* **${label}:** QTY ${e.qty} @ ${e.width}W x ${d}D x ${h}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`
   return [
     '____',
-    '<center>_According To Design Specifications_</center>',
+    `<center>_According To ${e.designer?.trim() ? `${e.designer.trim()} ` : ''}Design Specifications_</center>`,
     '____',
     '#### Plan:',
     e.plan === 'plywood' ? '* **Custom Upholstered To Plywood**' : '* **Custom Sewn**',
     ...(e.back
       ? [dims('Seat Dimensions', e.depth, e.height), dims('Back Dimensions', e.back.depth, e.back.height)]
       : e.sizes?.length
-        ? ['* **Dimensions:** ', ...e.sizes.map((z) => ` *QTY ${z.qty} @ ${z.width}W x ${z.depth}D x ${z.height}H - ${z.confirmed ? 'Confirmed' : 'Not Confirmed'}`)]
+        ? ['* **Dimensions:** ', ...e.sizes.map((z) => ` * QTY ${z.qty} @ ${z.width}W x ${z.depth}D x ${z.height}H - ${z.confirmed ? 'Confirmed' : 'Not Confirmed'}`)]
         : [dims('Dimensions', e.depth, e.height)]),
     '',
     '#### Style:',
     ...(e.back ? [`* **Seat Sewing Style:** ${e.sewingStyle}`, `* **Back Sewing Style:** ${e.back.sewingStyle}`] : [`* **Sewing Style:** ${e.sewingStyle}`]),
     '* **Zipper:** Standard',
+    ...(e.velcroRows ? [`* **Modifications:** ${e.velcroRows === 2 ? 'Two Rows' : 'One Row'} 2" Adhesive Backed Black Velcro Attached to Base`] : []),
     '',
     '#### Fill:',
     `* **${e.back ? 'Seat Insert' : e.insertLabel}:** ${insertName(e.insert, e.foamType)}`,
