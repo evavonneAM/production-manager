@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Alert,
@@ -21,12 +21,12 @@ import {
   Typography,
   message,
 } from 'antd'
-import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, FilePdfOutlined, PlusOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, ExportOutlined, PlusOutlined } from '@ant-design/icons'
 import { formatInches, parseInches } from '../../lib/calculators/inches'
 import { FOAM_TYPES } from '../../lib/foamTypes'
-import { SHEET_L, SHEET_PRICE, SHEET_W, fitsSheet, planPlywood, type Board, type Sheet } from '../../lib/calculators/plywoodNesting'
+import { SHEET_PRICE, fitsSheet, planPlywood, type Board } from '../../lib/calculators/plywoodNesting'
 import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, slashStyle, type PriceOption } from '../../lib/calculators/cushionPricing'
-import { DEFAULT_HEIGHT_DEDUCTION, cushionCuts } from '../../lib/calculators/cushionCut'
+import { BOARD_INSET, DEFAULT_HEIGHT_DEDUCTION, DEFAULT_LENGTH_DEDUCTION, boardCuts, cushionCuts, wedgeCuts } from '../../lib/calculators/cushionCut'
 import {
   DEFAULT_END_ALLOWANCE,
   DEFAULT_EXTRA,
@@ -41,6 +41,7 @@ import {
   type FabricPlan,
 } from '../../lib/calculators/fabricNesting'
 import { RollDiagram } from '../../components/FabricRollDiagram'
+import { PlywoodSheets } from '../../components/PlywoodSheets'
 
 type Row = {
   id: number
@@ -51,8 +52,10 @@ type Row = {
   /** Depth (seat) or height (back). */
   depth: string
   thickness: string
-  /** Seat or back cushion — only changes the Estimate Rocket wording. */
-  part: 'seat' | 'back'
+  /** Seat, back or wedge cushion. Like a back, a wedge's depth is its height and its thickness is the thick (bottom) end; wedgeTop is the thin end. */
+  part: 'seat' | 'back' | 'wedge'
+  /** Wedge only: the thin (top) end, inches. */
+  wedgeTop: string
   labor: string
   insert: string
   /** Foam type for inserts with foam; empty = not picked yet. */
@@ -61,6 +64,10 @@ type Row = {
   plan: 'sewn' | 'plywood'
   /** Seat with a matching back cushion on the same line (same length). */
   withBack: boolean
+  /** The matching cushion is a plain back or a wedge. */
+  backKind: 'back' | 'wedge'
+  /** Matching wedge only: its thin (top) end. */
+  backTop: string
   backDepth: string
   backThickness: string
   backLabor: string
@@ -93,12 +100,15 @@ type Row = {
   /** Rows of Velcro (0 = none), the length of the cushion. */
   velcroRows: 0 | 1 | 2
 }
-type Section = { length: number; qty: number; d: number; h: number }
+/** A cushion's sizes. `top` is set for a wedge: `d` is then its height, `h` its thick (bottom) end and `top` its thin end. */
+type Section = { length: number; qty: number; d: number; h: number; top?: number }
 
 /** Older drafts had a seat and an inside back on one card. */
 type OldRow = Partial<Row> & { seatD?: string; seatH?: string; ibD?: string; ibH?: string; erSeatInsert?: string; erBackInsert?: string }
 
 const DRAFT_KEY = 'pm-calc-cushion-pricing'
+/** Cushion Cut Dimensions keeps its cushions here; Send to Cushion Cut writes them. */
+const CUT_DRAFT_KEY = 'pm-calc-cushion-cut'
 const DESIGNER_KEY = 'pm-calc-cushion-pricing-designer'
 let nextId = 1
 const blank = (patch: Partial<Row> = {}): Row => ({
@@ -109,11 +119,14 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   depth: '',
   thickness: '',
   part: 'seat',
+  wedgeTop: '',
   labor: 'cleanSeam',
   insert: 'foam',
   foamType: '',
   plan: 'sewn',
   withBack: false,
+  backKind: 'back',
+  backTop: '',
   backDepth: '',
   backThickness: '',
   backLabor: 'cleanSeam',
@@ -224,6 +237,11 @@ function toSection(r: Row): Section | null {
   const d = parseInches(r.depth)
   const h = parseInches(r.thickness)
   if (length === null || d === null || h === null || length <= 0 || d <= 0 || h <= 0) return null
+  if (r.part === 'wedge') {
+    const top = parseInches(r.wedgeTop)
+    if (top === null || top <= 0 || top > h || length <= DEFAULT_LENGTH_DEDUCTION) return null
+    return { length, qty: Math.max(1, r.qty || 1), d, h, top }
+  }
   return { length, qty: Math.max(1, r.qty || 1), d, h }
 }
 
@@ -246,8 +264,8 @@ function effectiveRow(rows: Row[], i: number): Row {
   const r = rows[i]
   const j = joinedAt(rows, i) ? leadOf(rows, i) : null
   if (j === null) return r
-  const { id, name, qty, length, depth, thickness, erConfirmed, joinAbove } = r
-  return { ...rows[j], id, name, qty, length, depth, thickness, erConfirmed, joinAbove }
+  const { id, name, qty, length, depth, thickness, wedgeTop, erConfirmed, joinAbove } = r
+  return { ...rows[j], id, name, qty, length, depth, thickness, wedgeTop, erConfirmed, joinAbove }
 }
 
 /**
@@ -255,7 +273,7 @@ function effectiveRow(rows: Row[], i: number): Row {
  * fields, so its price and Estimate Rocket text must read those too.
  */
 function mainPicks(r: Row) {
-  return r.part === 'back'
+  return r.part !== 'seat'
     ? { labor: r.backLabor, style: r.backStyle, insert: r.backInsert, foamType: r.backFoamType, fabric: r.backFabric, direction: r.backDirection, center: r.backCenter, weltFabric: r.backWeltFabric }
     : { labor: r.labor, style: r.erStyle, insert: r.insert, foamType: r.foamType, fabric: r.erFabric, direction: r.erDirection, center: r.erCenter, weltFabric: r.erWeltFabric }
 }
@@ -263,7 +281,7 @@ function mainPicks(r: Row) {
 /** The matching back cushion of a seat + back set, or null. */
 function toBackSection(r: Row): Section | null {
   if (r.part !== 'seat' || !r.withBack) return null
-  return toSection({ ...r, depth: r.backDepth, thickness: r.backThickness })
+  return toSection({ ...r, part: r.backKind === 'wedge' ? 'wedge' : 'back', depth: r.backDepth, thickness: r.backThickness, wedgeTop: r.backTop })
 }
 
 /**
@@ -273,13 +291,8 @@ function toBackSection(r: Row): Section | null {
  * get cording around the top and the bottom edge.
  */
 function boardPieces(x: Section, welted: boolean): { pieces: CutPiece[]; cording: number } {
-  const around = 2 * x.length + 2 * x.d + 1
-  const pieces: CutPiece[] = []
-  for (let i = 0; i < x.qty; i++) {
-    pieces.push({ name: 'plate', cushion: '', across: x.length + 1, along: x.d + 1 })
-    pieces.push({ name: 'boxing', cushion: '', across: around, along: x.h + 2.5 })
-  }
-  return { pieces, cording: welted ? 2 * around * x.qty : 0 }
+  const cuts = boardCuts({ qty: x.qty, width: x.length, depth: x.d, height: x.h, cording: welted })
+  return { pieces: piecesFor(cuts, ''), cording: cuts.cording }
 }
 
 /**
@@ -300,7 +313,12 @@ function lineInputs(r: Row, x: Section, side: 'seat' | 'back'): { pieces: CutPie
   const halfDrop = back ? r.backHalfDrop : r.erHalfDrop
   let pieces: CutPiece[]
   let cording: number
-  if (r.plan === 'plywood') ({ pieces, cording } = boardPieces(x, isWelted(style)))
+  if (x.top !== undefined) {
+    // Wedge: same cuts as Cushion Cut (one main panel round the profile, two sides).
+    const cuts = wedgeCuts({ qty: x.qty, length: x.length, height: x.d, bottom: x.h, top: x.top, lengthDeduction: DEFAULT_LENGTH_DEDUCTION, cording: isWelted(style) })
+    pieces = piecesFor(cuts, '')
+    cording = cuts.cording
+  } else if (r.plan === 'plywood') ({ pieces, cording } = boardPieces(x, isWelted(style)))
   else {
     const cuts = cushionCuts({
       qty: x.qty,
@@ -379,80 +397,6 @@ function sectionAddOns(r: Row, labor: number, welted: boolean): number {
   return (welted ? ADD_ONS.welting : 0) + (r.addTick ? ADD_ONS.outdoorTick : 0) + (r.com === 'com15' ? labor * (ADD_ONS.com15 - 1) : 0)
 }
 
-/** Plywood sheets for the job: count, cost and a layout of each 4 × 8 sheet. */
-function PlywoodSheets({ plan }: { plan: ReturnType<typeof planPlywood> }) {
-  const { t } = useTranslation()
-  return (
-    <Card
-      title={t('cushionPricing.plywoodTitle')}
-      extra={
-        plan.sheets.length > 0 && (
-          <Button icon={<FilePdfOutlined />} onClick={() => void import('../../lib/calculators/plywoodPdf').then((m) => m.downloadPlywoodPdf(plan))}>
-            {t('cushionPricing.plywoodPdf')}
-          </Button>
-        )
-      }
-    >
-      <Typography.Paragraph style={{ marginBottom: 8 }}>
-        {t('cushionPricing.plywoodSummary', { sheets: plan.sheets.length, pieces: plan.pieces, price: money(SHEET_PRICE), cost: money(plan.cost) })}
-      </Typography.Paragraph>
-      {plan.tooBig.length > 0 && (
-        <Alert
-          type="warning"
-          showIcon
-          style={{ marginBottom: 8 }}
-          title={t('cushionPricing.plywoodTooBig')}
-          description={
-            <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {plan.tooBig.map((x) => (
-                <li key={x.name}>
-                  {x.name}: {formatInches(x.length)} × {formatInches(x.depth)}
-                </li>
-              ))}
-            </ul>
-          }
-        />
-      )}
-      <Row gutter={[12, 12]}>
-        {plan.sheets.map((sh, i) => (
-          <Col xs={12} sm={6} key={i}>
-            <SheetDiagram sheet={sh} n={i + 1} of={plan.sheets.length} />
-          </Col>
-        ))}
-      </Row>
-    </Card>
-  )
-}
-
-function SheetDiagram({ sheet, n, of }: { sheet: Sheet; n: number; of: number }) {
-  const { t } = useTranslation()
-  return (
-    <div>
-      <Typography.Text strong style={{ fontSize: 12 }}>
-        {t('cushionPricing.sheetN', { n, of, pct: Math.round(sheet.used * 100) })}
-      </Typography.Text>
-      <svg viewBox={`-1 -1 ${SHEET_W + 2} ${SHEET_L + 2}`} style={{ width: '100%', maxHeight: 220, display: 'block' }} role="img" aria-label={`Sheet ${n}`}>
-        <rect x={0} y={0} width={SHEET_W} height={SHEET_L} fill="#eef0f3" stroke="#555" strokeWidth={0.5} />
-        {sheet.pieces.map((p, k) => (
-          <g key={k}>
-            <rect x={p.x} y={p.y} width={p.w} height={p.h} fill="#d4e3f2" stroke="#1677ff" strokeWidth={0.5} />
-            <text
-              x={p.x + p.w / 2}
-              y={p.y + p.h / 2}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize={Math.max(2, Math.min(4, Math.min(p.w, p.h) / 4, Math.max(p.w, p.h) / 10))}
-              fill="#222"
-              transform={p.h > p.w ? `rotate(-90 ${p.x + p.w / 2} ${p.y + p.h / 2})` : undefined}
-            >
-              {formatInches(Math.max(p.w, p.h))} × {formatInches(Math.min(p.w, p.h))}
-            </text>
-          </g>
-        ))}
-      </svg>
-    </div>
-  )
-}
 
 /** Small feet → inches and inches → yards helpers from the original page. */
 function Converters() {
@@ -484,11 +428,14 @@ function Converters() {
   )
 }
 
+/** Thickness for the estimate: a wedge reads bottom/top. */
+const thickText = (x: Section) => (x.top !== undefined ? `${formatInches(x.h)}/${formatInches(x.top)}` : formatInches(x.h))
+
 /** Estimate Rocket text for one cushion line (with its matching back when it has one). */
 function erTextFor(r: Row, s: Section, more: { r: Row; s: Section }[] = [], designer = ''): string {
   const b = more.length ? null : toBackSection(r)
   const m = mainPicks(r)
-  const side = r.part === 'back' ? 'back' : 'seat'
+  const side = r.part !== 'seat' ? 'back' : 'seat'
   const all = [{ r, s }, ...more]
   const count = all.reduce((n, x) => n + x.s.qty, 0)
   let yardsTotal = lineYards(r, s, side)
@@ -504,13 +451,13 @@ function erTextFor(r: Row, s: Section, more: { r: Row; s: Section }[] = [], desi
     designer,
     velcroRows: r.velcroRows,
     sizes: more.length
-      ? all.map((x) => ({ qty: x.s.qty, width: formatInches(x.s.length), depth: formatInches(x.s.d), height: formatInches(x.s.h), confirmed: x.r.erConfirmed }))
+      ? all.map((x) => ({ qty: x.s.qty, width: formatInches(x.s.length), depth: formatInches(x.s.d), height: thickText(x.s), confirmed: x.r.erConfirmed }))
       : undefined,
     width: formatInches(s.length),
     depth: formatInches(s.d),
-    height: formatInches(s.h),
+    height: thickText(s),
     confirmed: r.erConfirmed,
-    insertLabel: r.part === 'back' ? 'Back Insert' : 'Seat Insert',
+    insertLabel: r.part !== 'seat' ? 'Back Insert' : 'Seat Insert',
     plan: r.plan,
     sewingStyle: m.style,
     insert: m.insert,
@@ -524,7 +471,7 @@ function erTextFor(r: Row, s: Section, more: { r: Row; s: Section }[] = [], desi
     back: b
       ? {
           depth: formatInches(b.d),
-          height: formatInches(b.h),
+          height: thickText(b),
           sewingStyle: r.backStyle,
           insert: r.backInsert,
           foamType: r.backFoamType,
@@ -574,6 +521,63 @@ export default function CushionPricing() {
   const update = (id: number, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)))
   const sections = useMemo(() => rows.map(toSection), [rows])
   const effRows = useMemo(() => rows.map((_, i) => effectiveRow(rows, i)), [rows])
+  const navigate = useNavigate()
+
+  /**
+   * Hand the job to Cushion Cut Dimensions: every cushion (seat + back/wedge sets split in two)
+   * with its sizes, quantity, fabric, direction, repeat, board or sewn, and cording from a
+   * welted style. Marked as from the estimate so the project manager reviews the production
+   * details (zipper, boxing deduction, foam) before printing the cut list.
+   */
+  const sendToCushionCut = () => {
+    const out: Record<string, unknown>[] = []
+    effRows.forEach((r, i) => {
+      const s = sections[i]
+      if (!s) return
+      const name = r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 })
+      const dir = (d: Row['erDirection']) => (d === 'tbd' ? 'none' : d)
+      const cut = (x: Section, label: string, wedge: boolean, picks: { style: string; fabric: string; direction: Row['erDirection'] }, repeat: string, halfDrop: boolean) => ({
+        label,
+        shape: wedge ? 'wedge' : r.plan === 'plywood' ? 'board' : 'box',
+        fabric: picks.fabric.trim(),
+        style: 'back',
+        direction: dir(picks.direction),
+        qty: x.qty,
+        // A wedge in the estimate is height (depth field) × thick end (thickness) / thin end.
+        front: formatInches(x.length),
+        sides: formatInches(wedge ? x.h : x.d),
+        height: formatInches(wedge ? x.d : x.h),
+        topDepth: x.top !== undefined ? formatInches(x.top) : '',
+        cording: isWelted(picks.style),
+        repeat,
+        halfDrop,
+        fromEstimate: true,
+      })
+      const m = mainPicks(r)
+      const mainSide = r.part === 'seat'
+      out.push(cut(s, name, s.top !== undefined, m, mainSide ? r.erRepeat : r.backRepeat, mainSide ? r.erHalfDrop : r.backHalfDrop))
+      const b = toBackSection(r)
+      if (b)
+        out.push(
+          cut(
+            b,
+            `${name} ${(b.top !== undefined ? t('cushionPricing.wedge') : t('cushionPricing.ib')).toLowerCase()}`,
+            b.top !== undefined,
+            { style: r.backStyle, fabric: r.backFabric, direction: r.backDirection },
+            r.backRepeat,
+            r.backHalfDrop,
+          ),
+        )
+    })
+    if (!out.length) return
+    try {
+      const saved = JSON.parse(localStorage.getItem(CUT_DRAFT_KEY) ?? 'null') as { job?: unknown } | null
+      localStorage.setItem(CUT_DRAFT_KEY, JSON.stringify({ job: saved && !Array.isArray(saved) ? saved.job : undefined, rows: out }))
+    } catch {
+      // Storage unavailable: nothing to hand over.
+    }
+    navigate('/tools/cushion-cut')
+  }
   // Estimate Rocket lines: a card and the cards joined under it.
   const erGroups = useMemo(() => {
     const groups: { lead: number; members: number[] }[] = []
@@ -625,7 +629,7 @@ export default function CushionPricing() {
       const addOns = seat.addOns + (back?.addOns ?? 0)
       const eachPrice = labor + insert + addOns
       // Seat and back are laid out separately: they can be different fabrics. Yards are for the whole line.
-      const seatPlan = linePlan(r, s, r.part === 'back' ? 'back' : 'seat')
+      const seatPlan = linePlan(r, s, r.part !== 'seat' ? 'back' : 'seat')
       const backPlan = b ? linePlan(r, b, 'back') : null
       const seatYards = seatPlan.orderYards
       const backYards = backPlan?.orderYards ?? 0
@@ -638,7 +642,7 @@ export default function CushionPricing() {
           seatPicks: seat.picks,
           backPicks: back?.picks ?? null,
 
-          partLabel: r.part === 'back' ? t('cushionPricing.ib') : t('cushionPricing.seat'),
+          partLabel: r.part === 'wedge' ? t('cushionPricing.wedge') : r.part !== 'seat' ? t('cushionPricing.ib') : t('cushionPricing.seat'),
           labor,
           insert,
           addOns,
@@ -650,7 +654,7 @@ export default function CushionPricing() {
           backYards,
           seatPlan,
           backPlan,
-          seatFabric: (r.part === 'back' ? r.backFabric : r.erFabric).trim(),
+          seatFabric: (r.part !== 'seat' ? r.backFabric : r.erFabric).trim(),
           backFabric: r.backFabric.trim(),
         },
       ]
@@ -658,12 +662,12 @@ export default function CushionPricing() {
     // Upholstered to plywood: every board for the job is nested onto full sheets, charged per sheet.
     const boards: Board[] = effRows.flatMap((r, i) => {
       const s = sections[i]
-      if (!s || r.plan !== 'plywood') return []
+      if (!s || r.plan !== 'plywood' || s.top !== undefined) return []
       const name = r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 })
       const b = toBackSection(r)
       return [
-        { name, qty: s.qty, length: s.length, depth: s.d },
-        ...(b ? [{ name: `${name} (${t('cushionPricing.ib').toLowerCase()})`, qty: b.qty, length: b.length, depth: b.d }] : []),
+        { name, qty: s.qty, length: s.length - 2 * BOARD_INSET, depth: s.d - 2 * BOARD_INSET },
+        ...(b && b.top === undefined ? [{ name: `${name} (${t('cushionPricing.ib').toLowerCase()})`, qty: b.qty, length: b.length - 2 * BOARD_INSET, depth: b.d - 2 * BOARD_INSET }] : []),
       ]
     })
     const plywood = planPlywood(boards)
@@ -679,7 +683,7 @@ export default function CushionPricing() {
         const { pieces, opts } = lineInputs(r, x, side)
         return { label, fabric: fabric.trim(), pieces: pieces.map((p) => ({ ...p, cushion: label })), opts, yards: cachedPlan(pieces, opts).orderYards }
       }
-      const mainSide = r.part === 'back' ? 'back' : 'seat'
+      const mainSide = r.part !== 'seat' ? 'back' : 'seat'
       return [
         mk(s, mainSide, mainSide === 'back' ? r.backFabric : r.erFabric, b ? `${name} ${t('cushionPricing.seat').toLowerCase()}` : name),
         ...(b ? [mk(b, 'back', r.backFabric, `${name} ${t('cushionPricing.ib').toLowerCase()}`)] : []),
@@ -978,7 +982,7 @@ export default function CushionPricing() {
           const joined = joinedAt(rows, i)
           const canJoin = i > 0 && !(r.part === 'seat' && r.withBack) && leadOf(rows, i) !== null
           const set = !joined && r.part === 'seat' && r.withBack
-          const seat = partFields(r, r.part)
+          const seat = partFields(r, r.part === 'seat' ? 'seat' : 'back')
           const back = set ? partFields(r, 'back') : null
           return (
             <Card
@@ -1020,6 +1024,7 @@ export default function CushionPricing() {
                         options={[
                           { value: 'seat', label: t('cushionPricing.seat') },
                           { value: 'back', label: t('cushionPricing.ib') },
+                          { value: 'wedge', label: t('cushionPricing.wedge') },
                         ]}
                       />
                     </Form.Item>
@@ -1075,6 +1080,17 @@ export default function CushionPricing() {
                   <Col xs={12} sm={8}>
                     <InchField id={`h-${r.id}`} label={t('cushionPricing.thickness')} value={r.thickness} onChange={(v) => update(r.id, { thickness: v })} />
                   </Col>
+                  {r.part === 'wedge' && (
+                    <Col xs={12} sm={{ span: 8, offset: 8 }}>
+                      <InchField
+                        id={`wt-${r.id}`}
+                        label={t('cushionPricing.wedgeTop')}
+                        help={t('cushionPricing.wedgeTopHelp')}
+                        value={r.wedgeTop}
+                        onChange={(v) => update(r.id, { wedgeTop: v })}
+                      />
+                    </Col>
+                  )}
                   {!joined && r.part === 'seat' && (
                     <Col xs={24}>
                       <Checkbox checked={r.withBack} onChange={(e) => update(r.id, { withBack: e.target.checked })} style={{ marginBottom: 12 }}>
@@ -1084,7 +1100,30 @@ export default function CushionPricing() {
                   )}
                   {set && (
                     <>
-                      <Col xs={12} sm={{ span: 8, offset: 8 }}>
+                      <Col xs={24}>
+                        <Segmented
+                          size="large"
+                          value={r.backKind}
+                          onChange={(v) => update(r.id, { backKind: v as Row['backKind'] })}
+                          options={[
+                            { value: 'back', label: t('cushionPricing.ib') },
+                            { value: 'wedge', label: t('cushionPricing.wedge') },
+                          ]}
+                          style={{ marginBottom: 12 }}
+                        />
+                      </Col>
+                      {r.backKind === 'wedge' && (
+                        <Col xs={12} sm={8}>
+                          <InchField
+                            id={`bt-${r.id}`}
+                            label={t('cushionPricing.wedgeTop')}
+                            help={t('cushionPricing.wedgeTopHelp')}
+                            value={r.backTop}
+                            onChange={(v) => update(r.id, { backTop: v })}
+                          />
+                        </Col>
+                      )}
+                      <Col xs={12} sm={r.backKind === 'wedge' ? 8 : { span: 8, offset: 8 }}>
                         <InchField
                           id={`bd-${r.id}`}
                           label={t('cushionPricing.backHeight')}
@@ -1329,6 +1368,19 @@ export default function CushionPricing() {
           <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 12, marginBottom: 0 }}>
             {t('cushionPricing.yardageHow')}
           </Typography.Paragraph>
+          <Alert type="info" showIcon style={{ marginTop: 12 }} title={t('cushionPricing.estimateOnly')} />
+          {quote.lines.length > 0 && (
+            <Popconfirm
+              title={t('cushionPricing.sendToCutConfirm')}
+              okText={t('cushionPricing.sendToCut')}
+              cancelText={t('common.cancel')}
+              onConfirm={sendToCushionCut}
+            >
+              <Button icon={<ExportOutlined />} size="large" style={{ marginTop: 12 }}>
+                {t('cushionPricing.sendToCut')}
+              </Button>
+            </Popconfirm>
+          )}
         </Card>
 
         {quote.lines.length > 0 && (

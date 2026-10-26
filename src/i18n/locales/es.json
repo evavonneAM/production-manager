@@ -571,7 +571,26 @@
     "wedgeSide": "Piezas laterales",
     "wedgeSideSize": "{{h}} de alto, {{top}} arriba, {{bottom}} abajo",
     "wedgeZipper": "Cierre (largo)",
-    "wedgeFoam": "Espuma (L × Al × abajo/arriba)"
+    "wedgeFoam": "Espuma (L × Al × abajo/arriba)",
+    "shape_board": "Sobre tabla",
+    "shape_boardHelp": "Tapizado sobre triplay: una tapa arriba, un costado que da la vuelta y se dobla bajo la tabla, sin cierre.",
+    "boardZipperHelp": "Sobre tabla: engrapado al triplay, sin cierre.",
+    "boardSizeHelp": "Medida terminada, sin descuento",
+    "boardHeightHelp": "Altura terminada (tabla + hule espuma)",
+    "boardFinishes": "Terminado {{size}} sobre triplay · sin descuento",
+    "boardPlate": "Tapa (An × Pr)",
+    "boardBoxing": "Costado, toda la vuelta (L × An)",
+    "boardBoard": "Tabla de triplay (⅛\" menos por lado)",
+    "fabricTitle": "Trazo de la tela",
+    "fabricYards": "{{n}} yd",
+    "fabricHelpLayout": "Todos los cojines de la misma tela (y dirección) se acomodan juntos en un rollo de 54\", con una tapa de repuesto y el bloque de sesgo, igual que la herramienta de Yardas de tela.",
+    "fromEstimate": "De la cotización: revisa el tipo de cierre, el descuento del costado y el hule espuma antes de imprimir.",
+    "reviewed": "Revisado",
+    "fromEstimateTop": "Estos cojines vienen de la cotización. Revisa cada uno (cierre, descuento del costado, hule espuma) antes de imprimir la lista de cortes.",
+    "repeat": "Repetición del diseño",
+    "repeatHelp": "Déjalo vacío para tela lisa",
+    "repeatPlain": "Lisa",
+    "patternCheck": "Los trazos con diseño son un punto de partida: que el cortador revise dónde caen los motivos antes de cortar."
   },
   "leafBag": {
     "intro": "Ingresa la medida terminada de la bolsa de cada trabajo. Los cortes se actualizan mientras escribes.",
@@ -635,7 +654,7 @@
     "total": "Total",
     "fabric": "Tela",
     "clearConfirm": "¿Borrar todos los cojines y empezar de nuevo?",
-    "withBack": "Cojín de respaldo a juego (mismo largo, misma línea en la cotización)",
+    "withBack": "Respaldo o cuña a juego (mismo largo, misma línea en la cotización)",
     "backHeight": "Alto del respaldo",
     "backThickness": "Grosor del respaldo",
     "backInsert": "Relleno del respaldo",
@@ -727,7 +746,7 @@
     "depth": "Fondo / alto",
     "depthHelp": "Fondo del asiento, o alto del respaldo",
     "thickness": "Grosor",
-    "part": "Asiento o respaldo",
+    "part": "Asiento, respaldo o cuña",
     "priceEach": "Precio c/u",
     "cushionN": "Cojín {{n}}",
     "fRepeat": "Repetición del diseño ({{part}})",
@@ -752,7 +771,13 @@
     "pickVelcro": "Velcro {{rows}} fila × {{ft}} pies",
     "velcroHelp": "Va a lo largo de cada cojín, redondeado al pie más cercano.",
     "designer": "Diseñador",
-    "designerHelp": "Aparece en cada línea de Estimate Rocket: \"According To (diseñador) Design Specifications\". Déjelo vacío si no hay diseñador."
+    "designerHelp": "Aparece en cada línea de Estimate Rocket: \"According To (diseñador) Design Specifications\". Déjelo vacío si no hay diseñador.",
+    "wedge": "Cuña",
+    "wedgeTop": "Grosor arriba",
+    "wedgeTopHelp": "Cuña: el extremo delgado de arriba (el grosor es el extremo grueso de abajo)",
+    "estimateOnly": "Solo para cotizar. La lista de cortes se hace en Medidas de corte de cojines después de que la revise el gerente de proyecto.",
+    "sendToCut": "Enviar a Medidas de corte",
+    "sendToCutConfirm": "Esto reemplaza los cojines en Medidas de corte de cojines en este dispositivo. ¿Continuar?"
   },
   "fabricYardage": {
     "intro": "Agrega los cojines o tráelos de Medidas de corte de cojines. Cada pieza se acomoda en el rollo y el yardaje se actualiza al escribir.",
@@ -878,7 +903,9 @@
     "offCenter_one": "{{count}} pieza no puede quedar centrada en un motivo a lo ancho del rollo y va descentrada. Consúltalo con el diseñador.",
     "offCenter_other": "{{count}} piezas no pueden quedar centradas en un motivo a lo ancho del rollo y van descentradas. Consúltalo con el diseñador.",
     "heldAtPlain": "Este diseño acomoda más apretado que el trazo de tela lisa, así que la cotización se queda en las yardas de tela lisa.",
-    "motifLegend": "Los puntos marcan el motivo en que se centra cada pieza."
+    "motifLegend": "Los puntos marcan el motivo en que se centra cada pieza.",
+    "board": "Tabla",
+    "boardHelp": "Sobre tabla: medidas terminadas, una tapa y un costado que se dobla bajo la tabla, sin cierre."
   },
   "upholstery": {
     "intro": "Sigue \"Cómo cotizar mano de obra de tapicería\": mano de obra base, cojines, espuma, yardaje, materiales y adicionales. La cotización de abajo se copia directo a Estimate Rocket.",
