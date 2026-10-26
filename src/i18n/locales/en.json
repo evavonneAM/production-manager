@@ -681,6 +681,7 @@
     "opt_cleanSeam": "Custom Sewn Clean Seam (Cover Only)",
     "opt_frenchCover": "French Mattress (Cover Only)",
     "opt_foam": "High Density/Resiliency Foam",
+    "opt_outdoorFoam": "Outdoor Foam",
     "opt_celesteSolid": "Solid Celeste",
     "opt_celesteEnv": "Celeste Envelope w/ Foam",
     "opt_wgSolid": "50/50 WG Down Solid",
@@ -741,7 +742,18 @@
     "separately": "{{n}} yd if cut separately",
     "howMany": "How Many",
     "dirUpTheRoll": "Up The Roll",
-    "dirRailroaded": "Railroaded"
+    "dirRailroaded": "Railroaded",
+    "joinAbove": "Add To The Estimate Rocket Line Above",
+    "joinHelp": "Tick this when this cushion has the same style, fill and fabric as the one above, so they share one line with every size listed.",
+    "joinedNote": "Same style, fill and fabric as {{name}}. Change them on that card.",
+    "velcro": "Velcro",
+    "velcroNone": "No Velcro",
+    "velcro1": "1 Row Velcro ({{price}}/Ft)",
+    "velcro2": "2 Rows Velcro ({{price}}/Ft)",
+    "pickVelcro": "Velcro ({{rows}} Row, {{ft}} Ft)",
+    "velcroHelp": "Runs the length of each cushion, rounded to the nearest foot.",
+    "designer": "Designer",
+    "designerHelp": "Shown on every Estimate Rocket line: \"According To (Designer) Design Specifications\". Leave blank for \"According To Design Specifications\"."
   },
   "fabricYardage": {
     "intro": "Add the cushions, or bring them in from Cushion Cut Dimensions. Every piece is laid out on the roll and the yardage updates as you type.",
