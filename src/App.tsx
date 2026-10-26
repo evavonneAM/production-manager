@@ -1,10 +1,11 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from './auth/AuthProvider'
 import { AppLayout } from './components/AppLayout'
 import { FullScreenLoader } from './components/FullScreenLoader'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AdminOnly } from './components/AdminOnly'
+import { canSeePage, homePath } from './lib/openPages'
 import Login from './screens/Login'
 import MyWork from './screens/MyWork'
 import Projects from './screens/Projects'
@@ -35,9 +36,12 @@ const WorkOrder = lazy(() => import('./screens/calculators/WorkOrder'))
 const page = (el: React.ReactNode) => <Suspense fallback={<FullScreenLoader />}>{el}</Suspense>
 
 function ProtectedLayout() {
-  const { session, loading } = useAuth()
+  const { session, profile, loading } = useAuth()
+  const location = useLocation()
   if (loading) return <FullScreenLoader />
   if (!session) return <Navigate to="/login" replace />
+  // Pages still being built are for testers only; everyone else goes to Tools.
+  if (!canSeePage(profile, location.pathname)) return <Navigate to={homePath(profile)} replace />
   return (
     <AppLayout>
       <Outlet />
@@ -46,7 +50,7 @@ function ProtectedLayout() {
 }
 
 export default function App() {
-  const { session, loading } = useAuth()
+  const { session, profile, loading } = useAuth()
 
   return (
     <Routes>
@@ -64,7 +68,7 @@ export default function App() {
       />
 
       <Route element={<ProtectedLayout />}>
-        <Route path="/" element={<Navigate to="/my-work" replace />} />
+        <Route path="/" element={<Navigate to={homePath(profile)} replace />} />
         <Route path="/my-work" element={<MyWork />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:projectId" element={<ProjectDetail />} />

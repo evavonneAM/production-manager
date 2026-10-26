@@ -679,7 +679,7 @@ export class Engine {
     if (this.units === 'imp') {
       const f = parseNum(feet)
       const i = parseNum(inches)
-      if (isNaN(f) || isNaN(i)) return 'Use numbers only, like 12 and 6 1/2.'
+      if (isNaN(f) || isNaN(i)) return 'Use a number of inches, like 150 1/2.'
       realFt = f + i / 12
     } else {
       const m = parseNum(meters)

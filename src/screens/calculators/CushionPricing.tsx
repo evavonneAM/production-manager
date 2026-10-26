@@ -25,7 +25,7 @@ import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, FilePdfOutlined, PlusO
 import { formatInches, parseInches } from '../../lib/calculators/inches'
 import { FOAM_TYPES } from '../../lib/foamTypes'
 import { SHEET_L, SHEET_PRICE, SHEET_W, fitsSheet, planPlywood, type Board, type Sheet } from '../../lib/calculators/plywoodNesting'
-import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, type PriceOption } from '../../lib/calculators/cushionPricing'
+import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, slashStyle, type PriceOption } from '../../lib/calculators/cushionPricing'
 import { DEFAULT_HEIGHT_DEDUCTION, boardCuts, cushionCuts } from '../../lib/calculators/cushionCut'
 import {
   DEFAULT_END_ALLOWANCE,
@@ -88,6 +88,10 @@ type Row = {
   // Add-ons folded into this cushion's price
   addTick: boolean
   com: 'none' | 'com15'
+  /** On the same Estimate Rocket line as the cushion above, sharing its style, fill and fabric. */
+  joinAbove: boolean
+  /** Rows of Velcro (0 = none), the length of the cushion. */
+  velcroRows: 0 | 1 | 2
 }
 type Section = { length: number; qty: number; d: number; h: number }
 
@@ -95,6 +99,7 @@ type Section = { length: number; qty: number; d: number; h: number }
 type OldRow = Partial<Row> & { seatD?: string; seatH?: string; ibD?: string; ibH?: string; erSeatInsert?: string; erBackInsert?: string }
 
 const DRAFT_KEY = 'pm-calc-cushion-pricing'
+const DESIGNER_KEY = 'pm-calc-cushion-pricing-designer'
 let nextId = 1
 const blank = (patch: Partial<Row> = {}): Row => ({
   id: nextId++,
@@ -132,6 +137,8 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   erWeltFabric: '',
   addTick: false,
   com: 'none',
+  joinAbove: false,
+  velcroRows: 0,
   ...patch,
 })
 
@@ -147,6 +154,8 @@ function loadDraft(): Row[] {
           if (old.backLabor === undefined) r.backLabor = r.labor
           if (old.backStyle === undefined) r.backStyle = r.erStyle
           if (r.com !== 'com15') r.com = 'none'
+          r.erStyle = slashStyle(r.erStyle)
+          r.backStyle = slashStyle(r.backStyle)
           // Labor used to include foam; now it is the cover only and foam is the insert.
           const cover = ({ customFoam: 'cleanSeam', frenchFoam: 'frenchCover' } as Record<string, string>)[r.labor]
           if (cover) {
@@ -216,6 +225,39 @@ function toSection(r: Row): Section | null {
   const h = parseInches(r.thickness)
   if (length === null || d === null || h === null || length <= 0 || d <= 0 || h <= 0) return null
   return { length, qty: Math.max(1, r.qty || 1), d, h }
+}
+
+/**
+ * The card a joined card shares its line with: the nearest card above that is not itself
+ * joined. A seat with a matching back can't lead a shared line. Null when the card stands alone.
+ */
+function leadOf(rows: Row[], i: number): number | null {
+  if (i === 0) return null
+  let j = i - 1
+  while (j > 0 && rows[j].joinAbove) j--
+  const lead = rows[j]
+  return lead.part === 'seat' && lead.withBack ? null : j
+}
+
+const joinedAt = (rows: Row[], i: number) => rows[i].joinAbove && leadOf(rows, i) !== null
+
+/** A joined card takes everything but its own name, sizes and Confirmed from the card it joins. */
+function effectiveRow(rows: Row[], i: number): Row {
+  const r = rows[i]
+  const j = joinedAt(rows, i) ? leadOf(rows, i) : null
+  if (j === null) return r
+  const { id, name, qty, length, depth, thickness, erConfirmed, joinAbove } = r
+  return { ...rows[j], id, name, qty, length, depth, thickness, erConfirmed, joinAbove }
+}
+
+/**
+ * The picks of the card's own cushion. A card switched to Back shows (and edits) the back
+ * fields, so its price and Estimate Rocket text must read those too.
+ */
+function mainPicks(r: Row) {
+  return r.part === 'back'
+    ? { labor: r.backLabor, style: r.backStyle, insert: r.backInsert, foamType: r.backFoamType, fabric: r.backFabric, direction: r.backDirection, center: r.backCenter, weltFabric: r.backWeltFabric }
+    : { labor: r.labor, style: r.erStyle, insert: r.insert, foamType: r.foamType, fabric: r.erFabric, direction: r.erDirection, center: r.erCenter, weltFabric: r.erWeltFabric }
 }
 
 /** The matching back cushion of a seat + back set, or null. */
@@ -318,6 +360,11 @@ function InchField({ id, label, value, onChange, help }: { id: string; label: st
     </Form.Item>
   )
 }
+
+/** Velcro runs the length of the cushion, counted to the nearest whole foot (6" rounds up). */
+const velcroFeet = (length: number) => Math.max(1, Math.round(length / 12 + 1e-9))
+const velcroPrice = (rows: Row['velcroRows'], length: number) =>
+  rows ? velcroFeet(length) * (rows === 2 ? ADD_ONS.velcro2 : ADD_ONS.velcro1) : 0
 
 /** Add-ons for one of this cushion, given its labor price each. */
 /** Welting comes with the sewing style: any "Welted" style gets it. */
@@ -433,26 +480,42 @@ function Converters() {
 }
 
 /** Estimate Rocket text for one cushion line (with its matching back when it has one). */
-function erTextFor(r: Row, s: Section): string {
-  const b = toBackSection(r)
+function erTextFor(r: Row, s: Section, more: { r: Row; s: Section }[] = [], designer = ''): string {
+  const b = more.length ? null : toBackSection(r)
+  const m = mainPicks(r)
+  const side = r.part === 'back' ? 'back' : 'seat'
+  const all = [{ r, s }, ...more]
+  const count = all.reduce((n, x) => n + x.s.qty, 0)
+  let yardsTotal = lineYards(r, s, side)
+  if (more.length) {
+    // Every cushion of the line is laid out on one roll together.
+    const inputs = all.map((x) => lineInputs(x.r, x.s, side))
+    const opts = { ...inputs[0].opts, cordingInches: inputs.reduce((n, x) => n + x.opts.cordingInches, 0) }
+    yardsTotal = cachedPlan(inputs.flatMap((x) => x.pieces), opts).orderYards
+  }
   const welt = (style: string, f: string) => (isWelted(style) ? f : '')
   return estimateRocketText({
-    qty: s.qty,
+    qty: count,
+    designer,
+    velcroRows: r.velcroRows,
+    sizes: more.length
+      ? all.map((x) => ({ qty: x.s.qty, width: formatInches(x.s.length), depth: formatInches(x.s.d), height: formatInches(x.s.h), confirmed: x.r.erConfirmed }))
+      : undefined,
     width: formatInches(s.length),
     depth: formatInches(s.d),
     height: formatInches(s.h),
     confirmed: r.erConfirmed,
     insertLabel: r.part === 'back' ? 'Back Insert' : 'Seat Insert',
     plan: r.plan,
-    sewingStyle: r.erStyle,
-    insert: r.insert,
-    foamType: r.foamType,
-    yardsPerItem: lineYards(r, s, r.part === 'back' ? 'back' : 'seat') / s.qty,
-    yardsTotal: lineYards(r, s, r.part === 'back' ? 'back' : 'seat'),
-    fabric: r.erFabric,
-    direction: r.erDirection,
-    center: r.erCenter,
-    weltFabric: welt(r.erStyle, r.erWeltFabric),
+    sewingStyle: m.style,
+    insert: m.insert,
+    foamType: m.foamType,
+    yardsPerItem: yardsTotal / count,
+    yardsTotal,
+    fabric: m.fabric,
+    direction: m.direction,
+    center: m.center,
+    weltFabric: welt(m.style, m.weltFabric),
     back: b
       ? {
           depth: formatInches(b.d),
@@ -479,6 +542,20 @@ export default function CushionPricing() {
   const { t } = useTranslation()
   const [rows, setRows] = useState<Row[]>(loadDraft)
   const [paste, setPaste] = useState('')
+  const [designer, setDesigner] = useState(() => {
+    try {
+      return localStorage.getItem(DESIGNER_KEY) ?? ''
+    } catch {
+      return ''
+    }
+  })
+  useEffect(() => {
+    try {
+      localStorage.setItem(DESIGNER_KEY, designer)
+    } catch {
+      // Draft saving is a convenience only.
+    }
+  }, [designer])
   const [msg, msgCtx] = message.useMessage()
 
   useEffect(() => {
@@ -491,6 +568,23 @@ export default function CushionPricing() {
 
   const update = (id: number, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)))
   const sections = useMemo(() => rows.map(toSection), [rows])
+  const effRows = useMemo(() => rows.map((_, i) => effectiveRow(rows, i)), [rows])
+  // Estimate Rocket lines: a card and the cards joined under it.
+  const erGroups = useMemo(() => {
+    const groups: { lead: number; members: number[] }[] = []
+    rows.forEach((_, i) => {
+      if (!sections[i]) return
+      const j = joinedAt(rows, i) ? leadOf(rows, i)! : i
+      const g = groups.find((x) => x.lead === j)
+      if (g) g.members.push(i)
+      else groups.push({ lead: j, members: [i] })
+    })
+    return groups
+  }, [rows, sections])
+  const erTextForGroup = (g: { members: number[] }) => {
+    const [first, ...rest] = g.members.map((i) => ({ r: effRows[i], s: sections[i]! }))
+    return erTextFor(first.r, first.s, rest, designer)
+  }
   const optionLabel = (id: string) => (id === 'none' ? t('cushionPricing.none') : t(`cushionPricing.opt_${id}`))
   const insertLabel = (id: string) => (id === 'tbd' ? t('cushionPricing.insertTbd') : id === 'existing' ? t('cushionPricing.insertExisting') : optionLabel(id))
 
@@ -499,7 +593,7 @@ export default function CushionPricing() {
       const o = PRICE_OPTIONS.find((x) => x.id === id)
       return o ? priceFor(o, s) : 0
     }
-    const lines = rows.flatMap((r, i) => {
+    const lines = effRows.flatMap((r, i) => {
       const s = sections[i]
       if (!s) return []
       const b = toBackSection(r)
@@ -514,9 +608,12 @@ export default function CushionPricing() {
         if (welted) picks.push({ label: t('cushionPricing.pickWelting'), amount: ADD_ONS.welting })
         if (r.addTick) picks.push({ label: t('cushionPricing.pickTick'), amount: ADD_ONS.outdoorTick })
         if (r.com === 'com15') picks.push({ label: t('cushionPricing.pickCom'), amount: l * (ADD_ONS.com15 - 1) })
-        return { labor: l, insert: ins, addOns: sectionAddOns(r, l, welted), picks }
+        const v = velcroPrice(r.velcroRows, x.length)
+        if (v) picks.push({ label: t('cushionPricing.pickVelcro', { rows: r.velcroRows, ft: velcroFeet(x.length) }), amount: v })
+        return { labor: l, insert: ins, addOns: sectionAddOns(r, l, welted) + v, picks }
       }
-      const seat = part(s, r.labor, r.insert, r.erStyle)
+      const m = mainPicks(r)
+      const seat = part(s, m.labor, m.insert, m.style)
       const back = b ? part(b, r.backLabor, r.backInsert, r.backStyle) : null
       const labor = seat.labor + (back?.labor ?? 0)
       const insert = seat.insert + (back?.insert ?? 0)
@@ -535,6 +632,7 @@ export default function CushionPricing() {
           qty: s.qty,
           seatPicks: seat.picks,
           backPicks: back?.picks ?? null,
+
           partLabel: r.part === 'back' ? t('cushionPricing.ib') : t('cushionPricing.seat'),
           labor,
           insert,
@@ -553,7 +651,7 @@ export default function CushionPricing() {
       ]
     })
     // Upholstered to plywood: every board for the job is nested onto full sheets, charged per sheet.
-    const boards: Board[] = rows.flatMap((r, i) => {
+    const boards: Board[] = effRows.flatMap((r, i) => {
       const s = sections[i]
       if (!s || r.plan !== 'plywood') return []
       const name = r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 })
@@ -567,7 +665,7 @@ export default function CushionPricing() {
     // Ordering: every part in the same fabric (same direction and repeat) goes on one roll together.
     // A part without a fabric name stays on its own.
     type Part = { label: string; fabric: string; pieces: CutPiece[]; opts: FabricOptions; yards: number }
-    const parts: Part[] = rows.flatMap((r, i) => {
+    const parts: Part[] = effRows.flatMap((r, i) => {
       const s = sections[i]
       if (!s) return []
       const name = r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 })
@@ -601,7 +699,7 @@ export default function CushionPricing() {
     const addOns = lines.reduce((n, l) => n + l.addOns * l.qty, 0)
     return { lines, labor, insert, addOns, plywood, total: sum('total') + plywood.cost, yards: sum('yards'), fabrics, orderYards }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, sections, t])
+  }, [effRows, sections, t])
 
   const addPasted = () => {
     const pasted = parsePasted(paste)
@@ -632,8 +730,8 @@ export default function CushionPricing() {
   const styleOptions = SEWING_STYLES.map((v) => ({ value: v, label: v }))
   const directionOptions = [
     { value: 'tbd', label: t('cushionPricing.erTbd') },
-    { value: 'upTheRoll', label: t('cushionCut.upTheRoll') },
-    { value: 'railroaded', label: t('cushionCut.railroaded') },
+    { value: 'upTheRoll', label: t('cushionPricing.dirUpTheRoll') },
+    { value: 'railroaded', label: t('cushionPricing.dirRailroaded') },
   ]
   const tbd = 'To Be Determined (Price Not Included)'
 
@@ -862,9 +960,19 @@ export default function CushionPricing() {
           ]}
         />
 
+        <Card>
+          <Form layout="vertical" component="div">
+            <Form.Item label={t('cushionPricing.designer')} htmlFor="designer" extra={t('cushionPricing.designerHelp')} style={{ marginBottom: 0 }}>
+              <Input id="designer" size="large" allowClear value={designer} onChange={(e) => setDesigner(e.target.value)} placeholder="Axiom Custom" />
+            </Form.Item>
+          </Form>
+        </Card>
+
         {rows.map((r, i) => {
           const s = sections[i]
-          const set = r.part === 'seat' && r.withBack
+          const joined = joinedAt(rows, i)
+          const canJoin = i > 0 && !(r.part === 'seat' && r.withBack) && leadOf(rows, i) !== null
+          const set = !joined && r.part === 'seat' && r.withBack
           const seat = partFields(r, r.part)
           const back = set ? partFields(r, 'back') : null
           return (
@@ -897,7 +1005,7 @@ export default function CushionPricing() {
                       />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} sm={8}>
+                  {!joined && (<Col xs={24} sm={8}>
                     <Form.Item label={t('cushionPricing.part')} style={{ marginBottom: 8 }}>
                       <Segmented
                         block
@@ -910,9 +1018,9 @@ export default function CushionPricing() {
                         ]}
                       />
                     </Form.Item>
-                  </Col>
+                  </Col>)}
                   <Col xs={24} sm={8}>
-                    <Form.Item label={t('cushionCut.howMany')} htmlFor={`qty-${r.id}`} style={{ marginBottom: 8 }}>
+                    <Form.Item label={t('cushionPricing.howMany')} htmlFor={`qty-${r.id}`} style={{ marginBottom: 8 }}>
                       <InputNumber
                         id={`qty-${r.id}`}
                         size="large"
@@ -929,6 +1037,18 @@ export default function CushionPricing() {
                       {t('cushionPricing.dimsConfirmed')}
                     </Checkbox>
                   </Col>
+                  {canJoin && (
+                    <Col xs={24}>
+                      <Checkbox checked={r.joinAbove} onChange={(e) => update(r.id, { joinAbove: e.target.checked })} style={{ marginBottom: 4 }}>
+                        {t('cushionPricing.joinAbove')}
+                      </Checkbox>
+                      <Typography.Text type="secondary" style={{ display: 'block', fontSize: 13, marginBottom: 12 }}>
+                        {joined
+                          ? t('cushionPricing.joinedNote', { name: rows[leadOf(rows, i)!].name.trim() || t('cushionPricing.cushionN', { n: leadOf(rows, i)! + 1 }) })
+                          : t('cushionPricing.joinHelp')}
+                      </Typography.Text>
+                    </Col>
+                  )}
                   <Col xs={24} sm={8}>
                     <InchField
                       id={`len-${r.id}`}
@@ -950,7 +1070,7 @@ export default function CushionPricing() {
                   <Col xs={12} sm={8}>
                     <InchField id={`h-${r.id}`} label={t('cushionPricing.thickness')} value={r.thickness} onChange={(v) => update(r.id, { thickness: v })} />
                   </Col>
-                  {r.part === 'seat' && (
+                  {!joined && r.part === 'seat' && (
                     <Col xs={24}>
                       <Checkbox checked={r.withBack} onChange={(e) => update(r.id, { withBack: e.target.checked })} style={{ marginBottom: 12 }}>
                         {t('cushionPricing.withBack')}
@@ -977,7 +1097,7 @@ export default function CushionPricing() {
                       </Col>
                     </>
                   )}
-                  <Col xs={24}>
+                  {!joined && (<Col xs={24}>
                     <Form.Item label={t('cushionPricing.plan')} style={{ marginBottom: 8 }}>
                       <Segmented
                         block
@@ -1001,10 +1121,10 @@ export default function CushionPricing() {
                       </>
                     )}
                     <div style={{ height: 16 }} />
-                  </Col>
+                  </Col>)}
                 </Row>
 
-                {back
+                {!joined && (<>{back
                   ? [
                       pair(seat.labor, back.labor, 'labor'),
                       pair(seat.style, back.style, 'style'),
@@ -1034,6 +1154,23 @@ export default function CushionPricing() {
                     </Checkbox>
                   </Space>
                 </Form.Item>
+                <Row gutter={12} style={{ marginTop: 12 }}>
+                  <Col xs={24} sm={12}>
+                    <Form.Item label={t('cushionPricing.velcro')} htmlFor={`velcro-${r.id}`} extra={t('cushionPricing.velcroHelp')} style={{ marginBottom: 0 }}>
+                      <Select
+                        id={`velcro-${r.id}`}
+                        size="large"
+                        value={r.velcroRows}
+                        onChange={(v) => update(r.id, { velcroRows: v })}
+                        options={[
+                          { value: 0, label: t('cushionPricing.velcroNone') },
+                          { value: 1, label: t('cushionPricing.velcro1', { price: money(ADD_ONS.velcro1) }) },
+                          { value: 2, label: t('cushionPricing.velcro2', { price: money(ADD_ONS.velcro2) }) },
+                        ]}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row></>)}
               </Form>
               {!s && (
                 <Typography.Text type="secondary" style={{ display: 'block', marginTop: 12 }}>
@@ -1193,24 +1330,22 @@ export default function CushionPricing() {
           <Card
             title={t('cushionPricing.erTitle')}
             extra={
-              quote.lines.length > 1 && (
-                <Button icon={<CopyOutlined />} onClick={() => copy(rows.flatMap((r, i) => (sections[i] ? [erTextFor(r, sections[i]!)] : [])).join('\n\n'))}>
+              erGroups.length > 1 && (
+                <Button icon={<CopyOutlined />} onClick={() => copy(erGroups.map(erTextForGroup).join('\n\n'))}>
                   {t('cushionPricing.copyAll')}
                 </Button>
               )
             }
           >
             <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-              {rows.map((r, i) => {
-                const s = sections[i]
-                if (!s) return null
-                const text = erTextFor(r, s)
+              {erGroups.map((g) => {
+                const text = erTextForGroup(g)
                 return (
                   <Card
-                    key={r.id}
+                    key={rows[g.lead].id}
                     size="small"
                     type="inner"
-                    title={r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 })}
+                    title={g.members.map((i) => rows[i].name.trim() || t('cushionPricing.cushionN', { n: i + 1 })).join(', ')}
                     extra={
                       <Button type="primary" icon={<CopyOutlined />} onClick={() => copy(text)}>
                         {t('cushionPricing.copy')}

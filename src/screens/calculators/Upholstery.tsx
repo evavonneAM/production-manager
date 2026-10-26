@@ -45,7 +45,7 @@ import {
   type Line,
   type Rates,
 } from '../../lib/calculators/upholstery'
-import { INSERT_NAMES as ER_INSERTS, SEWING_STYLES } from '../../lib/calculators/cushionPricing'
+import { INSERT_NAMES as ER_INSERTS, SEWING_STYLES, slashStyle } from '../../lib/calculators/cushionPricing'
 import UpholsteryHistoryCheck from './UpholsteryHistoryCheck'
 
 type CushionRow = {
@@ -227,6 +227,9 @@ function loadDraft(): Draft {
   const d = load(DRAFT_KEY, blankDraft())
   return {
     ...d,
+    seatStyle: slashStyle(d.seatStyle),
+    backStyle: slashStyle(d.backStyle),
+    armStyle: slashStyle(d.armStyle),
     cushions: (d.cushions ?? []).map((c) => {
       const row = { ...blankCushion(), ...c, id: nextId++ }
       // Styles "with foam" are gone: labor is the cover only and foam is the insert.
@@ -387,6 +390,7 @@ export default function Upholstery() {
     ['french', 'French mattress cover ($ / in of W)'],
     ['foamRate', 'Foam ($ / board ft)'],
     ['foamFee', 'Foam fee ($ / cushion)'],
+    ['outdoorFoamRate', 'Outdoor foam ($ / board ft)'],
     ['pillow', 'Throw pillow ($ each)'],
     ['welt', 'Welting ($ / piece)'],
     ['supplies', 'Upholstery supplies ($ / yard)'],
