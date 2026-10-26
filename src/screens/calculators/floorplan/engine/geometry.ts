@@ -45,7 +45,7 @@ export function centroid(pts: Pt[]): Pt {
 
 const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a)
 
-/** Feet -> "12'-6 1/2\"" (or metric), rounded to 1/prec of an inch. */
+/** Feet -> inches only, like "150 1/2\"" (or metric), rounded to 1/prec of an inch. The team doesn't use feet. */
 export function fmtLen(ft: number | null, units: Units, prec: number): string | null {
   if (ft == null || !isFinite(ft)) return null
   if (units === 'met') {
@@ -53,19 +53,9 @@ export function fmtLen(ft: number | null, units: Units, prec: number): string | 
     return m < 1 ? (m * 100).toFixed(1) + ' cm' : m.toFixed(3) + ' m'
   }
   const total = Math.round(ft * 12 * prec) / prec
-  let f = Math.floor(total / 12 + 1e-9)
-  const inch = total - f * 12
-  let whole = Math.floor(inch + 1e-9)
-  let num = Math.round((inch - whole) * prec)
-  if (num === prec) {
-    whole++
-    num = 0
-  }
-  if (whole === 12) {
-    f++
-    whole = 0
-  }
-  let s = f + "'-" + whole
+  const whole = Math.floor(total + 1e-9)
+  const num = Math.round((total - whole) * prec)
+  let s = String(whole)
   if (num) {
     const g = gcd(num, prec)
     s += ' ' + num / g + '/' + prec / g
