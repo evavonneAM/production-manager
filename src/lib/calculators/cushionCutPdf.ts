@@ -47,7 +47,7 @@ const RULE: [number, number, number] = [210, 214, 220]
 const ACCENT: [number, number, number] = [22, 119, 255]
 const HEADER: [number, number, number] = [0, 21, 41]
 
-const STYLE_TEXT: Record<ZipperStyle, string> = { back: 'Back zipper', wrap: 'Wrap-around zipper' }
+const STYLE_TEXT: Record<ZipperStyle, string> = { back: 'Back zipper', wrap: 'Wrap-around zipper', bottom: 'Zipper on bottom' }
 const WRAP_TEXT: Record<FoamWrap, string> = {
   none: 'No wrap',
   lightDacron: '1/2 oz Dacron',
@@ -416,9 +416,14 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
   const rows: [string, string, string][] =
     k.kind === 'box'
       ? [
-          ['Plates (W x D)', String(k.plate.qty), `${f(k.plate.width)} x ${f(k.plate.depth)}`],
+          ...(k.bottomPlates
+            ? ([
+                ['Top plate', String(k.plate.qty), `${f(k.plate.width)} x ${f(k.plate.depth)}`],
+                ['Bottom halves', String(k.bottomPlates.qty), `${f(k.bottomPlates.width)} x ${f(k.bottomPlates.depth)}`],
+              ] as [string, string, string][])
+            : ([['Plates (W x D)', String(k.plate.qty), `${f(k.plate.width)} x ${f(k.plate.depth)}`]] as [string, string, string][])),
           ...boxingRows(k, 'Boxing (X x Z)'),
-          ['Zipper (X x Z)', String(k.zipper.qty), `${f(k.zipper.x)} x ${f(k.zipper.z)}`],
+          ...(k.zipper.qty ? ([['Zipper (X x Z)', String(k.zipper.qty), `${f(k.zipper.x)} x ${f(k.zipper.z)}`]] as [string, string, string][]) : []),
           ...cordingRow,
           ['Foam (W x D x H)', String(k.foam.qty), `${f(k.foam.width)} x ${f(k.foam.depth)} x ${f(k.foam.height)}`],
         ]
@@ -496,7 +501,12 @@ function drawPlan(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number
   doc.setDrawColor(...ACCENT)
   doc.setLineWidth(3)
   const inset = Math.min(1.5 * sc, w * 0.1)
-  if (c.style === 'back') {
+  if (c.style === 'bottom') {
+    // Zipper is underneath: dashed line across the middle of the plate.
+    doc.setLineDashPattern([4, 3], 0)
+    doc.line(x + inset, y + d / 2, x + w - inset, y + d / 2)
+    doc.setLineDashPattern([], 0)
+  } else if (c.style === 'back') {
     doc.line(x + inset, y, x + w - inset, y)
   } else {
     const wrap = zipperWrap(cuts.finishedDepth) * sc
@@ -509,7 +519,7 @@ function drawPlan(doc: JsPDF, c: WorkOrderCushion, cuts: CushionCuts, x0: number
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
   doc.setTextColor(...ACCENT)
-  doc.text('BACK - ZIPPER', x + w / 2, y + 12, { align: 'center' })
+  doc.text(c.style === 'bottom' ? 'ZIPPER UNDER' : 'BACK - ZIPPER', x + w / 2, c.style === 'bottom' ? y + d / 2 - 5 : y + 12, { align: 'center' })
   doc.setTextColor(...MUTED)
   doc.text('FRONT', x + w / 2, y + d + 11, { align: 'center' })
 

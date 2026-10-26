@@ -210,9 +210,16 @@ function CutsTable({ cuts }: { cuts: AnyCuts }) {
         ]
       : cuts.kind === 'box'
       ? [
-          { key: 'plate', piece: t('cushionCut.plate'), qty: cuts.plate.qty, size: `${f(cuts.plate.width)} × ${f(cuts.plate.depth)}` },
+          ...(cuts.bottomPlates
+            ? [
+                { key: 'plate', piece: t('cushionCut.topPlate'), qty: cuts.plate.qty, size: `${f(cuts.plate.width)} × ${f(cuts.plate.depth)}` },
+                { key: 'bottom', piece: t('cushionCut.bottomHalves'), qty: cuts.bottomPlates.qty, size: `${f(cuts.bottomPlates.width)} × ${f(cuts.bottomPlates.depth)}` },
+              ]
+            : [{ key: 'plate', piece: t('cushionCut.plate'), qty: cuts.plate.qty, size: `${f(cuts.plate.width)} × ${f(cuts.plate.depth)}` }]),
           ...boxingRows(t('cushionCut.boxing')),
-          { key: 'zipper', piece: t('cushionCut.zipper'), qty: cuts.zipper.qty, size: `${f(cuts.zipper.x)} × ${f(cuts.zipper.z)}` },
+          ...(cuts.zipper.qty
+            ? [{ key: 'zipper', piece: t('cushionCut.zipper'), qty: cuts.zipper.qty, size: `${f(cuts.zipper.x)} × ${f(cuts.zipper.z)}` }]
+            : []),
           { key: 'foam', piece: t('cushionCut.foam'), qty: cuts.foam.qty, size: `${f(cuts.foam.width)} × ${f(cuts.foam.depth)} × ${f(cuts.foam.height)}` },
           ...cording,
         ]
@@ -523,6 +530,7 @@ export default function CushionCut() {
                         options={[
                           { value: 'back', label: t('cushionCut.back') },
                           { value: 'wrap', label: t('cushionCut.wrap') },
+                          { value: 'bottom', label: t('cushionCut.bottom') },
                         ]}
                       />
                     </Form.Item>

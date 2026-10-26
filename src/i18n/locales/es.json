@@ -606,7 +606,11 @@
     "cornerSeamsTag": "Uniones en esquinas (OK del gerente)",
     "boxingPart_front": "Costado, frente",
     "boxingPart_sides": "Costado, laterales",
-    "boxingPart_frontBack": "Costado, frente y atrás"
+    "boxingPart_frontBack": "Costado, frente y atrás",
+    "bottom": "Abajo",
+    "bottomHelp": "Cierre por el centro de la tapa de abajo, de lado a lado. La tapa de arriba va entera, la de abajo en dos mitades (½\" en la orilla, ¾\" del lado del cierre), y el costado es una sola tira alrededor.",
+    "topPlate": "Tapa de arriba",
+    "bottomHalves": "Mitades de la tapa de abajo"
   },
   "leafBag": {
     "intro": "Ingresa la medida terminada de la bolsa de cada trabajo. Los cortes se actualizan mientras escribes.",
@@ -922,7 +926,8 @@
     "heldAtPlain": "Este diseño acomoda más apretado que el trazo de tela lisa, así que la cotización se queda en las yardas de tela lisa.",
     "motifLegend": "Los puntos marcan el motivo en que se centra cada pieza.",
     "board": "Tabla",
-    "boardHelp": "Sobre tabla: medidas terminadas, una tapa y un costado que se dobla bajo la tabla, sin cierre."
+    "boardHelp": "Sobre tabla: medidas terminadas, una tapa y un costado que se dobla bajo la tabla, sin cierre.",
+    "bottom": "Abajo"
   },
   "upholstery": {
     "intro": "Sigue \"Cómo cotizar mano de obra de tapicería\": mano de obra base, cojines, espuma, yardaje, materiales y adicionales. La cotización de abajo se copia directo a Estimate Rocket.",

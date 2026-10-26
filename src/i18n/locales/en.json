@@ -607,7 +607,11 @@
     "cornerSeamsTag": "Corner seams (manager OK)",
     "boxingPart_front": "Boxing, front",
     "boxingPart_sides": "Boxing, sides",
-    "boxingPart_frontBack": "Boxing, front & back"
+    "boxingPart_frontBack": "Boxing, front & back",
+    "bottom": "On the bottom",
+    "bottomHelp": "Zipper across the middle of the bottom plate, side to side. The top plate is whole, the bottom plate is cut in two halves (½\" outside edge, ¾\" on the zipper side), and the boxing is one strip all the way around.",
+    "topPlate": "Top plate",
+    "bottomHalves": "Bottom plate halves"
   },
   "leafBag": {
     "intro": "Enter each job's finished bag size. The cuts update as you type.",
@@ -923,7 +927,8 @@
     "heldAtPlain": "This pattern packs tighter than the plain-fabric layout, so the estimate is held at the plain yardage.",
     "motifLegend": "Dots mark the motif each piece is centered on.",
     "board": "Board",
-    "boardHelp": "Board-mounted: finished sizes, one plate and one boxing strip that wraps under the board, no zipper."
+    "boardHelp": "Board-mounted: finished sizes, one plate and one boxing strip that wraps under the board, no zipper.",
+    "bottom": "Bottom"
   },
   "upholstery": {
     "intro": "Follows \"How to price upholstery labor\": base labor, cushions, foam, yardage, supplies, then upcharges. The estimate at the bottom copies straight into Estimate Rocket.",

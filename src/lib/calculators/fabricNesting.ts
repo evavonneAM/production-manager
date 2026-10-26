@@ -136,10 +136,11 @@ export function piecesFor(cuts: AnyCuts, cushion: string): CutPiece[] {
     // Plate: the cushion's width across the roll, front to back along it.
     add('plate', cuts.plate.qty, cuts.plate.width, cuts.plate.depth)
     // Strips go around the cushion, so their length runs across the roll when cut up the roll.
+    if (cuts.bottomPlates) add('plate', cuts.bottomPlates.qty, cuts.bottomPlates.width, cuts.bottomPlates.depth)
     // Seamed at the corners (manager approved): a front piece and two sides instead of one strip.
     if (cuts.boxingParts) for (const b of cuts.boxingParts) add('boxing', b.qty, b.x, b.z)
     else add('boxing', cuts.boxing.qty, cuts.boxing.x, cuts.boxing.z)
-    add('zipper', cuts.zipper.qty, cuts.zipper.x, cuts.zipper.z)
+    if (cuts.zipper.qty) add('zipper', cuts.zipper.qty, cuts.zipper.x, cuts.zipper.z)
   } else {
     add('wedgePanel', cuts.panel.qty, cuts.panel.width, cuts.panel.height)
     // The side piece is wedge-shaped; it gets its full box (deep end × height).

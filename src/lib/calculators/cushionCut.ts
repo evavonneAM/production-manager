@@ -3,7 +3,7 @@
 // size: ¼" off width and depth, and the chosen deduction off the height.
 // Foam is cut to the ordered size.
 
-export type ZipperStyle = 'wrap' | 'back'
+export type ZipperStyle = 'wrap' | 'back' | 'bottom'
 
 export type FoamWrap = 'none' | 'lightDacron' | 'heavyDacron' | 'envelope'
 
@@ -31,6 +31,8 @@ export type CushionCuts = {
   finishedHeight: number
   deduction: number
   plate: { qty: number; width: number; depth: number }
+  /** Zipper on the bottom: the bottom plate is cut in two halves with the zipper between them (top plates are then `plate`). */
+  bottomPlates?: { qty: number; width: number; depth: number }
   boxing: { qty: number; x: number; z: number }
   /** Boxing seamed at the front corners (needs a manager's OK): front piece and two side pieces, instead of `boxing`. */
   boxingParts?: BoxingPart[]
@@ -100,6 +102,24 @@ function cushionCutsOnePiece({ qty, front, sides, height, style, heightDeduction
   const foam = { qty, width: front, depth: sides, height }
   const cording = hasCording ? (c + d) * 2 * 2 * qty : 0
   const zipZ = e / 2 + 1.25
+  if (style === 'bottom') {
+    // Zipper on the bottom, side to side across the middle of the bottom plate: the top plate
+    // is whole, the bottom plate is two halves (½" on the outside edge, ¾" on the zipper side),
+    // and the boxing is one strip all the way round (½" each end for its one seam).
+    return {
+      kind: 'box',
+      finishedWidth: c,
+      finishedDepth: d,
+      finishedHeight: e,
+      deduction,
+      plate: { qty, width: c + 1, depth: d + 1 },
+      bottomPlates: { qty: qty * 2, width: c + 1, depth: d / 2 + 1.25 },
+      boxing: { qty, x: 2 * c + 2 * d + 1, z: e + 1 },
+      zipper: { qty: 0, x: 0, z: 0 },
+      cording,
+      foam,
+    }
+  }
   if (style === 'back') {
     return {
       kind: 'box',
