@@ -87,6 +87,8 @@ type Row = {
   halfDrop: boolean
   /** Sent over from the cushion estimate and not reviewed yet. */
   fromEstimate: boolean
+  /** Boxing seamed at the corners instead of one strip: only with a manager's OK. */
+  cornerSeams: boolean
 }
 type Draft = { job: WorkOrderJob; rows: Row[] }
 
@@ -112,6 +114,7 @@ const blank = (): Row => ({
   repeat: '',
   halfDrop: false,
   fromEstimate: false,
+  cornerSeams: false,
 })
 const blankJob = (): WorkOrderJob => ({ client: '', workOrder: '', sidemark: '' })
 
@@ -189,11 +192,18 @@ function CutsTable({ cuts }: { cuts: AnyCuts }) {
           },
         ]
       : []
+  // One strip, or the pieces of a boxing seamed at the corners (manager approved).
+  const boxingRows = (label: string) =>
+    cuts.kind !== 'wedge' && cuts.boxingParts
+      ? cuts.boxingParts.map((b) => ({ key: `boxing-${b.part}`, piece: t(`cushionCut.boxingPart_${b.part}`), qty: b.qty, size: `${f(b.x)} × ${f(b.z)}` }))
+      : cuts.kind !== 'wedge'
+        ? [{ key: 'boxing', piece: label, qty: cuts.boxing.qty, size: `${f(cuts.boxing.x)} × ${f(cuts.boxing.z)}` }]
+        : []
   const rows =
     cuts.kind === 'board'
       ? [
           { key: 'plate', piece: t('cushionCut.boardPlate'), qty: cuts.plate.qty, size: `${f(cuts.plate.width)} × ${f(cuts.plate.depth)}` },
-          { key: 'boxing', piece: t('cushionCut.boardBoxing'), qty: cuts.boxing.qty, size: `${f(cuts.boxing.x)} × ${f(cuts.boxing.z)}` },
+          ...boxingRows(t('cushionCut.boardBoxing')),
           { key: 'board', piece: t('cushionCut.boardBoard'), qty: cuts.board.qty, size: `${f(cuts.board.width)} × ${f(cuts.board.depth)}` },
           { key: 'foam', piece: t('cushionCut.foam'), qty: cuts.foam.qty, size: `${f(cuts.foam.width)} × ${f(cuts.foam.depth)} × ${f(cuts.foam.height)}` },
           ...cording,
@@ -201,7 +211,7 @@ function CutsTable({ cuts }: { cuts: AnyCuts }) {
       : cuts.kind === 'box'
       ? [
           { key: 'plate', piece: t('cushionCut.plate'), qty: cuts.plate.qty, size: `${f(cuts.plate.width)} × ${f(cuts.plate.depth)}` },
-          { key: 'boxing', piece: t('cushionCut.boxing'), qty: cuts.boxing.qty, size: `${f(cuts.boxing.x)} × ${f(cuts.boxing.z)}` },
+          ...boxingRows(t('cushionCut.boxing')),
           { key: 'zipper', piece: t('cushionCut.zipper'), qty: cuts.zipper.qty, size: `${f(cuts.zipper.x)} × ${f(cuts.zipper.z)}` },
           { key: 'foam', piece: t('cushionCut.foam'), qty: cuts.foam.qty, size: `${f(cuts.foam.width)} × ${f(cuts.foam.depth)} × ${f(cuts.foam.height)}` },
           ...cording,
@@ -270,7 +280,7 @@ export default function CushionCut() {
         if (front === null || sides === null || height === null || height <= 0) return null
         if (r.shape === 'board') {
           if (front <= 0 || sides <= 0) return null
-          return boardCuts({ qty: Math.max(1, r.qty || 1), width: front, depth: sides, height, cording: isWelted(r.sewingStyle) })
+          return boardCuts({ qty: Math.max(1, r.qty || 1), width: front, depth: sides, height, cording: isWelted(r.sewingStyle), cornerSeams: r.cornerSeams })
         }
         if (r.shape === 'wedge') {
           const top = parseInches(r.topDepth)
@@ -294,6 +304,7 @@ export default function CushionCut() {
           style: r.style,
           heightDeduction: r.heightDeduction,
           cording: isWelted(r.sewingStyle),
+          cornerSeams: r.cornerSeams,
         })
       }),
     [rows],
@@ -437,6 +448,7 @@ export default function CushionCut() {
                   {r.label.trim() || t('cushionCut.cushionN', { n: i + 1 })}
                   {r.shape !== 'box' && <Tag color="geekblue">{t(`cushionCut.shape_${r.shape}`)}</Tag>}
                   <Tag>{r.sewingStyle}</Tag>
+                  {r.cornerSeams && r.shape !== 'wedge' && <Tag color="orange">{t('cushionCut.cornerSeamsTag')}</Tag>}
                   {r.direction !== 'none' && <Tag color="purple">{t(`cushionCut.${r.direction}`)}</Tag>}
                 </Space>
               }
@@ -681,6 +693,15 @@ export default function CushionCut() {
                       />
                     )}
                   </Col>
+                  {r.shape !== 'wedge' && (
+                    <Col xs={24}>
+                      <Form.Item extra={t(r.shape === 'board' ? 'cushionCut.cornerSeamsBoardHelp' : 'cushionCut.cornerSeamsHelp')} style={{ marginBottom: 20 }}>
+                        <Checkbox checked={r.cornerSeams} onChange={(e) => update(r.id, { cornerSeams: e.target.checked })}>
+                          {t('cushionCut.cornerSeams')}
+                        </Checkbox>
+                      </Form.Item>
+                    </Col>
+                  )}
                   <Col xs={24} sm={10}>
                     <Form.Item label={t('cushionCut.foamWrap')} htmlFor={`wrap-${r.id}`} style={{ marginBottom: 20 }}>
                       <Select

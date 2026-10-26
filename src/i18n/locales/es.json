@@ -599,7 +599,14 @@
     "styleNoFormula": "Todavía no hay fórmulas de corte para este estilo: las medidas son de un cojín con costado.",
     "joinsTitle": "Hay que unir: algunas piezas son más largas que el ancho del rollo",
     "joinLine": "{{piece}}: se corta en {{n}} partes ({{sizes}})",
-    "tooWideLine": "{{piece}} no cabe en este rollo ni uniéndola"
+    "tooWideLine": "{{piece}} es más largo que el ancho del rollo y NO está en este trazo. Corta la tela al través, o une el costado en las esquinas con el OK del gerente.",
+    "cornerSeams": "Unir el costado en las esquinas (aprobado por el gerente)",
+    "cornerSeamsHelp": "Solo si una tira de costado es más larga que el ancho del rollo y el gerente lo aprobó: se corta una pieza de frente y dos laterales.",
+    "cornerSeamsBoardHelp": "Solo si el costado es más largo que el ancho del rollo y el gerente lo aprobó: se cortan frente/atrás y laterales, unidos en las cuatro esquinas.",
+    "cornerSeamsTag": "Uniones en esquinas (OK del gerente)",
+    "boxingPart_front": "Costado, frente",
+    "boxingPart_sides": "Costado, laterales",
+    "boxingPart_frontBack": "Costado, frente y atrás"
   },
   "leafBag": {
     "intro": "Ingresa la medida terminada de la bolsa de cada trabajo. Los cortes se actualizan mientras escribes.",
@@ -786,7 +793,8 @@
     "wedgeTopHelp": "Cuña: el extremo delgado de arriba (el grosor es el extremo grueso de abajo)",
     "estimateOnly": "Solo para cotizar. La lista de cortes se hace en Medidas de corte de cojines después de que la revise el gerente de proyecto.",
     "sendToCut": "Enviar a Medidas de corte",
-    "sendToCutConfirm": "Esto reemplaza los cojines en Medidas de corte de cojines en este dispositivo. ¿Continuar?"
+    "sendToCutConfirm": "Esto reemplaza los cojines en Medidas de corte de cojines en este dispositivo. ¿Continuar?",
+    "cornerSeamsAssumed": "El costado es más largo que el ancho del rollo: se cotizó con uniones en las esquinas (requiere OK del gerente) o córtalo al través"
   },
   "fabricYardage": {
     "intro": "Agrega los cojines o tráelos de Medidas de corte de cojines. Cada pieza se acomoda en el rollo y el yardaje se actualiza al escribir.",

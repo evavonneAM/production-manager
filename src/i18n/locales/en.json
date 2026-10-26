@@ -600,7 +600,14 @@
     "styleNoFormula": "There are no cut formulas for this style yet: the sizes below are for a boxed cushion.",
     "joinsTitle": "Seams needed: some pieces are longer than the roll is wide",
     "joinLine": "{{piece}}: cut in {{n}} parts ({{sizes}})",
-    "tooWideLine": "{{piece}} doesn't fit this roll even when joined"
+    "tooWideLine": "{{piece}} is longer than the roll is wide and is NOT on this layout. Railroad this fabric, or seam the boxing at the corners with a manager's OK.",
+    "cornerSeams": "Seam the boxing at the corners (manager approved)",
+    "cornerSeamsHelp": "Only when one boxing strip is longer than the roll is wide and a manager has OK'd it: cuts a front piece and two side pieces.",
+    "cornerSeamsBoardHelp": "Only when the boxing is longer than the roll is wide and a manager has OK'd it: cuts front/back and side pieces, seamed at all four corners.",
+    "cornerSeamsTag": "Corner seams (manager OK)",
+    "boxingPart_front": "Boxing, front",
+    "boxingPart_sides": "Boxing, sides",
+    "boxingPart_frontBack": "Boxing, front & back"
   },
   "leafBag": {
     "intro": "Enter each job's finished bag size. The cuts update as you type.",
@@ -787,7 +794,8 @@
     "wedgeTopHelp": "Wedge: the thin end at the top (Thickness is the thick end at the bottom)",
     "estimateOnly": "Estimate only. The cut list is made in Cushion Cut Dimensions after the project manager reviews it.",
     "sendToCut": "Send to Cushion Cut",
-    "sendToCutConfirm": "This replaces the cushions in Cushion Cut Dimensions on this device. Continue?"
+    "sendToCutConfirm": "This replaces the cushions in Cushion Cut Dimensions on this device. Continue?",
+    "cornerSeamsAssumed": "Boxing is longer than the roll is wide: priced with corner seams (needs a manager's OK) or railroad it"
   },
   "fabricYardage": {
     "intro": "Add the cushions, or bring them in from Cushion Cut Dimensions. Every piece is laid out on the roll and the yardage updates as you type.",

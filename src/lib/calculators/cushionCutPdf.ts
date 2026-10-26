@@ -6,6 +6,7 @@ import {
   zipperWrap,
   formatInches,
   type AnyCuts,
+  type BoardCuts,
   type CushionCuts,
   type FoamWrap,
   type WedgeCuts,
@@ -84,6 +85,12 @@ const STROKE: [number, number, number][] = [
   [89, 89, 89],
 ]
 const f2 = (n: number) => formatInches(n)
+const PART_TEXT = { front: 'Boxing - front', sides: 'Boxing - sides', frontBack: 'Boxing - front/back' } as const
+/** Cut-list rows for the boxing: one strip, or the pieces when it is seamed at the corners. */
+const boxingRows = (k: CushionCuts | BoardCuts, label: string): [string, string, string][] =>
+  k.boxingParts
+    ? k.boxingParts.map((b) => [PART_TEXT[b.part], String(b.qty), `${f2(b.x)} x ${f2(b.z)}`])
+    : [[label, String(k.boxing.qty), `${f2(k.boxing.x)} x ${f2(k.boxing.z)}`]]
 
 const clean = (s: string) =>
   s.replace(/[″”“]/g, '"').replace(/[−–—]/g, '-').replace(/→/g, '->').replace(/×/g, 'x')
@@ -213,13 +220,13 @@ export function buildCushionWorkOrder(doc: JsPDF, job: WorkOrderJob, cushions: W
         (j) =>
           `${j.cushion ? `${j.cushion}: ` : ''}${PIECE_TEXT[j.name] ?? j.name}${j.count > 1 ? ` x ${j.count}` : ''} cut in ${j.pieces} parts (${j.center === j.end ? f2(j.center) : `${f2(j.center)} + 2 x ${f2(j.end)}`})`,
       ),
-      ...plan.tooWide.map((p) => `${p.cushion ? `${p.cushion}: ` : ''}${PIECE_TEXT[p.name] ?? p.name} does not fit the roll`),
+      ...plan.tooWide.map((p) => `${p.cushion ? `${p.cushion}: ` : ''}${PIECE_TEXT[p.name] ?? p.name} (${f2(Math.max(p.across, p.along))}) is longer than the roll is wide: railroad it, or seam at the corners with a manager's OK`),
     ]
     if (joins.length) {
       doc.setFontSize(8.5)
       doc.setTextColor(180, 90, 0)
       joins.forEach((l) => {
-        doc.text(clean(`Joined: ${l}`), M + 12, y - 4)
+        doc.text(clean(l.includes('longer than the roll') ? `NOT ON THE LAYOUT: ${l}` : `Joined: ${l}`), M + 12, y - 4)
         y += 11
       })
       y += 4
@@ -323,7 +330,11 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
   doc.setFontSize(14)
   const title = `${c.name || `Cushion ${i + 1}`}   x ${c.qty}`
   doc.text(clean(title), M + 12, y + 2)
-  const chips = [c.cuts.kind === 'wedge' ? 'Wedge' : c.cuts.kind === 'board' ? 'Board-mounted' : STYLE_TEXT[c.style], DIRECTION_TEXT[c.direction]].filter(Boolean)
+  const chips = [
+    c.cuts.kind === 'wedge' ? 'Wedge' : c.cuts.kind === 'board' ? 'Board-mounted' : STYLE_TEXT[c.style],
+    c.cuts.kind !== 'wedge' && c.cuts.boxingParts ? 'Corner seams - manager OK' : '',
+    DIRECTION_TEXT[c.direction],
+  ].filter(Boolean)
   doc.setFontSize(9)
   let cx = PW - M
   chips
@@ -406,7 +417,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
     k.kind === 'box'
       ? [
           ['Plates (W x D)', String(k.plate.qty), `${f(k.plate.width)} x ${f(k.plate.depth)}`],
-          ['Boxing (X x Z)', String(k.boxing.qty), `${f(k.boxing.x)} x ${f(k.boxing.z)}`],
+          ...boxingRows(k, 'Boxing (X x Z)'),
           ['Zipper (X x Z)', String(k.zipper.qty), `${f(k.zipper.x)} x ${f(k.zipper.z)}`],
           ...cordingRow,
           ['Foam (W x D x H)', String(k.foam.qty), `${f(k.foam.width)} x ${f(k.foam.depth)} x ${f(k.foam.height)}`],
@@ -414,7 +425,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
       : k.kind === 'board'
         ? [
             ['Plate (W x D)', String(k.plate.qty), `${f(k.plate.width)} x ${f(k.plate.depth)}`],
-            ['Boxing (around x Z)', String(k.boxing.qty), `${f(k.boxing.x)} x ${f(k.boxing.z)}`],
+            ...boxingRows(k, 'Boxing (around x Z)'),
             ...cordingRow,
             ['Foam (W x D x H)', String(k.foam.qty), `${f(k.foam.width)} x ${f(k.foam.depth)} x ${f(k.foam.height)}`],
           ]

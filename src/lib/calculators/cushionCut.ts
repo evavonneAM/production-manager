@@ -20,6 +20,8 @@ export type CushionInput = {
   heightDeduction: number
   /** False when the cushion has no cording. */
   cording: boolean
+  /** Seam the boxing at the front corners (manager approved). */
+  cornerSeams?: boolean
 }
 
 export type CushionCuts = {
@@ -30,11 +32,28 @@ export type CushionCuts = {
   deduction: number
   plate: { qty: number; width: number; depth: number }
   boxing: { qty: number; x: number; z: number }
+  /** Boxing seamed at the front corners (needs a manager's OK): front piece and two side pieces, instead of `boxing`. */
+  boxingParts?: BoxingPart[]
   zipper: { qty: number; x: number; z: number }
   /** Total cording for this line, inches (0 when the cushion has none). */
   cording: number
   /** Foam is cut to the ordered size. */
   foam: { qty: number; width: number; depth: number; height: number }
+}
+
+/** One piece of a boxing seamed at the corners. */
+export type BoxingPart = { qty: number; x: number; z: number; part: 'front' | 'sides' | 'frontBack' }
+
+/**
+ * Seaming the boxing at the corners (only with a manager's OK, when one strip is longer
+ * than the roll is wide): each new seam takes ½" from each piece it joins.
+ */
+function frontCornerParts(qty: number, c: number, boxing: { x: number; z: number }): BoxingPart[] {
+  const front = up8(c + 1)
+  return [
+    { qty, x: front, z: boxing.z, part: 'front' },
+    { qty: qty * 2, x: up8((boxing.x - front + 2) / 2), z: boxing.z, part: 'sides' },
+  ]
 }
 
 /** Cording is cut on the bias from 54" fabric: a strip is about 74" long
@@ -68,7 +87,12 @@ export const ZIPPER_WRAP = 4
 /** How far a wrap-around zipper runs up each side: 4", or half the depth on a shallow cushion. */
 export const zipperWrap = (finishedDepth: number) => Math.min(ZIPPER_WRAP, finishedDepth / 2)
 
-export function cushionCuts({ qty, front, sides, height, style, heightDeduction: deduction, cording: hasCording }: CushionInput): CushionCuts {
+export function cushionCuts(input: CushionInput): CushionCuts {
+  const cuts = cushionCutsOnePiece(input)
+  return input.cornerSeams ? { ...cuts, boxingParts: frontCornerParts(input.qty, cuts.finishedWidth, cuts.boxing) } : cuts
+}
+
+function cushionCutsOnePiece({ qty, front, sides, height, style, heightDeduction: deduction, cording: hasCording }: CushionInput): CushionCuts {
   const c = front - COVER_DEDUCTION
   const d = sides - COVER_DEDUCTION
   const e = height - deduction
@@ -176,7 +200,14 @@ export function wedgeCuts({ qty, length, height: h, bottom: b, top: t, lengthDed
 /** The plywood board is cut ⅛" in from the finished size on every side. */
 export const BOARD_INSET = 0.125
 
-export type BoardInput = { qty: number; width: number; depth: number; height: number; cording: boolean }
+export type BoardInput = {
+  qty: number
+  width: number
+  depth: number
+  height: number
+  cording: boolean
+  /** Seam the boxing at all four corners (manager approved). */ cornerSeams?: boolean
+}
 
 export type BoardCuts = {
   kind: 'board'
@@ -186,12 +217,14 @@ export type BoardCuts = {
   plate: { qty: number; width: number; depth: number }
   /** Around all four sides; 2" + ½" extra width to wrap and staple under the board. */
   boxing: { qty: number; x: number; z: number }
+  /** Boxing seamed at all four corners (needs a manager's OK), instead of `boxing`. */
+  boxingParts?: BoxingPart[]
   cording: number
   board: { qty: number; width: number; depth: number }
   foam: { qty: number; width: number; depth: number; height: number }
 }
 
-export function boardCuts({ qty, width: w, depth: d, height: h, cording: hasCording }: BoardInput): BoardCuts {
+export function boardCuts({ qty, width: w, depth: d, height: h, cording: hasCording, cornerSeams }: BoardInput): BoardCuts {
   const around = 2 * w + 2 * d + 1
   return {
     kind: 'board',
@@ -200,6 +233,15 @@ export function boardCuts({ qty, width: w, depth: d, height: h, cording: hasCord
     finishedHeight: h,
     plate: { qty, width: up8(w + 1), depth: up8(d + 1) },
     boxing: { qty, x: up8(around), z: up8(h + 2.5) },
+    // Seamed at the corners: front and back, and the two sides, each ½" + ½" for the seams.
+    ...(cornerSeams
+      ? {
+          boxingParts: [
+            { qty: qty * 2, x: up8(w + 1), z: up8(h + 2.5), part: 'frontBack' as const },
+            { qty: qty * 2, x: up8(d + 1), z: up8(h + 2.5), part: 'sides' as const },
+          ],
+        }
+      : {}),
     cording: hasCording ? 2 * around * qty : 0,
     board: { qty, width: w - 2 * BOARD_INSET, depth: d - 2 * BOARD_INSET },
     // Foam is cut ½" over the finished width and depth so it fills the cover snugly.

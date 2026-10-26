@@ -7,8 +7,9 @@
 //   Railroad when it fits, because it saves yardage.
 // - Usable width = the width the mill lists, less 1½" off each selvage (the cutter's ruler line).
 // - Pieces share cut lines; if a gap is used it is at least ½".
-// - A piece wider than the roll is joined: a center as wide as the roll allows and
-//   two mirrored ends (never a seam down the middle). Plate ends at least 5",
+// - A plate or zipper wider than the roll is joined: a center as wide as the roll allows and
+//   two mirrored ends (never a seam down the middle). Boxing is never joined here: it is one
+//   strip, or seamed at the corners on the cut list with a manager's OK. Plate ends at least 5",
 //   boxing/zipper ends at least 3". Each join takes ½" + ½" of seam allowance.
 // - Bias cording comes from one block at the end: strips × 1¾" + 24", at least 60".
 // - Extra for flaws: enough for one spare plate, or a percentage.
@@ -129,12 +130,15 @@ export function piecesFor(cuts: AnyCuts, cushion: string): CutPiece[] {
   if (cuts.kind === 'board') {
     // Board-mounted: one plate on top and one boxing strip around the board, no zipper.
     add('plate', cuts.plate.qty, cuts.plate.width, cuts.plate.depth)
-    add('boxing', cuts.boxing.qty, cuts.boxing.x, cuts.boxing.z)
+    if (cuts.boxingParts) for (const b of cuts.boxingParts) add('boxing', b.qty, b.x, b.z)
+    else add('boxing', cuts.boxing.qty, cuts.boxing.x, cuts.boxing.z)
   } else if (cuts.kind === 'box') {
     // Plate: the cushion's width across the roll, front to back along it.
     add('plate', cuts.plate.qty, cuts.plate.width, cuts.plate.depth)
     // Strips go around the cushion, so their length runs across the roll when cut up the roll.
-    add('boxing', cuts.boxing.qty, cuts.boxing.x, cuts.boxing.z)
+    // Seamed at the corners (manager approved): a front piece and two sides instead of one strip.
+    if (cuts.boxingParts) for (const b of cuts.boxingParts) add('boxing', b.qty, b.x, b.z)
+    else add('boxing', cuts.boxing.qty, cuts.boxing.x, cuts.boxing.z)
     add('zipper', cuts.zipper.qty, cuts.zipper.x, cuts.zipper.z)
   } else {
     add('wedgePanel', cuts.panel.qty, cuts.panel.width, cuts.panel.height)
@@ -164,19 +168,6 @@ export function splitSymmetric(len: number, W: number, minEnd: number): { center
   }
   if (center > W + EPS || end > W + EPS || center <= 0) return null
   return { center, end }
-}
-
-/**
- * A strip too long to cut in three parts (a board-mounted boxing goes all the way round)
- * is cut in more equal parts: 5, 7, 9… Each join takes the usual seam allowance.
- * Returns the part length and count, or null.
- */
-export function splitStrip(len: number, W: number, minEnd: number): { part: number; count: number } | null {
-  for (let n = 5; n <= 15; n += 2) {
-    const part = up8((len + (n - 1) * JOIN_ALLOWANCE) / n)
-    if (part <= W + EPS && part >= minEnd - EPS) return { part, count: n }
-  }
-  return null
 }
 
 type Item = CutPiece & { w: number; h: number; area: number }
@@ -497,22 +488,15 @@ function planOneWay(pieces: CutPiece[], opts: FabricOptions, direction: Directio
         push(p)
         continue
       }
+      // Boxing is never pieced by the layout: it is one strip, or seamed at the corners on the
+      // cut list with a manager's OK. Too long for the roll this way = it doesn't fit.
+      if (p.name === 'boxing') {
+        if (track) tooWide.push(p)
+        continue
+      }
       // Too wide across the roll: join it from a center and two mirrored ends.
       const isPlate = p.name === 'plate' || p.name === 'wedgePanel' || p.name === 'sparePlate'
       const split = splitSymmetric(acrossLen, width, isPlate ? MIN_PLATE_END : MIN_STRIP_END)
-      const many = !split && !isPlate ? splitStrip(acrossLen, width, MIN_STRIP_END) : null
-      if (many) {
-        for (let k = 0; k < many.count; k++) {
-          const part = k === (many.count - 1) / 2 ? 'center' : 'end'
-          push(direction === 'upTheRoll' ? { ...p, across: many.part, join: { part, of: many.count } } : { ...p, along: many.part, join: { part, of: many.count } })
-        }
-        if (!track) continue
-        const key = `${p.cushion}|${p.name}`
-        const j = joinedMap.get(key)
-        if (j) j.count++
-        else joinedMap.set(key, { cushion: p.cushion, name: p.name, center: many.part, end: many.part, pieces: many.count, count: 1 })
-        continue
-      }
       if (!split) {
         if (track) tooWide.push(p)
         continue
@@ -777,6 +761,11 @@ function planPattern(pieces: CutPiece[], opts: FabricOptions, direction: Directi
         offCenter++
         continue
       }
+      if (p.name === 'boxing') {
+        // One strip (or corner seams on the cut list, with a manager's OK): never pieced here.
+        tooWide.push(p)
+        continue
+      }
       const minEnd = isPlate(p.name) ? MIN_PLATE_END : MIN_STRIP_END
       const total = w + 2 * JOIN_ALLOWANCE
       const endOf = (c: number) => up8((total - c) / 2)
@@ -799,23 +788,6 @@ function planPattern(pieces: CutPiece[], opts: FabricOptions, direction: Directi
             break
           }
         }
-      if (!center && !isPlate(p.name)) {
-        // Too long for three parts: equal parts all the way round, cut where they fit.
-        const many = splitStrip(w, width, MIN_STRIP_END)
-        if (many) {
-          for (let k = 0; k < many.count; k++) {
-            const part = k === (many.count - 1) / 2 ? 'center' : 'end'
-            const piece: CutPiece = direction === 'upTheRoll' ? { ...p, across: many.part, join: { part, of: many.count } } : { ...p, along: many.part, join: { part, of: many.count } }
-            items.push({ ...piece, w: many.part, h, matched: false })
-          }
-          offCenter++
-          const key = `${p.cushion}|${p.name}`
-          const j = joined.get(key)
-          if (j) j.count++
-          else joined.set(key, { cushion: p.cushion, name: p.name, center: many.part, end: many.part, pieces: many.count, count: 1 })
-          continue
-        }
-      }
       if (!center) {
         tooWide.push(p)
         continue
