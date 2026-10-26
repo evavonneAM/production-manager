@@ -48,27 +48,21 @@ function NativeSelect({
 }
 
 function CalibForm({ engine: e }: { engine: Engine }) {
-  const [ft, setFt] = useState('')
   const [inch, setInch] = useState('')
   const [m, setM] = useState('')
   const [err, setErr] = useState('')
   const imp = e.units === 'imp'
   const submit = () => {
-    const msg = e.submitCalibration(ft, inch, m)
+    const msg = e.submitCalibration('0', inch, m)
     setErr(msg || '')
   }
   return (
     <Card size="small" title="How long is that line in real life?" style={{ borderColor: 'var(--ant-color-primary)' }}>
       <Form layout="vertical" onFinish={submit} noValidate>
         {imp ? (
-          <Flex gap={8}>
-            <Form.Item label="Feet" style={{ flex: 1, marginBottom: 8 }}>
-              <Input autoFocus inputMode="decimal" autoComplete="off" value={ft} onChange={(x) => setFt(x.target.value)} />
-            </Form.Item>
-            <Form.Item label="Inches" style={{ flex: 1, marginBottom: 8 }}>
-              <Input inputMode="decimal" autoComplete="off" value={inch} onChange={(x) => setInch(x.target.value)} />
-            </Form.Item>
-          </Flex>
+          <Form.Item label="Inches" style={{ marginBottom: 8 }}>
+            <Input autoFocus inputMode="decimal" autoComplete="off" value={inch} onChange={(x) => setInch(x.target.value)} />
+          </Form.Item>
         ) : (
           <Form.Item label="Meters" style={{ marginBottom: 8 }}>
             <Input autoFocus inputMode="decimal" autoComplete="off" value={m} onChange={(x) => setM(x.target.value)} />
@@ -76,7 +70,7 @@ function CalibForm({ engine: e }: { engine: Engine }) {
         )}
         {imp && (
           <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
-            Inches can be a fraction, like 6 1/2.
+            Inches only. Fractions are fine, like 150 1/2.
           </Typography.Paragraph>
         )}
         {err && <Alert type="error" showIcon title={err} style={{ marginBottom: 8 }} role="alert" />}
@@ -181,7 +175,7 @@ export default function ScalePanel({ engine: e }: { engine: Engine }) {
           value={e.units}
           onChange={(v) => e.setUnits(v as Units)}
           options={[
-            { label: 'Feet & inches', value: 'imp' },
+            { label: 'Inches', value: 'imp' },
             { label: 'Metric', value: 'met' },
           ]}
         />
