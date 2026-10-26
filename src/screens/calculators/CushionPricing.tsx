@@ -25,7 +25,7 @@ import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, ExportOutlined, PlusOu
 import { formatInches, parseInches } from '../../lib/calculators/inches'
 import { FOAM_TYPES } from '../../lib/foamTypes'
 import { SHEET_PRICE, fitsSheet, planPlywood, type Board } from '../../lib/calculators/plywoodNesting'
-import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, slashStyle, type PriceOption } from '../../lib/calculators/cushionPricing'
+import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, isWelted, money, slashStyle, type PriceOption } from '../../lib/calculators/cushionPricing'
 import { BOARD_INSET, DEFAULT_HEIGHT_DEDUCTION, DEFAULT_LENGTH_DEDUCTION, boardCuts, cushionCuts, wedgeCuts } from '../../lib/calculators/cushionCut'
 import {
   DEFAULT_END_ALLOWANCE,
@@ -391,7 +391,6 @@ const velcroPrice = (rows: Row['velcroRows'], length: number) =>
 
 /** Add-ons for one of this cushion, given its labor price each. */
 /** Welting comes with the sewing style: any "Welted" style gets it. */
-const isWelted = (style: string) => /welt/i.test(style)
 
 function sectionAddOns(r: Row, labor: number, welted: boolean): number {
   return (welted ? ADD_ONS.welting : 0) + (r.addTick ? ADD_ONS.outdoorTick : 0) + (r.com === 'com15' ? labor * (ADD_ONS.com15 - 1) : 0)
@@ -548,7 +547,7 @@ export default function CushionPricing() {
         sides: formatInches(wedge ? x.h : x.d),
         height: formatInches(wedge ? x.d : x.h),
         topDepth: x.top !== undefined ? formatInches(x.top) : '',
-        cording: isWelted(picks.style),
+        sewingStyle: picks.style,
         repeat,
         halfDrop,
         fromEstimate: true,

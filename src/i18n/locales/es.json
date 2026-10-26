@@ -590,7 +590,13 @@
     "repeat": "Repetición del diseño",
     "repeatHelp": "Déjalo vacío para tela lisa",
     "repeatPlain": "Lisa",
-    "patternCheck": "Los trazos con diseño son un punto de partida: que el cortador revise dónde caen los motivos antes de cortar."
+    "patternCheck": "Los trazos con diseño son un punto de partida: que el cortador revise dónde caen los motivos antes de cortar.",
+    "sewingStyle": "Estilo de costura",
+    "styleCording": "Con vivo: se agrega el vivo a la lista de cortes.",
+    "styleNoCording": "Sin vivo para este estilo.",
+    "styleSoon": "fórmulas pronto",
+    "stylePick": "Elige un estilo de costura antes de imprimir la lista de cortes.",
+    "styleNoFormula": "Todavía no hay fórmulas de corte para este estilo: las medidas son de un cojín con costado."
   },
   "leafBag": {
     "intro": "Ingresa la medida terminada de la bolsa de cada trabajo. Los cortes se actualizan mientras escribes.",

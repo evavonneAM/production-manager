@@ -44,6 +44,7 @@ import {
   type WorkOrderCushion,
   type WorkOrderJob,
 } from '../../lib/calculators/cushionCutPdf'
+import { SEWING_STYLES, isBoxedStyle, isWelted, slashStyle } from '../../lib/calculators/cushionPricing'
 import {
   DEFAULT_END_ALLOWANCE,
   DEFAULT_EXTRA,
@@ -77,7 +78,10 @@ type Row = {
   /** Wedge only: the thin (top) end. Front = length, sides = deep (bottom) end. */
   topDepth: string
   lengthDeduction: number
-  cording: boolean
+  /** Old drafts only: cording now follows the sewing style. */
+  cording?: boolean
+  /** Sewing style, as on the estimate; welted styles get cording. */
+  sewingStyle: string
   /** Pattern repeat of the fabric, inches; empty = plain. */
   repeat: string
   halfDrop: boolean
@@ -104,7 +108,7 @@ const blank = (): Row => ({
   heightDeduction: DEFAULT_HEIGHT_DEDUCTION,
   topDepth: '',
   lengthDeduction: DEFAULT_LENGTH_DEDUCTION,
-  cording: true,
+  sewingStyle: 'Boxed/Self Welted',
   repeat: '',
   halfDrop: false,
   fromEstimate: false,
@@ -119,7 +123,13 @@ function loadDraft(): Draft {
     if (rows?.length) {
       return {
         job: { ...blankJob(), ...(Array.isArray(saved) ? {} : saved?.job) },
-        rows: rows.map((r) => ({ ...blank(), ...r, id: nextId++ })),
+        rows: rows.map((r) => ({
+          ...blank(),
+          ...r,
+          // Before the style picker, cording was a checkbox.
+          sewingStyle: slashStyle(r.sewingStyle ?? (r.cording === false ? 'Boxed/Clean Seam' : 'Boxed/Self Welted')),
+          id: nextId++,
+        })),
       }
     }
   } catch {
@@ -260,7 +270,7 @@ export default function CushionCut() {
         if (front === null || sides === null || height === null || height <= 0) return null
         if (r.shape === 'board') {
           if (front <= 0 || sides <= 0) return null
-          return boardCuts({ qty: Math.max(1, r.qty || 1), width: front, depth: sides, height, cording: r.cording })
+          return boardCuts({ qty: Math.max(1, r.qty || 1), width: front, depth: sides, height, cording: isWelted(r.sewingStyle) })
         }
         if (r.shape === 'wedge') {
           const top = parseInches(r.topDepth)
@@ -272,7 +282,7 @@ export default function CushionCut() {
             bottom: sides,
             top,
             lengthDeduction: r.lengthDeduction,
-            cording: r.cording,
+            cording: isWelted(r.sewingStyle),
           })
         }
         if (height <= r.heightDeduction) return null
@@ -283,7 +293,7 @@ export default function CushionCut() {
           height,
           style: r.style,
           heightDeduction: r.heightDeduction,
-          cording: r.cording,
+          cording: isWelted(r.sewingStyle),
         })
       }),
     [rows],
@@ -301,6 +311,7 @@ export default function CushionCut() {
         qty: Math.max(1, r.qty || 1),
         fabric: r.fabric.trim(),
         style: r.style,
+        sewingStyle: r.sewingStyle,
         direction: r.direction,
         width: parseInches(r.front)!,
         depth: parseInches(r.sides)!,
@@ -424,6 +435,7 @@ export default function CushionCut() {
                 <Space size={8} wrap>
                   {r.label.trim() || t('cushionCut.cushionN', { n: i + 1 })}
                   {r.shape !== 'box' && <Tag color="geekblue">{t(`cushionCut.shape_${r.shape}`)}</Tag>}
+                  <Tag>{r.sewingStyle}</Tag>
                   {r.direction !== 'none' && <Tag color="purple">{t(`cushionCut.${r.direction}`)}</Tag>}
                 </Space>
               }
@@ -639,12 +651,34 @@ export default function CushionCut() {
                       </Col>
                     </>
                   )}
-                  <Col xs={24} sm={8}>
-                    <Form.Item label={t('cushionCut.cording')} extra={t('cushionCut.cordingHelp')} style={{ marginBottom: 20 }}>
-                      <Checkbox checked={r.cording} onChange={(e) => update(r.id, { cording: e.target.checked })}>
-                        {t('cushionCut.hasCording')}
-                      </Checkbox>
+                  <Col xs={24}>
+                    <Form.Item
+                      label={t('cushionCut.sewingStyle')}
+                      htmlFor={`sstyle-${r.id}`}
+                      extra={isWelted(r.sewingStyle) ? t('cushionCut.styleCording') : t('cushionCut.styleNoCording')}
+                      style={{ marginBottom: 20 }}
+                    >
+                      <Select
+                        id={`sstyle-${r.id}`}
+                        size="large"
+                        showSearch
+                        value={r.sewingStyle}
+                        onChange={(v) => update(r.id, { sewingStyle: v })}
+                        options={SEWING_STYLES.map((st) => ({
+                          value: st,
+                          label: isBoxedStyle(st) || st === 'To Be Determined' ? st : `${st} — ${t('cushionCut.styleSoon')}`,
+                          disabled: !isBoxedStyle(st) && st !== 'To Be Determined',
+                        }))}
+                      />
                     </Form.Item>
+                    {!isBoxedStyle(r.sewingStyle) && (
+                      <Alert
+                        type="warning"
+                        showIcon
+                        style={{ marginTop: -8, marginBottom: 20 }}
+                        title={r.sewingStyle === 'To Be Determined' ? t('cushionCut.stylePick') : t('cushionCut.styleNoFormula')}
+                      />
+                    )}
                   </Col>
                   <Col xs={24} sm={10}>
                     <Form.Item label={t('cushionCut.foamWrap')} htmlFor={`wrap-${r.id}`} style={{ marginBottom: 20 }}>

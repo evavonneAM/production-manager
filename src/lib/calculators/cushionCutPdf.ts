@@ -21,6 +21,8 @@ export type WorkOrderCushion = {
   qty: number
   fabric: string
   style: ZipperStyle
+  /** Sewing style, as on the estimate (e.g. Boxed/Self Welted). */
+  sewingStyle: string
   direction: FabricDirection
   width: number
   depth: number
@@ -183,7 +185,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
   doc.setTextColor(...MUTED)
-  doc.text(clean(`Fabric: ${c.fabric || '-'}`), M + 12, y)
+  doc.text(clean(`Style: ${c.sewingStyle || '-'}     Fabric: ${c.fabric || '-'}`), M + 12, y)
   y += 14
 
   // Left: plan view + side view. Right: specs + cut list.
