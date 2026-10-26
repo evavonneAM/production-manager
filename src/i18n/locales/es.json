@@ -744,7 +744,14 @@
     "dirRailroaded": "Railroaded (tela de lado)",
     "joinAbove": "Agregar a la línea de Estimate Rocket de arriba",
     "joinHelp": "Márquelo cuando este cojín tenga el mismo estilo, relleno y tela que el de arriba, para que compartan una línea con todas las medidas.",
-    "joinedNote": "Mismo estilo, relleno y tela que {{name}}. Cámbielos en esa tarjeta."
+    "joinedNote": "Mismo estilo, relleno y tela que {{name}}. Cámbielos en esa tarjeta.",
+    "velcro": "Velcro",
+    "velcroNone": "Sin velcro",
+    "velcro1": "Velcro 1 fila ({{price}}/pie)",
+    "velcro2": "Velcro 2 filas ({{price}}/pie)",
+    "velcroFt": "Largo total de velcro",
+    "ft": "pies",
+    "pickVelcro": "Velcro: {{rows}} fila(s) × {{ft}} pies = {{price}}"
   },
   "fabricYardage": {
     "intro": "Agrega los cojines o tráelos de Medidas de corte de cojines. Cada pieza se acomoda en el rollo y el yardaje se actualiza al escribir.",

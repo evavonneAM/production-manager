@@ -48,6 +48,9 @@ export const ADD_ONS = {
   welting: 10,
   outdoorTick: 10,
   com15: 1.15,
+  /** Velcro, per foot of the total length: one row or two rows. */
+  velcro1: 5,
+  velcro2: 10,
 }
 
 export const money = (n: number) => (isFinite(n) ? `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—')

@@ -90,6 +90,9 @@ type Row = {
   com: 'none' | 'com15'
   /** On the same Estimate Rocket line as the cushion above, sharing its style, fill and fabric. */
   joinAbove: boolean
+  /** Velcro rows (0 = none) and the total length in feet for the whole card. */
+  velcroRows: 0 | 1 | 2
+  velcroFt: number | null
 }
 type Section = { length: number; qty: number; d: number; h: number }
 
@@ -135,6 +138,8 @@ const blank = (patch: Partial<Row> = {}): Row => ({
   addTick: false,
   com: 'none',
   joinAbove: false,
+  velcroRows: 0,
+  velcroFt: null,
   ...patch,
 })
 
@@ -243,7 +248,8 @@ function effectiveRow(rows: Row[], i: number): Row {
   const j = joinedAt(rows, i) ? leadOf(rows, i) : null
   if (j === null) return r
   const { id, name, qty, length, depth, thickness, erConfirmed, joinAbove } = r
-  return { ...rows[j], id, name, qty, length, depth, thickness, erConfirmed, joinAbove }
+  // Velcro is a total for the card that has it, so a joined card never repeats it.
+  return { ...rows[j], id, name, qty, length, depth, thickness, erConfirmed, joinAbove, velcroRows: 0, velcroFt: null }
 }
 
 /**
@@ -597,6 +603,8 @@ export default function CushionPricing() {
       const insert = seat.insert + (back?.insert ?? 0)
       const addOns = seat.addOns + (back?.addOns ?? 0)
       const eachPrice = labor + insert + addOns
+      // Velcro is priced on the total feet for the card, not per cushion.
+      const velcro = r.velcroRows && r.velcroFt ? r.velcroFt * (r.velcroRows === 2 ? ADD_ONS.velcro2 : ADD_ONS.velcro1) : 0
       // Seat and back are laid out separately: they can be different fabrics. Yards are for the whole line.
       const seatPlan = linePlan(r, s, r.part === 'back' ? 'back' : 'seat')
       const backPlan = b ? linePlan(r, b, 'back') : null
@@ -610,12 +618,14 @@ export default function CushionPricing() {
           qty: s.qty,
           seatPicks: seat.picks,
           backPicks: back?.picks ?? null,
+          velcro,
+          velcroText: velcro ? t('cushionPricing.pickVelcro', { rows: r.velcroRows, ft: r.velcroFt, price: money(velcro) }) : '',
           partLabel: r.part === 'back' ? t('cushionPricing.ib') : t('cushionPricing.seat'),
           labor,
           insert,
           addOns,
           each: eachPrice,
-          total: eachPrice * s.qty,
+          total: eachPrice * s.qty + velcro,
           yardsEach: yards / s.qty,
           yards,
           seatYards,
@@ -673,7 +683,7 @@ export default function CushionPricing() {
     const sum = (k: 'total' | 'yards') => lines.reduce((n, l) => n + l[k], 0)
     const labor = lines.reduce((n, l) => n + l.labor * l.qty, 0)
     const insert = lines.reduce((n, l) => n + l.insert * l.qty, 0)
-    const addOns = lines.reduce((n, l) => n + l.addOns * l.qty, 0)
+    const addOns = lines.reduce((n, l) => n + l.addOns * l.qty + l.velcro, 0)
     return { lines, labor, insert, addOns, plywood, total: sum('total') + plywood.cost, yards: sum('yards'), fabrics, orderYards }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effRows, sections, t])
@@ -1122,7 +1132,39 @@ export default function CushionPricing() {
                       {t('cushionPricing.com15')}
                     </Checkbox>
                   </Space>
-                </Form.Item></>)}
+                </Form.Item>
+                <Row gutter={12} style={{ marginTop: 12 }}>
+                  <Col xs={24} sm={12}>
+                    <Form.Item label={t('cushionPricing.velcro')} htmlFor={`velcro-${r.id}`} style={{ marginBottom: 0 }}>
+                      <Select
+                        id={`velcro-${r.id}`}
+                        size="large"
+                        value={r.velcroRows}
+                        onChange={(v) => update(r.id, { velcroRows: v })}
+                        options={[
+                          { value: 0, label: t('cushionPricing.velcroNone') },
+                          { value: 1, label: t('cushionPricing.velcro1', { price: money(ADD_ONS.velcro1) }) },
+                          { value: 2, label: t('cushionPricing.velcro2', { price: money(ADD_ONS.velcro2) }) },
+                        ]}
+                      />
+                    </Form.Item>
+                  </Col>
+                  {r.velcroRows > 0 && (
+                    <Col xs={24} sm={12}>
+                      <Form.Item label={t('cushionPricing.velcroFt')} htmlFor={`velcroFt-${r.id}`} style={{ marginBottom: 0 }}>
+                        <InputNumber
+                          id={`velcroFt-${r.id}`}
+                          size="large"
+                          min={0}
+                          value={r.velcroFt}
+                          onChange={(v) => update(r.id, { velcroFt: v })}
+                          suffix={t('cushionPricing.ft')}
+                          style={{ width: '100%' }}
+                        />
+                      </Form.Item>
+                    </Col>
+                  )}
+                </Row></>)}
               </Form>
               {!s && (
                 <Typography.Text type="secondary" style={{ display: 'block', marginTop: 12 }}>
@@ -1214,6 +1256,11 @@ export default function CushionPricing() {
                           </Typography.Text>
                         </div>
                       ))}
+                      {l.velcroText && (
+                        <div style={{ fontSize: 12 }}>
+                          <Typography.Text type="secondary">{l.velcroText}</Typography.Text>
+                        </div>
+                      )}
                     </>
                   ),
                 },

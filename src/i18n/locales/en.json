@@ -745,7 +745,14 @@
     "dirRailroaded": "Railroaded",
     "joinAbove": "Add To The Estimate Rocket Line Above",
     "joinHelp": "Tick this when this cushion has the same style, fill and fabric as the one above, so they share one line with every size listed.",
-    "joinedNote": "Same style, fill and fabric as {{name}}. Change them on that card."
+    "joinedNote": "Same style, fill and fabric as {{name}}. Change them on that card.",
+    "velcro": "Velcro",
+    "velcroNone": "No Velcro",
+    "velcro1": "1 Row Velcro ({{price}}/Ft)",
+    "velcro2": "2 Rows Velcro ({{price}}/Ft)",
+    "velcroFt": "Velcro Total Length",
+    "ft": "ft",
+    "pickVelcro": "Velcro: {{rows}} row(s) × {{ft}} ft = {{price}}"
   },
   "fabricYardage": {
     "intro": "Add the cushions, or bring them in from Cushion Cut Dimensions. Every piece is laid out on the roll and the yardage updates as you type.",
