@@ -26,7 +26,7 @@ import { formatInches, parseInches } from '../../lib/calculators/inches'
 import { FOAM_TYPES } from '../../lib/foamTypes'
 import { SHEET_L, SHEET_PRICE, SHEET_W, fitsSheet, planPlywood, type Board, type Sheet } from '../../lib/calculators/plywoodNesting'
 import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, slashStyle, type PriceOption } from '../../lib/calculators/cushionPricing'
-import { DEFAULT_HEIGHT_DEDUCTION, boardCuts, cushionCuts } from '../../lib/calculators/cushionCut'
+import { BOARD_INSET, DEFAULT_HEIGHT_DEDUCTION, boardCuts, cushionCuts } from '../../lib/calculators/cushionCut'
 import {
   DEFAULT_END_ALLOWANCE,
   DEFAULT_EXTRA,
@@ -657,8 +657,8 @@ export default function CushionPricing() {
       const name = r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 })
       const b = toBackSection(r)
       return [
-        { name, qty: s.qty, length: s.length, depth: s.d },
-        ...(b ? [{ name: `${name} (${t('cushionPricing.ib').toLowerCase()})`, qty: b.qty, length: b.length, depth: b.d }] : []),
+        { name, qty: s.qty, length: s.length - 2 * BOARD_INSET, depth: s.d - 2 * BOARD_INSET },
+        ...(b ? [{ name: `${name} (${t('cushionPricing.ib').toLowerCase()})`, qty: b.qty, length: b.length - 2 * BOARD_INSET, depth: b.d - 2 * BOARD_INSET }] : []),
       ]
     })
     const plywood = planPlywood(boards)

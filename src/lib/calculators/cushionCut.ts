@@ -173,6 +173,9 @@ export function wedgeCuts({ qty, length, height: h, bottom: b, top: t, lengthDed
 // way around the board and wraps under it, no zipper; cording top and bottom when the
 // style is welted.
 
+/** The plywood board is cut ⅛" in from the finished size on every side. */
+export const BOARD_INSET = 0.125
+
 export type BoardInput = { qty: number; width: number; depth: number; height: number; cording: boolean }
 
 export type BoardCuts = {
@@ -198,7 +201,7 @@ export function boardCuts({ qty, width: w, depth: d, height: h, cording: hasCord
     plate: { qty, width: up8(w + 1), depth: up8(d + 1) },
     boxing: { qty, x: up8(around), z: up8(h + 2.5) },
     cording: hasCording ? 2 * around * qty : 0,
-    board: { qty, width: w, depth: d },
+    board: { qty, width: w - 2 * BOARD_INSET, depth: d - 2 * BOARD_INSET },
     // Foam is cut ½" over the finished width and depth so it fills the cover snugly.
     foam: { qty, width: up8(w + 0.5), depth: up8(d + 0.5), height: h },
   }

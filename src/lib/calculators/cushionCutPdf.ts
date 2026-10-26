@@ -219,7 +219,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number) {
     spec('FINISHED LENGTH', `${f(c.cuts.finishedLength)}  (length -${f(c.cuts.deduction)})`)
   } else if (c.cuts.kind === 'board') {
     spec('FINISHED SIZE (W x D x H)', `${f(c.width)} x ${f(c.depth)} x ${f(c.height)}`)
-    spec('PLYWOOD BOARD (W x D)', `${f(c.cuts.board.width)} x ${f(c.cuts.board.depth)}  (no deduction)`)
+    spec('PLYWOOD BOARD (W x D)', `${f(c.cuts.board.width)} x ${f(c.cuts.board.depth)}  (1/8" in on every side)`)
   } else {
     spec('ORDERED SIZE (W x D x H)', `${f(c.width)} x ${f(c.depth)} x ${f(c.height)}`)
     spec(

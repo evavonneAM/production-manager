@@ -580,7 +580,7 @@
     "boardFinishes": "Terminado {{size}} sobre triplay · sin descuento",
     "boardPlate": "Tapa (An × Pr)",
     "boardBoxing": "Costado, toda la vuelta (L × An)",
-    "boardBoard": "Tabla de triplay",
+    "boardBoard": "Tabla de triplay (⅛\" menos por lado)",
     "fabricTitle": "Trazo de la tela",
     "fabricYards": "{{n}} yd",
     "fabricHelpLayout": "Todos los cojines de la misma tela (y dirección) se acomodan juntos en un rollo de 54\", con una tapa de repuesto y el bloque de sesgo, igual que la herramienta de Yardas de tela."

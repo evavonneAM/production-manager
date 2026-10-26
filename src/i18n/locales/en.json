@@ -581,7 +581,7 @@
     "boardFinishes": "Finished {{size}} on plywood · no deduction",
     "boardPlate": "Plate (W × D)",
     "boardBoxing": "Boxing, all the way around (L × W)",
-    "boardBoard": "Plywood board",
+    "boardBoard": "Plywood board (⅛\" in on every side)",
     "fabricTitle": "Fabric layout",
     "fabricYards": "{{n}} yd",
     "fabricHelpLayout": "Every cushion in the same fabric (and direction) is laid out together on a 54\" roll, with one spare plate and the bias cording block, the same as the Fabric Yardage tool."
