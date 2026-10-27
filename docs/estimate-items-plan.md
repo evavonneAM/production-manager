@@ -50,6 +50,22 @@ the rules themselves are logged in [`DECISIONS.md`](DECISIONS.md).
 - Drapery fabric joins the same pooled fabric lines (widths × cut length + repeat). Drapery
   Pleat / Ripplefold layouts become that line's workroom diagrams.
 
+## Pillows (owner, 2026-10-27)
+
+- New **Pillow** worksheet with an "Add pillow" button on the estimate. Price each =
+  $125 labor (any size) + insert + add-ons. Pillow fabric adds into the group's fabric.
+- Styles: Knife Edge; Welted (self or contrast); Flange (self or contrast, flange size);
+  Butterfly Corner (optional self or contrast welt).
+- Add-ons: welting +$10; contrast flange +$30 (self flange free); Celeste Bio tick +$10.
+- Inserts: formulas from the owner's sheet "CUSHION PRICING + YARDAGE", tab PILLOW INSERT
+  PRICING, used unchanged: square/lumbar Celeste W×D÷7.4, 50/50 ÷2.25, 25/75 ÷5; bolster
+  Celeste L×4.5 (10" dia max), 50/50 L÷0.072, 25/75 L÷0.2 (8" max); round Celeste dia×2.2,
+  50/50 dia×13, 25/75 dia×2.9 (20" max). The sheet's notes column is scratch; ignore it.
+- Size picks from the sheet (Small 16, Medium 18, Large 20/22, Oversized 24/26, Lumbar
+  12×18, 12×24, 14×36) or any typed size.
+- Still open: flange sizes. Default until told otherwise: pillow yards come from the cut
+  pieces laid on the roll, like cushions.
+
 ## Diagrams and after acceptance
 
 - Fabric roll maps, plywood sheets and cushion drawings are regenerated from the worksheets on

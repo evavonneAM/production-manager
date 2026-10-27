@@ -63,7 +63,8 @@ every fix except #10 (insert size warning), in five rounds:
       waits for the owner's "go". Then, in order: groups + Install at; worksheets
       saved on each line + "Open in tool"; Add cushion / Add upholstery buttons; Fabric
       section (pooled per fabric, wholesale × 2 with $75/yd minimum, COM, to-be-determined,
-      overrides) + plywood per estimate; Velcro ($5/ft of length); estimated deposit (50%);
+      overrides) + plywood per estimate; Pillow worksheet + Add pillow ($125 labor +
+      insert from the pillow sheet + add-ons); Velcro ($5/ft of length); estimated deposit (50%);
       revised copies after Sent; Work Order Builder into the app with Add window treatment
       (lining included, hardware × 2, install $95/shade or drapery ½ day $800 / full day $1,600).
 - [ ] **Round 5: clean-up.** #12 "moved" pages on the old standalone calculators (keep
