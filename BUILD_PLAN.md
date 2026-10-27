@@ -238,10 +238,10 @@ can open it.
       to that job/project — team will follow the code-in-title naming convention. Two-way
       editing deliberately deferred; these layers stack without rework if wanted later.
 - [ ] **Estimate Rocket calendars (owner request, 2026-10-27):** the AM, HOV and RHU
-      appointment calendars show on the Calendar screen, one colour per business, read from
+      project deadlines (ER's scheduled completion dates, not appointments) show on the Calendar screen, one colour per business, read from
       each ER account's "Subscribe to Calendar" iCal link (secrets `ER_ICS_AM/HOV/RHU`,
-      `er-calendar-sync` every 15 min, table `er_appointments`). Read-only: appointments
-      are still made in ER. Calendar screen moved to the Ant Design look at the same time.
+      `er-calendar-sync` every 15 min, table `er_appointments`). Read-only: dates are
+      still set in ER. Past-due deadlines get a red dot. Calendar screen moved to the Ant Design look at the same time.
 - [ ] **Future (not now): Google Calendar events in the app's calendar.** Today only events
       whose titles carry a job/work-order code are pulled in. Later: show all events from
       the team's Google calendars on the Calendar screen, like the ER appointments.

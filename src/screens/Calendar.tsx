@@ -373,6 +373,13 @@ function shortTitle(item: DayItem) {
   return short || item.ev.title
 }
 
+/** An ER deadline still in the feed (so still pending) whose date has passed. */
+function pastDue(item: DayItem) {
+  if (item.kind !== 'er') return false
+  const n = new Date()
+  return new Date(item.ev.starts_at).getTime() < Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())
+}
+
 function timeLabel(iso: string, lang: string) {
   return new Date(iso).toLocaleTimeString(lang, { hour: 'numeric', minute: '2-digit' })
 }
@@ -405,6 +412,7 @@ function ItemChip({ item, onClick, large }: { item: DayItem; onClick: () => void
         cursor: item.kind === 'er' ? 'pointer' : 'default',
       }}
     >
+      {pastDue(item) && <span style={{ flexShrink: 0, width: 6, height: 6, borderRadius: '50%', background: token.colorError }} />}
       {item.kind === 'er' && large && <span style={{ fontWeight: 600, color }}>{item.ev.business}</span>}
       {time && <span style={{ color: token.colorTextSecondary, flexShrink: 0 }}>{time}</span>}
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortTitle(item)}</span>
@@ -591,7 +599,13 @@ function WeekRow({
                 {items.slice(0, 6).map((it) => (
                   <span
                     key={it.id}
-                    style={{ width: 8, height: 8, borderRadius: '50%', background: it.kind === 'er' ? BUSINESS_COLOR[it.ev.business] : token.colorTextQuaternary }}
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: it.kind === 'er' ? BUSINESS_COLOR[it.ev.business] : token.colorTextQuaternary,
+                      boxShadow: pastDue(it) ? `0 0 0 2px ${token.colorError}` : undefined,
+                    }}
                   />
                 ))}
                 {items.length > 6 && <span style={{ fontSize: 10, lineHeight: '8px', color: token.colorTextSecondary }}>+</span>}
