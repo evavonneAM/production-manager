@@ -58,7 +58,7 @@ Picture: https://claude.ai/artifact/YTWGY3t8CERq6smN6qLvPt (copy kept in
 
 - White paper. Header: small logo + business name in wide capitals on the left, a large
   light serif "Estimate" with number, date and revision on the right, a thin black rule
-  under it; then a very light grey band with Prepared for / Install at / Rooms.
+  under it; then a band in **#efeceb** (owner 2026-10-27) with Prepared for / Install at / Rooms.
 - Room titles in light serif wide capitals, **left justified**; item names in serif, specs
   in small grey sans joined by dots; hairline rules between lines.
 - Columns Item / Qty / Each / Amount. Fabric lines use the same columns (yards in Qty,
@@ -67,7 +67,7 @@ Picture: https://claude.ai/artifact/YTWGY3t8CERq6smN6qLvPt (copy kept in
 - Fonts (owner 2026-10-27, matching the catalog designer): **Inter** (stand-in for Neue
   Montreal). Item names Inter Medium, one size up from body; body Inter Light. Item details
   are bullets with a bold label ("Style:", "Insert:", "Velcro:"). The large "Estimate" and
-  room titles stay in the light serif.
+  room titles stay in the light serif (owner confirmed).
 - Summary by room, total and estimated deposit at the end.
 - AM and RHU use the same look with their own logos.
 
