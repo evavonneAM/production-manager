@@ -80,8 +80,8 @@ Picture: https://claude.ai/artifact/YTWGY3t8CERq6smN6qLvPt (copy kept in
   50/50 dia×13, 25/75 dia×2.9 (20" max). The sheet's notes column is scratch; ignore it.
 - Size picks from the sheet (Small 16, Medium 18, Large 20/22, Oversized 24/26, Lumbar
   12×18, 12×24, 14×36) or any typed size.
-- Still open: flange sizes. Default until told otherwise: pillow yards come from the cut
-  pieces laid on the roll, like cushions.
+- Flange size is a typed box (no standard sizes yet, owner 2026-10-27).
+- Pillow yards come from the cut pieces laid on the roll, like cushions.
 
 ## Diagrams and after acceptance
 
