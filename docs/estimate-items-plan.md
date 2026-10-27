@@ -50,6 +50,23 @@ the rules themselves are logged in [`DECISIONS.md`](DECISIONS.md).
 - Drapery fabric joins the same pooled fabric lines (widths × cut length + repeat). Drapery
   Pleat / Ripplefold layouts become that line's workroom diagrams.
 
+## Client estimate look (owner, 2026-10-27)
+
+Picture: https://claude.ai/artifact/YTWGY3t8CERq6smN6qLvPt (copy kept in
+[`docs/estimate-look-mockup.html`](estimate-look-mockup.html)). The owner chose the
+"Restoration Hardware" style **Gallery** look with the **Catalog** header:
+
+- White paper. Header: small logo + business name in wide capitals on the left, a large
+  light serif "Estimate" with number, date and revision on the right, a thin black rule
+  under it; then a very light grey band with Prepared for / Install at / Rooms.
+- Room titles in light serif wide capitals, **left justified**; item names in serif, specs
+  in small grey sans joined by dots; hairline rules between lines.
+- Columns Item / Qty / Each / Amount. Fabric lines use the same columns (yards in Qty,
+  price per yard in Each); COM shows a dash for price and amount.
+- All dollar amounts in the same sans font; subtotals and total in bold.
+- Summary by room, total and estimated deposit at the end.
+- AM and RHU use the same look with their own logos.
+
 ## Pillows (owner, 2026-10-27)
 
 - New **Pillow** worksheet with an "Add pillow" button on the estimate. Price each =

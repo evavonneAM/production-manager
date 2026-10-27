@@ -16,6 +16,7 @@ in [`BUILD_PLAN.md`](../BUILD_PLAN.md).
 | 2026-10-24 | Estimates can be grouped by room or window (optional, just named). Each group holds its own fabric and subtotal; the client approves room by room, only approved rooms become jobs and fabric orders, and the deposit is 50% of approved rooms. |
 | 2026-10-24 | Estimates have an "Install at" address separate from the client's (designer billed, install at the client's home). |
 | 2026-10-27 | Pillows: $125 labor per pillow, any size; welting +$10; contrast flange +$30 (self flange free); inserts priced by the formulas on the PILLOW INSERT PRICING tab, unchanged (round 50/50 stays dia × 13). |
+| 2026-10-27 | Client estimate look: white "Restoration Hardware" style (Gallery look with Catalog header), left-justified room titles, fabric in the Qty/Each columns, one font for all dollar amounts. See docs/estimate-items-plan.md. |
 | 2026-10-23 | A client is a company (designer firm, business or household) with people under it. The client page shows all of the company's projects from every person. |
 | 2026-10-23 | One person who works for several companies gets one client card per company plus a personal card (each with that role's email and address). When unsure, keep cards separate; merging later is easy. |
 | 2026-10-23 | One estimate number shared by AM / HOV / RHU (no AM10001 and HOV10001 both). |
