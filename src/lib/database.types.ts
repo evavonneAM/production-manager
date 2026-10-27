@@ -96,6 +96,59 @@ export type Database = {
           },
         ]
       }
+      er_appointments: {
+        Row: {
+          all_day: boolean
+          business: string
+          created_at: string
+          description: string | null
+          ends_at: string | null
+          id: string
+          location: string | null
+          project_id: string | null
+          starts_at: string
+          title: string
+          uid: string
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          business: string
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          location?: string | null
+          project_id?: string | null
+          starts_at: string
+          title: string
+          uid: string
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean
+          business?: string
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          location?: string | null
+          project_id?: string | null
+          starts_at?: string
+          title?: string
+          uid?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "er_appointments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string

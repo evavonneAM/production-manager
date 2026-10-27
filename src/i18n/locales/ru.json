@@ -387,7 +387,18 @@
     "viewHint": "Нажмите на полосу, чтобы открыть проект. Просроченные — с красной точкой.",
     "appointments": "Встречи",
     "unscheduled": "Без дат",
-    "syncNow": "Синхронизировать календарь"
+    "syncNow": "Синхронизировать календарь",
+    "show": "Показать",
+    "showAll": "Всё",
+    "showProduction": "Только производство",
+    "showEr": "Только Estimate Rocket",
+    "showBusiness": "Estimate Rocket: {{business}}",
+    "erKey": "Встречи {{business}}",
+    "productionKey": "График производства",
+    "erHint": "Цветные отметки — встречи из Estimate Rocket: нажмите, чтобы открыть.",
+    "openProject": "Открыть проект",
+    "erReadOnly": "Из Estimate Rocket. Изменять нужно там; приложение обновляется каждые 15 минут.",
+    "more": "ещё {{count}}"
   },
   "priority": {
     "title": "Приоритеты",

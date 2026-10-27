@@ -385,7 +385,18 @@
     "viewHint": "Toca una barra para abrir el proyecto. Lo atrasado lleva un punto rojo.",
     "appointments": "Citas",
     "unscheduled": "Sin fechas",
-    "syncNow": "Sincronizar calendario"
+    "syncNow": "Sincronizar calendario",
+    "show": "Mostrar",
+    "showAll": "Todo",
+    "showProduction": "Solo producción",
+    "showEr": "Solo Estimate Rocket",
+    "showBusiness": "Estimate Rocket: {{business}}",
+    "erKey": "Citas de {{business}}",
+    "productionKey": "Calendario de producción",
+    "erHint": "Las marcas de color son citas de Estimate Rocket: toca una para verla.",
+    "openProject": "Abrir proyecto",
+    "erReadOnly": "De Estimate Rocket. Para cambiarla, edítala allí; la app se actualiza cada 15 minutos.",
+    "more": "+{{count}} más"
   },
   "priority": {
     "title": "Prioridades",
