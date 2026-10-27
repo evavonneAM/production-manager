@@ -612,7 +612,10 @@
     "bottomHelp": "Zipper in the bottom plate. Top plate as usual; the boxing is the full perimeter plus ½\" + ½\" for its one seam. Calculate the bottom plate with the zipper.",
     "topPlate": "Top plate",
     "bottomHalves": "Bottom plate (with zipper)",
-    "calcPlateWithZipper": "Calculate plate with zipper"
+    "calcPlateWithZipper": "Calculate plate with zipper",
+    "notes": "Notes",
+    "notesHelp": "Prints on the work order. Write in any language: it prints in the language of whoever downloads the PDF.",
+    "notesPlaceholder": "Anything the workroom should know about this job"
   },
   "leafBag": {
     "intro": "Enter each job's finished bag size. The cuts update as you type.",
@@ -1079,7 +1082,9 @@
   },
   "pdf": {
     "common": {
-      "page": "Page {{n}} of {{total}}"
+      "page": "Page {{n}} of {{total}}",
+      "translated": "translated",
+      "translatedNote": "Notes were translated automatically. Ask the project manager if anything is unclear."
     },
     "plywood": {
       "title": "Plywood Cutting Layout",
@@ -1243,7 +1248,8 @@
       "backRest": "BACK REST",
       "seamAllowance": "1/2\" seam allowance",
       "sewLine": "dashed = sew line ({{top}} / {{bottom}} x {{h}})",
-      "frontView": "FRONT VIEW - FINISHED LENGTH"
+      "frontView": "FRONT VIEW - FINISHED LENGTH",
+      "notesTitle": "NOTES"
     }
   }
 }

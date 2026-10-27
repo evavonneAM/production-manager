@@ -2,6 +2,7 @@
 // and the app's translations, so each PDF prints in the language the person uses the app in.
 import type { jsPDF as JsPDF } from 'jspdf'
 import i18n from '../i18n'
+import { supabase } from './supabase'
 
 /** Looks up a translation; `opts` fills {{placeholders}} and picks plural forms (count). */
 export type PdfT = (key: string, opts?: Record<string, unknown>) => string
@@ -49,5 +50,27 @@ export async function pdfFont(doc: JsPDF): Promise<string> {
     return PDF_FONT
   } catch {
     return 'helvetica'
+  }
+}
+
+/**
+ * Translates free text the person typed (notes) into the PDF's language with DeepL, via the
+ * translate-text Edge Function. Each result says whether it was actually translated. If the
+ * translation can't be reached (offline, signed out), the original text comes back unchanged.
+ */
+export async function translateForPdf(texts: string[], lng: string): Promise<{ text: string; translated: boolean }[]> {
+  const original = texts.map((text) => ({ text, translated: false }))
+  const todo = texts.map((s, i) => ({ s: s.trim(), i })).filter(({ s }) => s)
+  if (!todo.length || !supabase) return original
+  try {
+    const { data, error } = await supabase.functions.invoke('translate-text', { body: { texts: todo.map(({ s }) => s), target: lng } })
+    if (error || !data?.ok) return original
+    const out = [...original]
+    todo.forEach(({ i }, k) => {
+      if (data.detected[k] !== lng) out[i] = { text: data.texts[k], translated: true }
+    })
+    return out
+  } catch {
+    return original
   }
 }

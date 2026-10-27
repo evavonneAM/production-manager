@@ -611,7 +611,10 @@
     "bottomHelp": "Cierre en la tapa de abajo. La tapa de arriba como siempre; el costado es el perímetro completo más ½\" + ½\" para su única costura. Calcula la tapa de abajo con el cierre.",
     "topPlate": "Tapa de arriba",
     "bottomHalves": "Tapa de abajo (con cierre)",
-    "calcPlateWithZipper": "Calcular la tapa con el cierre"
+    "calcPlateWithZipper": "Calcular la tapa con el cierre",
+    "notes": "Notas",
+    "notesHelp": "Se imprimen en la orden de trabajo. Escribe en cualquier idioma: se imprimen en el idioma de quien descarga el PDF.",
+    "notesPlaceholder": "Lo que el taller debe saber de este trabajo"
   },
   "leafBag": {
     "intro": "Ingresa la medida terminada de la bolsa de cada trabajo. Los cortes se actualizan mientras escribes.",
@@ -1079,7 +1082,9 @@
   },
   "pdf": {
     "common": {
-      "page": "Página {{n}} de {{total}}"
+      "page": "Página {{n}} de {{total}}",
+      "translated": "traducido",
+      "translatedNote": "Las notas se tradujeron automáticamente. Pregunta al gerente del proyecto si algo no está claro."
     },
     "plywood": {
       "title": "Corte de triplay",
@@ -1243,7 +1248,8 @@
       "backRest": "RESPALDO",
       "seamAllowance": "margen de costura de 1/2\"",
       "sewLine": "punteado = línea de costura ({{top}} / {{bottom}} x {{h}})",
-      "frontView": "VISTA DE FRENTE - LARGO TERMINADO"
+      "frontView": "VISTA DE FRENTE - LARGO TERMINADO",
+      "notesTitle": "NOTAS"
     }
   }
 }

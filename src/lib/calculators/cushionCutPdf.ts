@@ -13,11 +13,11 @@ import {
   type ZipperStyle,
 } from './cushionCut'
 import type { FabricPlan } from './fabricNesting'
-import { pdfFont, pdfLanguage, type PdfT } from '../pdfText'
+import { pdfFont, pdfLanguage, translateForPdf, type PdfT } from '../pdfText'
 
 export type FabricDirection = 'none' | 'railroaded' | 'upTheRoll'
 
-export type WorkOrderJob = { client: string; workOrder: string; sidemark: string }
+export type WorkOrderJob = { client: string; workOrder: string; sidemark: string; notes?: string }
 
 export type WorkOrderCushion = {
   name: string
@@ -38,7 +38,7 @@ export type WorkOrderCushion = {
 }
 
 /** The PDF's language and font. */
-export type CushionPdfOptions = { t: PdfT; lng: string; font: string }
+export type CushionPdfOptions = { t: PdfT; lng: string; font: string; notesTranslated?: boolean }
 
 // Letter, points.
 const PW = 612
@@ -121,7 +121,16 @@ export async function downloadCushionWorkOrder(job: WorkOrderJob, cushions: Work
   const blank = new jsPDF({ unit: 'pt', format: 'letter' })
   const font = await pdfFont(blank)
   const { t, lng } = pdfLanguage()
-  const doc = buildCushionWorkOrder(blank, job, cushions, fabrics, { t, lng, font })
+  // Notes are typed in whatever language the writer uses; print them in the reader's.
+  const [notes, ...foam] = await translateForPdf([job.notes ?? '', ...cushions.map((c) => c.foamNotes)], lng)
+  const mark = (n: { text: string; translated: boolean }) => (n.translated ? `${n.text} (${t('pdf.common.translated')})` : n.text)
+  const doc = buildCushionWorkOrder(
+    blank,
+    { ...job, notes: notes.text },
+    cushions.map((c, i) => ({ ...c, foamNotes: foam[i].text && mark(foam[i]) })),
+    fabrics,
+    { t, lng, font, notesTranslated: notes.translated },
+  )
   const base = [job.workOrder, job.sidemark || job.client].filter(Boolean).join(' - ') || t('pdf.cushion.defaultName')
   doc.save(`${t('pdf.cushion.fileName', { base })}.pdf`.replace(/[\\/:*?"<>|]/g, '-'))
 }
@@ -196,6 +205,33 @@ export function buildCushionWorkOrder(
   doc.setDrawColor(...RULE)
   doc.setLineWidth(0.8)
   y += 16
+
+  // Project manager's notes for the whole job.
+  const notes = job.notes?.trim()
+  if (notes) {
+    doc.setFont(font, 'normal')
+    doc.setFontSize(10)
+    const lines = doc.splitTextToSize(clean(notes), CW - 20) as string[]
+    const h = 26 + lines.length * 13 + (o.notesTranslated ? 13 : 0)
+    doc.setFillColor(255, 248, 230)
+    doc.setDrawColor(...RULE)
+    doc.rect(M, y, CW, h, 'FD')
+    doc.setFont(font, 'bold')
+    doc.setFontSize(7.5)
+    doc.setTextColor(...MUTED)
+    doc.text(t('pdf.cushion.notesTitle'), M + 10, y + 14)
+    doc.setFont(font, 'normal')
+    doc.setFontSize(10)
+    doc.setTextColor(...INK)
+    lines.forEach((l, k) => doc.text(l, M + 10, y + 28 + k * 13))
+    if (o.notesTranslated) {
+      doc.setFontSize(7.5)
+      doc.setTextColor(...MUTED)
+      doc.text(t('pdf.common.translatedNote'), M + 10, y + 28 + lines.length * 13)
+    }
+    y += h + 16
+  }
+
   doc.setDrawColor(...RULE)
   doc.setLineWidth(1)
   doc.line(M, y, M + CW, y)
@@ -511,7 +547,7 @@ function drawCushion(doc: JsPDF, c: WorkOrderCushion, i: number, top: number, o:
     doc.setFont(font, 'bold')
     // Shrink long sizes to fit the column.
     let fs = 10
-    while (fs > 7 && doc.getTextWidth(clean(s)) > rx + rw - cols[2] - 8) doc.setFontSize(--fs)
+    while (fs > 6 && doc.getTextWidth(clean(s)) > rx + rw - cols[2] - 8) doc.setFontSize(--fs)
     doc.text(clean(s), cols[2] + 5, ry + 14)
     ry += 20
   })

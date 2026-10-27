@@ -116,7 +116,7 @@ const blank = (): Row => ({
   fromEstimate: false,
   cornerSeams: false,
 })
-const blankJob = (): WorkOrderJob => ({ client: '', workOrder: '', sidemark: '' })
+const blankJob = (): WorkOrderJob => ({ client: '', workOrder: '', sidemark: '', notes: '' })
 
 function loadDraft(): Draft {
   try {
@@ -440,6 +440,16 @@ export default function CushionCut() {
                 </Col>
               ))}
             </Row>
+            <Form.Item label={t('cushionCut.notes')} htmlFor="job-notes" extra={t('cushionCut.notesHelp')} style={{ marginBottom: 8 }}>
+              <Input.TextArea
+                id="job-notes"
+                autoSize={{ minRows: 2, maxRows: 8 }}
+                maxLength={2000}
+                value={job.notes}
+                onChange={(e) => setJob((j) => ({ ...j, notes: e.target.value }))}
+                placeholder={t('cushionCut.notesPlaceholder')}
+              />
+            </Form.Item>
           </Form>
           <Typography.Text type="secondary">{t('cushionCut.jobHelp')}</Typography.Text>
         </Card>
