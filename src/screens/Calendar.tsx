@@ -20,6 +20,7 @@ import {
 import type { ProjectStatus } from '../lib/types'
 import { localized } from '../lib/i18nText'
 import { FullScreenLoader } from '../components/FullScreenLoader'
+import { canSeePage } from '../lib/openPages'
 
 const DAY = 86400e3
 const toUTC = (isoDate: string) => new Date(isoDate + 'T00:00:00Z').getTime()
@@ -59,6 +60,8 @@ export default function Calendar() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const isAdmin = profile?.role === 'admin'
+  // Calendar is open to the whole team; projects and priority may not be yet.
+  const canOpenProjects = canSeePage(profile, '/projects')
   // Phones: day cells are too narrow for titles, so they show coloured marks and a tap opens the day.
   const compact = !Grid.useBreakpoint().sm
 
@@ -205,7 +208,7 @@ export default function Calendar() {
           <Button icon={<SyncOutlined spin={syncing} />} disabled={syncing} onClick={() => void onSync()} aria-label={t('calendar.syncNow')}>
             {!compact && (syncing ? t('materials.syncing') : t('calendar.syncNow'))}
           </Button>
-          <Link to="/priority">{t('priority.title')} →</Link>
+          {canSeePage(profile, '/priority') && <Link to="/priority">{t('priority.title')} →</Link>}
         </Space>
       </div>
 
@@ -291,7 +294,7 @@ export default function Calendar() {
             perDay={mode === 'week' ? 8 : 3}
             compact={compact}
             inMonth={(d) => mode === 'week' || new Date(d).getUTCMonth() === new Date(anchor).getUTCMonth()}
-            onBarClick={(p) => (isAdmin ? setEditing(p) : navigate(`/projects/${p.id}`))}
+            onBarClick={(p) => (isAdmin ? setEditing(p) : canOpenProjects && navigate(`/projects/${p.id}`))}
             onApptClick={setOpenAppt}
             onMore={setOpenDay}
           />
@@ -332,7 +335,7 @@ export default function Calendar() {
       )}
 
       <Modal open={!!openAppt} onCancel={() => setOpenAppt(null)} footer={null} title={openAppt?.title}>
-        {openAppt && <ApptDetails appt={openAppt} />}
+        {openAppt && <ApptDetails appt={openAppt} canOpenProject={canOpenProjects} />}
       </Modal>
 
       <Modal
@@ -420,7 +423,7 @@ function ItemChip({ item, onClick, large }: { item: DayItem; onClick: () => void
   )
 }
 
-function ApptDetails({ appt }: { appt: ErAppointment }) {
+function ApptDetails({ appt, canOpenProject }: { appt: ErAppointment; canOpenProject: boolean }) {
   const { t, i18n } = useTranslation()
   const { token } = theme.useToken()
   const day = new Date(appt.starts_at).toLocaleDateString(i18n.language, {
@@ -449,7 +452,7 @@ function ApptDetails({ appt }: { appt: ErAppointment }) {
           {appt.description}
         </Typography.Paragraph>
       )}
-      {appt.project_id && <Link to={`/projects/${appt.project_id}`}>{t('calendar.openProject')} →</Link>}
+      {appt.project_id && canOpenProject && <Link to={`/projects/${appt.project_id}`}>{t('calendar.openProject')} →</Link>}
       {appt.er_url && (
         <a href={appt.er_url} target="_blank" rel="noreferrer">
           {t('calendar.openInEr')} →
