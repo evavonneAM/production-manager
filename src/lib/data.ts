@@ -623,6 +623,40 @@ export async function getCalendarEvents(fromIso: string, toIso: string): Promise
   return (data ?? []) as CalendarEvent[]
 }
 
+export type ErBusiness = 'AM' | 'HOV' | 'RHU'
+
+/** An appointment copied from one of the Estimate Rocket calendars. */
+export type ErAppointment = {
+  id: string
+  business: ErBusiness
+  title: string
+  starts_at: string
+  ends_at: string | null
+  all_day: boolean
+  location: string | null
+  description: string | null
+  er_url: string | null
+  project_id: string | null
+}
+
+/** Estimate Rocket appointments in a date window. */
+export async function getErAppointments(fromIso: string, toIso: string): Promise<ErAppointment[]> {
+  const { data, error } = await client()
+    .from('er_appointments')
+    .select('id, business, title, starts_at, ends_at, all_day, location, description, er_url, project_id')
+    .gte('starts_at', fromIso)
+    .lte('starts_at', toIso)
+    .order('starts_at')
+  if (error) throw error
+  return (data ?? []) as ErAppointment[]
+}
+
+/** Re-read the Estimate Rocket calendars now (the Calendar screen's Sync button). */
+export async function syncErCalendarsNow(): Promise<ClockResult> {
+  const { error } = await client().functions.invoke('er-calendar-sync', { body: {} })
+  return { error: error ? error.message : null }
+}
+
 /** Fire-and-forget Google Calendar sync (after schedule edits). */
 export function requestGcalSync(): void {
   void client().functions.invoke('gcal-sync', { body: {} }).catch(() => {})

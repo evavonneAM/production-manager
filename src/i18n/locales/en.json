@@ -386,7 +386,19 @@
     "viewHint": "Tap a bar to open the project. Overdue items show a red dot.",
     "appointments": "Appointments",
     "unscheduled": "Unscheduled",
-    "syncNow": "Sync calendar"
+    "syncNow": "Sync calendar",
+    "show": "Show",
+    "showAll": "Everything",
+    "showProduction": "Production only",
+    "showEr": "Estimate Rocket deadlines only",
+    "showBusiness": "Deadlines: {{business}}",
+    "erKey": "{{business}} deadlines",
+    "productionKey": "Production schedule",
+    "erHint": "Coloured marks are project deadlines from Estimate Rocket (red dot = past due): tap one to see it.",
+    "openProject": "Open project",
+    "erReadOnly": "Deadline from Estimate Rocket. To change it, edit it there; the app updates every 15 minutes.",
+    "more": "+{{count}} more",
+    "openInEr": "Open in Estimate Rocket"
   },
   "priority": {
     "title": "Priority Board",
