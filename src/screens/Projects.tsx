@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Alert, Badge, Button, Card, Empty, Input, Space, Tag, Typography, theme } from 'antd'
+import { SyncOutlined } from '@ant-design/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
 import { getProjectsOverview, requestErResync } from '../lib/data'
 import { ALL_PROJECT_STATUSES } from '../lib/status'
 import { formatMinutes } from '../lib/format'
-import { StatusBadge, EmptyState, ErrorState } from '../components/ui'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import type { ProjectOverview, ProjectStatus } from '../lib/types'
 
@@ -18,8 +19,18 @@ function materialsDot(project: ProjectOverview): 'gray' | 'red' | 'green' {
   return mats.every((m) => m.is_arrived) ? 'green' : 'red'
 }
 
+const PROJECT_TAG_COLOR: Record<ProjectStatus, string> = {
+  estimate: 'default',
+  scheduled: 'purple',
+  in_progress: 'processing',
+  on_hold: 'orange',
+  complete: 'success',
+  delivered: 'cyan',
+}
+
 function ProjectCard({ project }: { project: ProjectOverview }) {
   const { t } = useTranslation()
+  const { token } = theme.useToken()
   const jobCount = project.jobs.length
 
   // Per-stage breakdown: count jobs by their current department.
@@ -33,47 +44,56 @@ function ProjectCard({ project }: { project: ProjectOverview }) {
   }, [project.jobs])
 
   const dot = materialsDot(project)
-  const dotColor =
-    dot === 'green' ? 'bg-green-500' : dot === 'red' ? 'bg-red-500' : 'bg-slate-600'
+  const dotStatus = dot === 'green' ? 'success' : dot === 'red' ? 'error' : 'default'
 
   return (
-    <Link
-      to={`/projects/${project.id}`}
-      className="block rounded-xl border border-slate-800 bg-slate-800/40 p-4 transition hover:border-slate-700 hover:bg-slate-800/70"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate font-semibold">{project.name}</h3>
-          <p className="truncate text-sm text-slate-400">
-            {project.work_order_number ? `${project.work_order_number} · ` : ''}
-            {project.client_name}
-          </p>
+    <Link to={`/projects/${project.id}`} style={{ display: 'block', color: 'inherit' }}>
+      <Card hoverable size="small" styles={{ body: { padding: 14 } }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <Typography.Text strong ellipsis style={{ display: 'block', fontSize: 16 }}>
+              {project.name}
+            </Typography.Text>
+            <Typography.Text type="secondary" ellipsis style={{ display: 'block', fontSize: 13 }}>
+              {project.work_order_number && (
+                <>
+                  <span style={{ fontFamily: token.fontFamilyCode, color: token.colorPrimary }}>
+                    {project.work_order_number}
+                  </span>
+                  {' · '}
+                </>
+              )}
+              {project.client_name}
+            </Typography.Text>
+          </div>
+          <Tag color={PROJECT_TAG_COLOR[project.status]} style={{ marginInlineEnd: 0 }}>
+            {t(`projectStatus.${project.status}`)}
+          </Tag>
         </div>
-        <StatusBadge status={project.status} />
-      </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
-        <span>{t('projects.jobsCount', { count: jobCount })}</span>
-        <span className="flex items-center gap-1.5">
-          <span className={`h-2 w-2 rounded-full ${dotColor}`} />
-          {t('projects.materials')}
-        </span>
-        <span>{formatMinutes(project.total_labor_minutes, { h: t('units.h'), m: t('units.m') })}</span>
-      </div>
+        <Space size={16} wrap style={{ marginTop: 10, fontSize: 13, color: token.colorTextSecondary }}>
+          <span>{t('projects.jobsCount', { count: jobCount })}</span>
+          <Badge status={dotStatus} text={<span style={{ color: token.colorTextSecondary, fontSize: 13 }}>{t('projects.materials')}</span>} />
+          <span>{formatMinutes(project.total_labor_minutes, { h: t('units.h'), m: t('units.m') })}</span>
+        </Space>
 
-      {breakdown.length > 0 && (
-        <p className="mt-2 text-xs text-slate-500">
-          {breakdown
-            .map(([dept, count]) => t('projects.inStage', { count, dept }))
-            .join(' · ')}
-        </p>
-      )}
+        {breakdown.length > 0 && (
+          <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {breakdown.map(([dept, count]) => (
+              <Tag key={dept} bordered={false} style={{ marginInlineEnd: 0 }}>
+                {t('projects.inStage', { count, dept })}
+              </Tag>
+            ))}
+          </div>
+        )}
+      </Card>
     </Link>
   )
 }
 
 export default function Projects() {
   const { t } = useTranslation()
+  const { token } = theme.useToken()
   const { profile } = useAuth()
   const [reloadKey, setReloadKey] = useState(0)
   const { data, loading, error } = useAsync(getProjectsOverview, [reloadKey])
@@ -130,41 +150,48 @@ export default function Projects() {
     return sorted
   }, [data, search, statusFilter, sort])
 
-  const selectClass =
-    'rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-2 text-sm text-slate-200 focus:border-amber-500 focus:outline-none'
+  // Native <select> (Ant Select has frozen in the owner's browser), styled like an Ant input.
+  const selectStyle = {
+    flex: 1,
+    height: 40,
+    padding: '0 10px',
+    fontSize: 14,
+    color: token.colorText,
+    background: token.colorBgContainer,
+    border: `1px solid ${token.colorBorder}`,
+    borderRadius: token.borderRadiusLG,
+  }
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{t('nav.projects')}</h1>
+    <div style={{ maxWidth: 768, width: '100%', margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+        <Typography.Title level={3} style={{ margin: 0 }}>
+          {t('nav.projects')}
+        </Typography.Title>
         {profile?.role === 'admin' && (
-          <div className="flex items-center gap-2">
-            {syncMsg && <span className="text-xs text-slate-400">{syncMsg}</span>}
-            <button
-              type="button"
-              disabled={syncing}
-              onClick={() => void resync()}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-50"
-            >
+          <Space size={8}>
+            {syncMsg && <Typography.Text type="secondary" style={{ fontSize: 12 }}>{syncMsg}</Typography.Text>}
+            <Button icon={<SyncOutlined />} loading={syncing} onClick={() => void resync()}>
               {syncing ? t('materials.syncing') : t('projects.resyncEr')}
-            </button>
-          </div>
+            </Button>
+          </Space>
         )}
       </div>
 
-      <input
-        type="search"
+      <Input.Search
+        size="large"
+        allowClear
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder={t('projects.searchPlaceholder')}
-        className="mb-3 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
+        aria-label={t('projects.searchPlaceholder')}
       />
 
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div style={{ display: 'flex', gap: 8, margin: '10px 0 20px' }}>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'all')}
-          className={selectClass}
+          style={selectStyle}
         >
           <option value="all">{t('projects.allStatuses')}</option>
           {ALL_PROJECT_STATUSES.map((s) => (
@@ -173,11 +200,7 @@ export default function Projects() {
             </option>
           ))}
         </select>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as SortKey)}
-          className={selectClass}
-        >
+        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} style={selectStyle}>
           <option value="date">{t('projects.sortDate')}</option>
           <option value="priority">{t('projects.sortPriority')}</option>
           <option value="status">{t('projects.sortStatus')}</option>
@@ -186,16 +209,16 @@ export default function Projects() {
       </div>
 
       {loading && <FullScreenLoader />}
-      {error && <ErrorState text={t('common.error')} />}
+      {error && <Alert type="error" showIcon title={t('common.error')} />}
       {!loading && !error && projects.length === 0 && (
-        <EmptyState text={data?.length ? t('projects.noResults') : t('projects.noProjects')} />
+        <Empty description={data?.length ? t('projects.noResults') : t('projects.noProjects')} style={{ marginTop: 32 }} />
       )}
 
-      <div className="flex flex-col gap-3">
+      <Space orientation="vertical" size={10} style={{ width: '100%' }}>
         {projects.map((p) => (
           <ProjectCard key={p.id} project={p} />
         ))}
-      </div>
+      </Space>
     </div>
   )
 }
