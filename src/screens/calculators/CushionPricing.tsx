@@ -25,7 +25,7 @@ import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, ExportOutlined, PlusOu
 import { formatInches, parseInches } from '../../lib/calculators/inches'
 import { FOAM_TYPES } from '../../lib/foamTypes'
 import { SHEET_PRICE, fitsSheet, planPlywood, type Board } from '../../lib/calculators/plywoodNesting'
-import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, money, slashStyle, type PriceOption } from '../../lib/calculators/cushionPricing'
+import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, isWelted, money, slashStyle, type PriceOption } from '../../lib/calculators/cushionPricing'
 import { BOARD_INSET, DEFAULT_HEIGHT_DEDUCTION, DEFAULT_LENGTH_DEDUCTION, boardCuts, cushionCuts, wedgeCuts } from '../../lib/calculators/cushionCut'
 import {
   DEFAULT_END_ALLOWANCE,
@@ -290,8 +290,8 @@ function toBackSection(r: Row): Section | null {
  * the way around the board and wraps under it, 2W+2D+1 long × H+2½ wide. Welted styles
  * get cording around the top and the bottom edge.
  */
-function boardPieces(x: Section, welted: boolean): { pieces: CutPiece[]; cording: number } {
-  const cuts = boardCuts({ qty: x.qty, width: x.length, depth: x.d, height: x.h, cording: welted })
+function boardPieces(x: Section, welted: boolean, cornerSeams = false): { pieces: CutPiece[]; cording: number } {
+  const cuts = boardCuts({ qty: x.qty, width: x.length, depth: x.d, height: x.h, cording: welted, cornerSeams })
   return { pieces: piecesFor(cuts, ''), cording: cuts.cording }
 }
 
@@ -305,7 +305,7 @@ function boardPieces(x: Section, welted: boolean): { pieces: CutPiece[]; cording
 const planCache = new Map<string, FabricPlan>()
 
 /** The cut pieces and roll options for one part (seat or back) of a line. */
-function lineInputs(r: Row, x: Section, side: 'seat' | 'back'): { pieces: CutPiece[]; opts: FabricOptions } {
+function lineInputs(r: Row, x: Section, side: 'seat' | 'back', cornerSeams = false): { pieces: CutPiece[]; opts: FabricOptions } {
   const back = side === 'back'
   const style = back ? r.backStyle : r.erStyle
   const dir = back ? r.backDirection : r.erDirection
@@ -318,7 +318,7 @@ function lineInputs(r: Row, x: Section, side: 'seat' | 'back'): { pieces: CutPie
     const cuts = wedgeCuts({ qty: x.qty, length: x.length, height: x.d, bottom: x.h, top: x.top, lengthDeduction: DEFAULT_LENGTH_DEDUCTION, cording: isWelted(style) })
     pieces = piecesFor(cuts, '')
     cording = cuts.cording
-  } else if (r.plan === 'plywood') ({ pieces, cording } = boardPieces(x, isWelted(style)))
+  } else if (r.plan === 'plywood') ({ pieces, cording } = boardPieces(x, isWelted(style), cornerSeams))
   else {
     const cuts = cushionCuts({
       qty: x.qty,
@@ -328,6 +328,7 @@ function lineInputs(r: Row, x: Section, side: 'seat' | 'back'): { pieces: CutPie
       style: 'back',
       heightDeduction: DEFAULT_HEIGHT_DEDUCTION,
       cording: isWelted(style),
+      cornerSeams,
     })
     pieces = piecesFor(cuts, '')
     cording = cuts.cording
@@ -358,9 +359,19 @@ function cachedPlan(pieces: CutPiece[], opts: FabricOptions): FabricPlan {
   return plan
 }
 
-const linePlan = (r: Row, x: Section, side: 'seat' | 'back') => {
+/**
+ * The boxing is one strip. When it is longer than the roll is wide in the chosen direction,
+ * the estimate assumes it is seamed at the corners (which needs a manager's OK) and says so.
+ */
+const needsCornerSeams = (r: Row, x: Section, side: 'seat' | 'back') => {
   const { pieces, opts } = lineInputs(r, x, side)
-  return cachedPlan(pieces, opts)
+  return cachedPlan(pieces, opts).tooWide.some((p) => p.name === 'boxing')
+}
+
+const linePlan = (r: Row, x: Section, side: 'seat' | 'back'): FabricPlan & { cornerSeams?: boolean } => {
+  const corner = needsCornerSeams(r, x, side)
+  const { pieces, opts } = lineInputs(r, x, side, corner)
+  return corner ? { ...cachedPlan(pieces, opts), cornerSeams: true } : cachedPlan(pieces, opts)
 }
 
 const lineYards = (r: Row, x: Section, side: 'seat' | 'back') => linePlan(r, x, side).orderYards
@@ -391,7 +402,6 @@ const velcroPrice = (rows: Row['velcroRows'], length: number) =>
 
 /** Add-ons for one of this cushion, given its labor price each. */
 /** Welting comes with the sewing style: any "Welted" style gets it. */
-const isWelted = (style: string) => /welt/i.test(style)
 
 function sectionAddOns(r: Row, labor: number, welted: boolean): number {
   return (welted ? ADD_ONS.welting : 0) + (r.addTick ? ADD_ONS.outdoorTick : 0) + (r.com === 'com15' ? labor * (ADD_ONS.com15 - 1) : 0)
@@ -441,7 +451,7 @@ function erTextFor(r: Row, s: Section, more: { r: Row; s: Section }[] = [], desi
   let yardsTotal = lineYards(r, s, side)
   if (more.length) {
     // Every cushion of the line is laid out on one roll together.
-    const inputs = all.map((x) => lineInputs(x.r, x.s, side))
+    const inputs = all.map((x) => lineInputs(x.r, x.s, side, needsCornerSeams(x.r, x.s, side)))
     const opts = { ...inputs[0].opts, cordingInches: inputs.reduce((n, x) => n + x.opts.cordingInches, 0) }
     yardsTotal = cachedPlan(inputs.flatMap((x) => x.pieces), opts).orderYards
   }
@@ -548,7 +558,7 @@ export default function CushionPricing() {
         sides: formatInches(wedge ? x.h : x.d),
         height: formatInches(wedge ? x.d : x.h),
         topDepth: x.top !== undefined ? formatInches(x.top) : '',
-        cording: isWelted(picks.style),
+        sewingStyle: picks.style,
         repeat,
         halfDrop,
         fromEstimate: true,
@@ -680,7 +690,7 @@ export default function CushionPricing() {
       const name = r.name.trim() || t('cushionPricing.cushionN', { n: i + 1 })
       const b = toBackSection(r)
       const mk = (x: Section, side: 'seat' | 'back', fabric: string, label: string): Part => {
-        const { pieces, opts } = lineInputs(r, x, side)
+        const { pieces, opts } = lineInputs(r, x, side, needsCornerSeams(r, x, side))
         return { label, fabric: fabric.trim(), pieces: pieces.map((p) => ({ ...p, cushion: label })), opts, yards: cachedPlan(pieces, opts).orderYards }
       }
       const mainSide = r.part !== 'seat' ? 'back' : 'seat'
@@ -1321,8 +1331,9 @@ export default function CushionPricing() {
                   title: t('cushionPricing.fabric'),
                   key: 'yards',
                   align: 'right',
-                  render: (_: unknown, l) =>
-                    l.backYards ? (
+                  render: (_: unknown, l) => (
+                    <>
+                    {l.backYards ? (
                       <>
                         <div>{t('cushionPricing.ydSeat', { n: l.seatYards })}</div>
                         <div>{t('cushionPricing.ydBack', { n: l.backYards })}</div>
@@ -1336,7 +1347,14 @@ export default function CushionPricing() {
                           </Typography.Text>
                         )}
                       </>
-                    ),
+                    )}
+                    {(l.seatPlan.cornerSeams || l.backPlan?.cornerSeams) && (
+                      <Typography.Text type="warning" style={{ display: 'block', fontSize: 12 }}>
+                        {t('cushionPricing.cornerSeamsAssumed')}
+                      </Typography.Text>
+                    )}
+                    </>
+                  ),
                 },
               ]}
             />

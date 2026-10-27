@@ -82,6 +82,11 @@ export const SEWING_STYLES = [
   'Closed Corner/Self Welted',
 ] as const
 
+/** Any welted style (self or contrast) gets cording. */
+export const isWelted = (style: string) => /welt/i.test(style)
+/** Styles the cut formulas cover so far: boxed cushions. */
+export const isBoxedStyle = (style: string) => style.startsWith('Boxed/')
+
 /** Styles used to read "Boxed-Welted"; saved drafts get the current names (plain welted is self welted). */
 export const slashStyle = (style: string) =>
   style.replace(/^(Boxed|Knife Edge|Pocket Corner|Closed Corner)-/, '$1/').replace(/^(Boxed|Knife Edge|Pocket Corner|Closed Corner)\/Welted$/, '$1/Self Welted')

@@ -161,10 +161,11 @@ function loadCutDraft(): {
         sides: String(r.sides ?? ''),
         height: String(r.height ?? ''),
         topDepth: String(r.topDepth ?? ''),
-        style: r.style === 'wrap' ? 'wrap' : 'back',
+        style: r.style === 'wrap' || r.style === 'bottom' ? r.style : 'back',
         heightDeduction: typeof r.heightDeduction === 'number' ? r.heightDeduction : DEFAULT_HEIGHT_DEDUCTION,
         lengthDeduction: typeof r.lengthDeduction === 'number' ? r.lengthDeduction : DEFAULT_LENGTH_DEDUCTION,
-        cording: r.cording !== false,
+        // Cushion Cut keeps a sewing style now (welted styles get cording); older drafts kept a checkbox.
+        cording: typeof r.sewingStyle === 'string' ? /welt/i.test(r.sewingStyle) : r.cording !== false,
       }
     })
     return { cushions, directions }
@@ -461,6 +462,7 @@ function FabricYardageScreen() {
                             options={[
                               { value: 'back', label: t('fabricYardage.back') },
                               { value: 'wrap', label: t('fabricYardage.wrap') },
+                              { value: 'bottom', label: t('fabricYardage.bottom') },
                             ]}
                           />
                         </Form.Item>
