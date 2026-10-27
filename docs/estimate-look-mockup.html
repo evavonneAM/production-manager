@@ -1,13 +1,13 @@
 <title>Estimate Looks</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Mulish:wght@300;400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap">
 <style>
 /* Layout: three client-estimate "papers" shown one at a time via tabs; the page around them follows the viewer's theme, the paper is always paper. */
 :root{
   --bg:#ecebe7; --fg:#2b2a27; --muted:#77736b; --line:#d3d0c8; --tab:#ffffff;
   --paper:#ffffff; --paper-white:#ffffff; --ink:#1f1e1c; --ink-2:#5f5b54; --ink-3:#97928a; --rule:#d9d4ca; --stone:#f4f3f1;
   --serif:"Cormorant Garamond","Cormorant",Garamond,"Times New Roman",serif;
-  --sans:"Mulish","Helvetica Neue",Arial,sans-serif;
+  --sans:"Inter","Neue Montreal","Helvetica Neue",Arial,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#1c1b19;--fg:#ebe8e2;--muted:#a19c93;--line:#3a3833;--tab:#2a2926;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#1c1b19;--fg:#ebe8e2;--muted:#a19c93;--line:#3a3833;--tab:#2a2926;color-scheme:dark}
@@ -31,6 +31,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans)}
 .money{text-align:right;white-space:nowrap}
 .spec{color:var(--ink-2)}
 .spec span+span::before{content:" · ";color:var(--ink-3)}
+ul.spec{margin:4px 0 0;padding-left:16px;font-weight:300}
+ul.spec li{margin:1px 0}
+ul.spec b{font-weight:500;color:var(--ink)}
 .num{color:var(--ink-3)}
 /* ---------- A: Gallery ---------- */
 .A{padding:64px 72px 56px}
@@ -44,11 +47,11 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans)}
 .A .room{margin-top:48px}
 .A .room h3{font:300 24px/1 var(--serif);letter-spacing:.32em;text-transform:uppercase;text-align:left;margin:0 0 22px}
 .A .row{display:grid;grid-template-columns:1fr 60px 92px 100px;gap:14px;padding:16px 0;border-bottom:1px solid var(--rule);align-items:baseline}
-.A .row .nm{font:400 16px/1.25 var(--serif);color:var(--ink)}
+.A .row .nm{font:500 13px/1.3 var(--sans);color:var(--ink)}
 .A .row .spec{margin-top:4px}
 .A .row .q,.A .row .u{color:var(--ink-2);text-align:right}
 .A .hdr{border-bottom:1px solid var(--ink);padding:0 0 8px}
-.A .fabl{font:italic 400 15px/1.25 var(--serif);color:var(--ink)}
+.A .fabl{font:500 13px/1.3 var(--sans);color:var(--ink)}
 .A .sub{display:flex;justify-content:flex-end;gap:28px;padding:14px 0 0;align-items:baseline}
 .A .sub span:last-child{font:600 13px/1 var(--sans);min-width:100px;text-align:right}
 .A .summary{margin:56px auto 0;max-width:360px}
@@ -152,13 +155,13 @@ const D={
   site:["Lake house","Sam & Riley Park residence","1200 Shoreline Dr, Lake Oswego, OR"],
   rooms:[
    {name:"Living Room",sub:"5,840.00",items:[
-     {k:"drape",nm:"Ripplefold Drapery, Split Draw",spec:['Picture window 144" W × 96" H','80% fullness','Standard white lining included','Ceiling mount, existing cornice'],q:"1",u:"2,180.00",t:"2,180.00"},
-     {k:"rod",nm:"Ripplefold Track & Carriers",spec:['Ceiling mount, 150"','Brushed nickel'],q:"1",u:"412.00",t:"412.00"},
-     {k:"inst",nm:"Installation, Half Day",spec:['Drapery and hardware'],q:"1",u:"800.00",t:"800.00"}],
+     {k:"drape",nm:"Ripplefold Drapery, Split Draw",spec:[['Location','Picture window 144" W x 96" H'],['Style','Ripplefold, 80% fullness, split draw'],['Lining','Standard white (included)'],['Mounting','Ceiling, existing cornice']],q:"1",u:"2,180.00",t:"2,180.00"},
+     {k:"rod",nm:"Ripplefold Track & Carriers",spec:[['Mounting','Ceiling, 150"'],['Finish','Brushed nickel']],q:"1",u:"412.00",t:"412.00"},
+     {k:"inst",nm:"Installation, Half Day",spec:[['Covers','Drapery and hardware']],q:"1",u:"800.00",t:"800.00"}],
     fab:[["Kravet 34521 Linen, Natural","18 yd","136.00","2,448.00"]]},
    {name:"Kitchen Banquette",sub:"1,699.20",items:[
-     {k:"cush",nm:"Banquette Seat Cushion, Board Mounted",spec:['Boxed/Self Welted','75" W × 20" D × 3" H','High Density/Resiliency Foam','Velcro, 7 ft'],q:"1",u:"214.00",t:"214.00"},
-     {k:"pill",nm:"Back Pillows",spec:['Knife Edge/Contrast Welted','22" × 22"','25/75 Goose Down insert'],q:"4",u:"231.80",t:"927.20"}],
+     {k:"cush",nm:"Banquette Seat Cushion, Board Mounted",spec:[['Style','Boxed/Self Welted, 75" W x 20" D x 3" H'],['Insert','High Density/Resiliency Foam'],['Velcro','7 ft']],q:"1",u:"214.00",t:"214.00"},
+     {k:"pill",nm:"Back Pillows",spec:[['Style','Knife Edge/Contrast Welted, 22" x 22"'],['Insert','25/75 Goose Down']],q:"4",u:"231.80",t:"927.20"}],
     fab:[["Kravet 34521 Linen, Natural","3 yd","136.00","408.00"],["Schumacher 7120 Velvet, Ink (welt)","2 yd","75.00","150.00"],["Client's own fabric (COM), pillows","4 yd","","No charge"]]}
   ],
   total:"7,539.20",dep:"3,769.60"
@@ -176,7 +179,7 @@ const SVG={
  pill:'<path d="M12 14c8 3 22 3 30 0c-3 8-3 22 0 30c-8-3-22-3-30 0c3-8 3-22 0-30z"/>'
 };
 const e=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
-const spec=a=>'<div class="spec">'+a.map(x=>'<span>'+e(x)+'</span>').join('')+'</div>';
+const spec=a=>Array.isArray(a[0])?'<ul class="spec">'+a.map(x=>'<li><b>'+e(x[0])+':</b> '+e(x[1])+'</li>').join('')+'</ul>':'<div class="spec">'+a.map(x=>'<span>'+e(x)+'</span>').join('')+'</div>';
 const M=x=>x[0]=="N"?"—":"$"+x;
 const lines=a=>a.map(e).join('<br>');
 let HDR="B";

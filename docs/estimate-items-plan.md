@@ -64,6 +64,10 @@ Picture: https://claude.ai/artifact/YTWGY3t8CERq6smN6qLvPt (copy kept in
 - Columns Item / Qty / Each / Amount. Fabric lines use the same columns (yards in Qty,
   price per yard in Each); COM shows a dash for price and amount.
 - All dollar amounts in the same sans font; subtotals and total in bold.
+- Fonts (owner 2026-10-27, matching the catalog designer): **Inter** (stand-in for Neue
+  Montreal). Item names Inter Medium, one size up from body; body Inter Light. Item details
+  are bullets with a bold label ("Style:", "Insert:", "Velcro:"). The large "Estimate" and
+  room titles stay in the light serif.
 - Summary by room, total and estimated deposit at the end.
 - AM and RHU use the same look with their own logos.
 
