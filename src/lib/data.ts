@@ -635,6 +635,7 @@ export type ErAppointment = {
   all_day: boolean
   location: string | null
   description: string | null
+  er_url: string | null
   project_id: string | null
 }
 
@@ -642,7 +643,7 @@ export type ErAppointment = {
 export async function getErAppointments(fromIso: string, toIso: string): Promise<ErAppointment[]> {
   const { data, error } = await client()
     .from('er_appointments')
-    .select('id, business, title, starts_at, ends_at, all_day, location, description, project_id')
+    .select('id, business, title, starts_at, ends_at, all_day, location, description, er_url, project_id')
     .gte('starts_at', fromIso)
     .lte('starts_at', toIso)
     .order('starts_at')

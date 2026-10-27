@@ -3,7 +3,7 @@
 //  secret: ER_ICS_AM, ER_ICS_HOV, ER_ICS_RHU. A business with no link set is
 //  skipped. Appointments are upserted by (business, uid); ones that disappear
 //  from a feed are removed. Titles carrying a work-order number are linked to
-//  that project.
+//  that project. Note lines with money amounts are dropped (no-prices rule).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const CORS = {
@@ -31,7 +31,8 @@ function parseIcs(text: string): { events: VEvent[]; calTz: string | null } {
     const [name, ...paramParts] = line.slice(0, colon).split(';')
     const value = line.slice(colon + 1)
     if (!cur) {
-      if (name === 'X-WR-TIMEZONE') calTz = value.trim()
+      // ER feeds carry a VTIMEZONE block; its zone is the account's zone.
+      if (name === 'X-WR-TIMEZONE' || (name === 'TZID' && !calTz)) calTz = value.trim()
       continue
     }
     const params: Record<string, string> = {}
@@ -46,6 +47,14 @@ function parseIcs(text: string): { events: VEvent[]; calTz: string | null } {
 }
 
 const unescape = (s: string) => s.replace(/\\n/gi, '\n').replace(/\\([,;\\])/g, '$1').trim()
+
+/** ER fills a blank address with its form labels ("Address:, City:, …"); treat that as none. */
+function cleanLocation(raw: string | undefined): string | null {
+  if (!raw) return null
+  const loc = unescape(raw)
+  const blank = loc.replace(/(Address|City|State|Zip Code):/gi, '').replace(/[\s,]/g, '') === ''
+  return blank ? null : loc
+}
 
 /** Offset (ms) of a named time zone at a given UTC instant. */
 function tzOffset(tz: string, utcMs: number): number {
@@ -86,7 +95,7 @@ Deno.serve(async (req) => {
 
   try {
     const supa = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
-    const defaultTz = Deno.env.get('ER_TZ') ?? 'America/New_York'
+    const defaultTz = Deno.env.get('ER_TZ') ?? 'America/Los_Angeles'
 
     const { data: projects } = await supa.from('projects').select('id, work_order_number')
     const woMatchers = (projects ?? [])
@@ -115,7 +124,13 @@ Deno.serve(async (req) => {
         if (!uid || !start) continue
         const end = toIso(ev.DTEND, tz)
         const title = unescape(ev.SUMMARY?.value ?? '') || '(untitled)'
-        const description = ev.DESCRIPTION ? unescape(ev.DESCRIPTION.value) : null
+        // No-prices rule (as in er-intake): drop any note line carrying a money amount.
+        const description =
+          (ev.DESCRIPTION ? unescape(ev.DESCRIPTION.value) : '')
+            .split('\n')
+            .filter((l) => !/\$\s?\d/.test(l))
+            .join('\n')
+            .trim() || null
         const text = `${title} ${description ?? ''}`.toUpperCase()
         rows.push({
           business,
@@ -124,8 +139,9 @@ Deno.serve(async (req) => {
           starts_at: start.iso,
           ends_at: end?.iso ?? null,
           all_day: start.allDay,
-          location: ev.LOCATION ? unescape(ev.LOCATION.value) || null : null,
+          location: cleanLocation(ev.LOCATION?.value),
           description,
+          er_url: ev.URL?.value.trim() || null,
           project_id: woMatchers.find((m) => text.includes(m.code))?.project_id ?? null,
         })
       }

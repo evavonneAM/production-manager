@@ -13,6 +13,8 @@ create table er_appointments (
   all_day     boolean not null default false,
   location    text,
   description text,
+  -- The appointment's project page in Estimate Rocket.
+  er_url      text,
   -- Set when the title/description carries a known work-order number.
   project_id  uuid references projects(id) on delete set null,
   created_at  timestamptz not null default now(),

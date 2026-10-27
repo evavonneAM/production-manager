@@ -396,7 +396,8 @@
     "erHint": "Las marcas de color son citas de Estimate Rocket: toca una para verla.",
     "openProject": "Abrir proyecto",
     "erReadOnly": "De Estimate Rocket. Para cambiarla, edítala allí; la app se actualiza cada 15 minutos.",
-    "more": "+{{count}} más"
+    "more": "+{{count}} más",
+    "openInEr": "Abrir en Estimate Rocket"
   },
   "priority": {
     "title": "Prioridades",

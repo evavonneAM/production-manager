@@ -398,7 +398,8 @@
     "erHint": "Цветные отметки — встречи из Estimate Rocket: нажмите, чтобы открыть.",
     "openProject": "Открыть проект",
     "erReadOnly": "Из Estimate Rocket. Изменять нужно там; приложение обновляется каждые 15 минут.",
-    "more": "ещё {{count}}"
+    "more": "ещё {{count}}",
+    "openInEr": "Открыть в Estimate Rocket"
   },
   "priority": {
     "title": "Приоритеты",

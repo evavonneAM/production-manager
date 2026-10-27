@@ -361,6 +361,18 @@ export default function Calendar() {
   )
 }
 
+/** Short title for a day cell: ER titles repeat the business code and status
+ *  ("AM Jane Doe Work Order - Pending Completion" -> "Jane Doe"). */
+function shortTitle(item: DayItem) {
+  if (item.kind !== 'er') return item.ev.title
+  const short = item.ev.title
+    .replace(/^(AM|HO|HOV|RU|RHU)\s+/, '')
+    .replace(/\s+-\s+Pending Completion$/i, '')
+    .replace(/\s+Work Order$/i, '')
+    .trim()
+  return short || item.ev.title
+}
+
 function timeLabel(iso: string, lang: string) {
   return new Date(iso).toLocaleTimeString(lang, { hour: 'numeric', minute: '2-digit' })
 }
@@ -395,7 +407,7 @@ function ItemChip({ item, onClick, large }: { item: DayItem; onClick: () => void
     >
       {item.kind === 'er' && large && <span style={{ fontWeight: 600, color }}>{item.ev.business}</span>}
       {time && <span style={{ color: token.colorTextSecondary, flexShrink: 0 }}>{time}</span>}
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.ev.title}</span>
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortTitle(item)}</span>
     </button>
   )
 }
@@ -430,6 +442,11 @@ function ApptDetails({ appt }: { appt: ErAppointment }) {
         </Typography.Paragraph>
       )}
       {appt.project_id && <Link to={`/projects/${appt.project_id}`}>{t('calendar.openProject')} →</Link>}
+      {appt.er_url && (
+        <a href={appt.er_url} target="_blank" rel="noreferrer">
+          {t('calendar.openInEr')} →
+        </a>
+      )}
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
         {t('calendar.erReadOnly')}
       </Typography.Text>
