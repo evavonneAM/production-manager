@@ -247,17 +247,26 @@ function toSection(r: Row): Section | null {
 
 /**
  * The card a joined card shares its line with: the nearest card above that is not itself
- * joined. A seat with a matching back can't lead a shared line. Null when the card stands alone.
+ * joined. Null when the card stands alone.
  */
 function leadOf(rows: Row[], i: number): number | null {
   if (i === 0) return null
   let j = i - 1
   while (j > 0 && rows[j].joinAbove) j--
-  const lead = rows[j]
-  return lead.part === 'seat' && lead.withBack ? null : j
+  return j
 }
 
-const joinedAt = (rows: Row[], i: number) => rows[i].joinAbove && leadOf(rows, i) !== null
+const isSet = (r: Row) => r.part === 'seat' && r.withBack
+
+/**
+ * A seat + back set leads a sectional line: cards joined under it can be seats, backs, wedges
+ * or sets of their own, sharing its seat picks and its back picks. Under any other card only
+ * single cushions can join.
+ */
+function joinedAt(rows: Row[], i: number): boolean {
+  const j = leadOf(rows, i)
+  return rows[i].joinAbove && j !== null && (isSet(rows[j]) || !isSet(rows[i]))
+}
 
 /** A joined card takes everything but its own name, sizes and Confirmed from the card it joins. */
 function effectiveRow(rows: Row[], i: number): Row {
@@ -265,7 +274,11 @@ function effectiveRow(rows: Row[], i: number): Row {
   const j = joinedAt(rows, i) ? leadOf(rows, i) : null
   if (j === null) return r
   const { id, name, qty, length, depth, thickness, wedgeTop, erConfirmed, joinAbove } = r
-  return { ...rows[j], id, name, qty, length, depth, thickness, wedgeTop, erConfirmed, joinAbove }
+  const own = { id, name, qty, length, depth, thickness, wedgeTop, erConfirmed, joinAbove }
+  if (!isSet(rows[j])) return { ...rows[j], ...own }
+  // Under a seat + back set the card also keeps what it is (seat, back, wedge, set) and its back's sizes.
+  const { part, withBack, backKind, backDepth, backThickness, backTop } = r
+  return { ...rows[j], ...own, part, withBack, backKind, backDepth, backThickness, backTop }
 }
 
 /**
@@ -443,6 +456,7 @@ const thickText = (x: Section) => (x.top !== undefined ? `${formatInches(x.h)}/$
 
 /** Estimate Rocket text for one cushion line (with its matching back when it has one). */
 function erTextFor(r: Row, s: Section, more: { r: Row; s: Section }[] = [], designer = ''): string {
+  if (more.length && isSet(r)) return erTextForSectional([{ r, s }, ...more], designer)
   const b = more.length ? null : toBackSection(r)
   const m = mainPicks(r)
   const side = r.part !== 'seat' ? 'back' : 'seat'
@@ -493,6 +507,71 @@ function erTextFor(r: Row, s: Section, more: { r: Row; s: Section }[] = [], desi
           weltFabric: welt(r.backStyle, r.backWeltFabric),
         }
       : undefined,
+  })
+}
+
+/**
+ * Estimate Rocket text for a sectional line: a seat + back set with cards joined under it.
+ * Every seat size is listed under Seat Dimensions and every back (or wedge) under Back
+ * Dimensions; seats and backs are each laid out on their own roll.
+ */
+function erTextForSectional(all: { r: Row; s: Section }[], designer: string): string {
+  const r = all[0].r
+  const seats: { r: Row; s: Section }[] = []
+  const backs: { r: Row; s: Section }[] = []
+  for (const x of all) {
+    if (x.r.part === 'seat') seats.push(x)
+    else backs.push(x)
+    const b = toBackSection(x.r)
+    if (b) backs.push({ r: x.r, s: b })
+  }
+  const size = (x: { r: Row; s: Section }) => ({ qty: x.s.qty, width: formatInches(x.s.length), depth: formatInches(x.s.d), height: thickText(x.s), confirmed: x.r.erConfirmed })
+  const yards = (xs: { r: Row; s: Section }[], side: 'seat' | 'back') => {
+    if (!xs.length) return 0
+    const inputs = xs.map((x) => lineInputs(x.r, x.s, side, needsCornerSeams(x.r, x.s, side)))
+    const opts = { ...inputs[0].opts, cordingInches: inputs.reduce((n, x) => n + x.opts.cordingInches, 0) }
+    return cachedPlan(inputs.flatMap((x) => x.pieces), opts).orderYards
+  }
+  const seatCount = seats.reduce((n, x) => n + x.s.qty, 0)
+  const backCount = backs.reduce((n, x) => n + x.s.qty, 0)
+  const seatYards = yards(seats, 'seat')
+  const backYards = yards(backs, 'back')
+  const welt = (style: string, f: string) => (isWelted(style) ? f : '')
+  return estimateRocketText({
+    qty: seatCount,
+    designer,
+    velcroRows: r.velcroRows,
+    sizes: seats.map(size),
+    width: '',
+    depth: '',
+    height: '',
+    confirmed: r.erConfirmed,
+    insertLabel: 'Seat Insert',
+    plan: r.plan,
+    sewingStyle: r.erStyle,
+    insert: r.insert,
+    foamType: r.foamType,
+    yardsPerItem: seatYards / Math.max(1, seatCount),
+    yardsTotal: seatYards,
+    fabric: r.erFabric,
+    direction: r.erDirection,
+    center: r.erCenter,
+    weltFabric: welt(r.erStyle, r.erWeltFabric),
+    back: {
+      qty: Math.max(1, backCount),
+      sizes: backs.map(size),
+      depth: '',
+      height: '',
+      sewingStyle: r.backStyle,
+      insert: r.backInsert,
+      foamType: r.backFoamType,
+      yardsPerItem: backYards / Math.max(1, backCount),
+      yardsTotal: backYards,
+      fabric: r.backFabric,
+      direction: r.backDirection,
+      center: r.backCenter,
+      weltFabric: welt(r.backStyle, r.backWeltFabric),
+    },
   })
 }
 
@@ -990,8 +1069,12 @@ export default function CushionPricing() {
         {rows.map((r, i) => {
           const s = sections[i]
           const joined = joinedAt(rows, i)
-          const canJoin = i > 0 && !(r.part === 'seat' && r.withBack) && leadOf(rows, i) !== null
-          const set = !joined && r.part === 'seat' && r.withBack
+          const lead = leadOf(rows, i)
+          const leadSet = lead !== null && isSet(rows[lead])
+          const canJoin = lead !== null && (leadSet || !isSet(r))
+          // Under a seat + back set a joined card still picks what it is and its back's sizes.
+          const shape = !joined || leadSet
+          const set = shape && isSet(r)
           const seat = partFields(r, r.part === 'seat' ? 'seat' : 'back')
           const back = set ? partFields(r, 'back') : null
           return (
@@ -1024,7 +1107,7 @@ export default function CushionPricing() {
                       />
                     </Form.Item>
                   </Col>
-                  {!joined && (<Col xs={24} sm={8}>
+                  {shape && (<Col xs={24} sm={8}>
                     <Form.Item label={t('cushionPricing.part')} style={{ marginBottom: 8 }}>
                       <Segmented
                         block
@@ -1101,7 +1184,7 @@ export default function CushionPricing() {
                       />
                     </Col>
                   )}
-                  {!joined && r.part === 'seat' && (
+                  {shape && r.part === 'seat' && (
                     <Col xs={24}>
                       <Checkbox checked={r.withBack} onChange={(e) => update(r.id, { withBack: e.target.checked })} style={{ marginBottom: 12 }}>
                         {t('cushionPricing.withBack')}
