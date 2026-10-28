@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Alert, Button, Card, Col, Empty, InputNumber, Modal, Row, Space, Statistic, Tabs, Tag, Typography, theme } from 'antd'
+import { ArrowLeftOutlined, ExportOutlined, PrinterOutlined, QrcodeOutlined } from '@ant-design/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
 import {
@@ -14,7 +16,6 @@ import {
   type MaterialCategory,
 } from '../lib/data'
 import { formatMinutes, formatDate } from '../lib/format'
-import { StatusBadge, EmptyState, ErrorState, Tabs } from '../components/ui'
 import { StagePipeline } from '../components/StagePipeline'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { QrModal } from '../components/QrModal'
@@ -23,13 +24,55 @@ import { FilesTab } from '../components/FilesTab'
 import { Appointments } from '../components/Appointments'
 import { localized } from '../lib/i18nText'
 import { getProjectMaterials } from '../lib/data'
-import type { JobWithStages } from '../lib/types'
+import type { JobWithStages, ProjectStatus } from '../lib/types'
+
+const PROJECT_TAG_COLOR: Record<ProjectStatus, string> = {
+  estimate: 'default',
+  scheduled: 'purple',
+  in_progress: 'processing',
+  on_hold: 'orange',
+  complete: 'success',
+  delivered: 'cyan',
+}
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  const { token } = theme.useToken()
+  return (
+    <Typography.Text
+      style={{ display: 'block', marginBottom: 8, fontSize: 12, fontWeight: 600, letterSpacing: 0.3, textTransform: 'uppercase', color: token.colorTextTertiary }}
+    >
+      {children}
+    </Typography.Text>
+  )
+}
+
+function JobCode({ code }: { code: string }) {
+  const { token } = theme.useToken()
+  return <span style={{ fontFamily: token.fontFamilyCode, fontWeight: 600, color: token.colorPrimary }}>{code}</span>
+}
+
+/** Native <select> (Ant Select has frozen in the owner's browser), styled like an Ant input. */
+function useSelectStyle() {
+  const { token } = theme.useToken()
+  return {
+    width: '100%',
+    height: 36,
+    padding: '0 10px',
+    fontSize: 14,
+    color: token.colorText,
+    background: token.colorBgContainer,
+    border: `1px solid ${token.colorBorder}`,
+    borderRadius: token.borderRadius,
+  }
+}
 
 /** Admin review of line items parsed from the ER proposal (S12): each
  *  suggestion becomes a task on a chosen job + stage, or gets dismissed. */
 function ErLineItemsPanel({ jobs, onJobsChanged }: { jobs: JobWithStages[]; onJobsChanged: () => void }) {
   const { t, i18n } = useTranslation()
   const { profile } = useAuth()
+  const { token } = theme.useToken()
+  const selectStyle = useSelectStyle()
   const { projectId } = useParams()
   const [reloadKey, setReloadKey] = useState(0)
   const { data: items } = useAsync(() => getErLineItems(projectId as string), [projectId, reloadKey])
@@ -103,91 +146,81 @@ function ErLineItemsPanel({ jobs, onJobsChanged }: { jobs: JobWithStages[]; onJo
 
   const selectedJob = jobs.find((j) => j.id === jobId)
 
+  const label = (text: string) => (
+    <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>
+      {text}
+    </Typography.Text>
+  )
+
   return (
-    <div className="mt-5 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-amber-300/80">
-        {t('erItems.title')}
-      </p>
-      {actionError && <p className="mb-2 text-sm text-red-400">{actionError}</p>}
-      <div className="flex flex-col gap-2">
+    <Card style={{ borderColor: token.colorPrimaryBorder }} styles={{ body: { padding: 16 } }}>
+      <SectionLabel>{t('erItems.title')}</SectionLabel>
+      {actionError && <Alert type="error" showIcon title={actionError} style={{ marginBottom: 8 }} />}
+      <Space orientation="vertical" size={8} style={{ width: '100%' }}>
         {open.map((it) => (
-          <div key={it.id} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-sm text-slate-100">
+          <Card key={it.id} size="small" styles={{ body: { padding: 12 } }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ minWidth: 0 }}>
+                <Typography.Text strong>
                   {it.name}
                   {it.quantity !== null && it.quantity > 1 && (
-                    <span className="ml-1.5 text-xs text-slate-400">×{it.quantity}</span>
+                    <Typography.Text type="secondary" style={{ marginLeft: 6, fontSize: 12 }}>
+                      ×{it.quantity}
+                    </Typography.Text>
                   )}
-                </p>
+                </Typography.Text>
                 {it.description && (
-                  <details className="mt-1">
-                    <summary className="cursor-pointer text-xs text-slate-500">{t('erItems.specs')}</summary>
-                    <p className="mt-1 whitespace-pre-line text-xs text-slate-400">{it.description}</p>
+                  <details style={{ marginTop: 4 }}>
+                    <summary style={{ cursor: 'pointer', fontSize: 12, color: token.colorTextTertiary }}>{t('erItems.specs')}</summary>
+                    <Typography.Paragraph type="secondary" style={{ whiteSpace: 'pre-line', fontSize: 12, margin: '4px 0 0' }}>
+                      {it.description}
+                    </Typography.Paragraph>
                   </details>
                 )}
               </div>
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void makeJob(it)}
-                  className="rounded-lg bg-green-600/80 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-green-500 disabled:opacity-50"
-                >
+              <Space orientation="vertical" size={6} style={{ flexShrink: 0, alignItems: 'stretch' }}>
+                <Button size="small" type="primary" style={{ background: token.colorSuccess }} disabled={busy} onClick={() => void makeJob(it)}>
                   {t('erItems.makeJob')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => startPlacing(it, 'task')}
-                  className="rounded-lg bg-amber-600/90 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-amber-500"
-                >
+                </Button>
+                <Button size="small" type="primary" onClick={() => startPlacing(it, 'task')}>
                   {t('erItems.makeTask')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => startPlacing(it, 'material')}
-                  className="rounded-lg bg-blue-600/80 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-500"
-                >
+                </Button>
+                <Button size="small" onClick={() => startPlacing(it, 'material')}>
                   {t('erItems.makeMaterial')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void dismiss(it)}
-                  className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-400 hover:bg-slate-800"
-                >
+                </Button>
+                <Button size="small" type="text" onClick={() => void dismiss(it)}>
                   {t('erItems.dismiss')}
-                </button>
-              </div>
+                </Button>
+              </Space>
             </div>
-          </div>
+          </Card>
         ))}
         {accepted.map((it) => (
-          <p key={it.id} className="px-1 text-xs text-green-300/80">
+          <Typography.Text key={it.id} type="success" style={{ fontSize: 12, paddingInline: 4 }}>
             ✓ {it.name} —{' '}
             {it.job_id ? (
-              <Link to={`/jobs/${it.job_id}`} className="hover:underline">
-                {t('erItems.jobCreated')}
-              </Link>
+              <Link to={`/jobs/${it.job_id}`}>{t('erItems.jobCreated')}</Link>
             ) : (
               t(it.material_id ? 'erItems.materialAdded' : 'erItems.taskCreated')
             )}
-          </p>
+          </Typography.Text>
         ))}
-      </div>
+      </Space>
 
-      {placing && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center"
-          onClick={() => setPlacing(null)}
-        >
-          <div
-            className="w-full max-w-md rounded-t-2xl bg-slate-900 p-4 sm:rounded-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="mb-1 text-lg font-semibold">
-              {t(mode === 'task' ? 'erItems.placeTitle' : 'erItems.placeMaterialTitle')}
-            </h2>
-            <p className="mb-3 text-sm text-slate-400">{placing.name}</p>
+      <Modal
+        open={!!placing}
+        title={t(mode === 'task' ? 'erItems.placeTitle' : 'erItems.placeMaterialTitle')}
+        onCancel={() => setPlacing(null)}
+        onOk={() => void place()}
+        okText={t(mode === 'task' ? 'createTask.create' : 'materials.add')}
+        cancelText={t('common.cancel')}
+        okButtonProps={{ disabled: mode === 'task' ? !stageId : !jobId }}
+        confirmLoading={busy}
+        destroyOnHidden
+      >
+        {placing && (
+          <Space orientation="vertical" size={10} style={{ width: '100%' }}>
+            <Typography.Text type="secondary">{placing.name}</Typography.Text>
             {jobs.length > 1 && (
               <select
                 value={jobId}
@@ -196,7 +229,7 @@ function ErLineItemsPanel({ jobs, onJobsChanged }: { jobs: JobWithStages[]; onJo
                   const j = jobs.find((x) => x.id === e.target.value)
                   setStageId(j ? currentStageOf(j) : '')
                 }}
-                className="mb-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+                style={selectStyle}
               >
                 {jobs.map((j) => (
                   <option key={j.id} value={j.id}>
@@ -206,13 +239,9 @@ function ErLineItemsPanel({ jobs, onJobsChanged }: { jobs: JobWithStages[]; onJo
               </select>
             )}
             {mode === 'task' ? (
-              <>
-                <label className="mb-1 block text-xs text-slate-500">{t('createTask.stage')}</label>
-                <select
-                  value={stageId}
-                  onChange={(e) => setStageId(e.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-                >
+              <div>
+                {label(t('createTask.stage'))}
+                <select value={stageId} onChange={(e) => setStageId(e.target.value)} style={selectStyle}>
                   {(selectedJob?.stages ?? [])
                     .slice()
                     .sort((a, b) => a.sequence - b.sequence)
@@ -222,58 +251,37 @@ function ErLineItemsPanel({ jobs, onJobsChanged }: { jobs: JobWithStages[]; onJo
                       </option>
                     ))}
                 </select>
-              </>
+              </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="mb-1 block text-xs text-slate-500">{t('materials.category')}</label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as MaterialCategory)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-                  >
+              <Row gutter={8}>
+                <Col span={12}>
+                  {label(t('materials.category'))}
+                  <select value={category} onChange={(e) => setCategory(e.target.value as MaterialCategory)} style={selectStyle}>
                     {(['fabric', 'com', 'insert', 'foam', 'hardware', 'other'] as const).map((c) => (
                       <option key={c} value={c}>
                         {t(`materialCategory.${c}`)}
                       </option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs text-slate-500">{t('materials.qty')}</label>
-                  <input
-                    type="number"
-                    min={0}
-                    step="any"
-                    value={qty}
-                    onChange={(e) => setQty(Number(e.target.value))}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-                  />
-                </div>
-              </div>
+                </Col>
+                <Col span={12}>
+                  {label(t('materials.qty'))}
+                  <InputNumber min={0} value={qty} onChange={(v) => setQty(Number(v ?? 0))} style={{ width: '100%' }} />
+                </Col>
+              </Row>
             )}
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setPlacing(null)}
-                className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                disabled={busy || (mode === 'task' ? !stageId : !jobId)}
-                onClick={() => void place()}
-                className="w-full rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
-              >
-                {busy ? t('common.saving') : t(mode === 'task' ? 'createTask.create' : 'materials.add')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+          </Space>
+        )}
+      </Modal>
+    </Card>
   )
+}
+
+const MATERIAL_TAG: Record<string, { color: string; key: string }> = {
+  arrived: { color: 'success', key: 'jobDetail.arrived' },
+  expected: { color: 'cyan', key: 'jobDetail.expected' },
+  ordered: { color: 'processing', key: 'jobDetail.ordered' },
+  notOrdered: { color: 'default', key: 'jobDetail.notOrdered' },
 }
 
 /** Read-only materials roll-up grouped by job (S05 Tab 3). */
@@ -281,53 +289,44 @@ function ProjectMaterials({ projectId }: { projectId: string }) {
   const { t, i18n } = useTranslation()
   const { data: groups, loading } = useAsync(() => getProjectMaterials(projectId), [projectId])
 
-  if (loading) return <p className="mt-5 text-sm text-slate-500">{t('common.loading')}</p>
+  if (loading) return <Typography.Text type="secondary">{t('common.loading')}</Typography.Text>
   const nonEmpty = (groups ?? []).filter((g) => g.materials.length > 0)
-  if (nonEmpty.length === 0) return <div className="mt-5"><EmptyState text={t('jobDetail.noMaterials')} /></div>
+  if (nonEmpty.length === 0) return <Empty description={t('jobDetail.noMaterials')} />
 
   return (
-    <div className="mt-5 flex flex-col gap-5">
+    <Space orientation="vertical" size={20} style={{ width: '100%' }}>
       {nonEmpty.map((g) => (
-        <div key={g.job_code}>
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-            <span className="font-mono text-amber-300/80">{g.job_code}</span> ·{' '}
-            {localized(g.job_name, g.job_name_i18n, i18n.language)}
-          </p>
-          <div className="flex flex-col gap-2">
-            {g.materials.map((m) => (
-              <div key={m.id} className="flex justify-between gap-2 rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5 text-sm">
-                <span className="min-w-0 truncate">
-                  {localized(m.name, m.name_i18n, i18n.language)}
-                  <span className="ml-2 text-xs text-slate-500">
-                    {m.quantity}{m.unit ? ` ${m.unit}` : ''}
-                    {m.supplier ? ` · ${m.supplier}` : ''}
-                  </span>
-                </span>
-                <span
-                  className={`shrink-0 text-xs ${
-                    m.is_arrived
-                      ? 'text-green-400'
-                      : m.category === 'com'
-                        ? 'text-teal-300'
-                        : m.is_ordered
-                          ? 'text-blue-300'
-                          : 'text-slate-500'
-                  }`}
-                >
-                  {m.is_arrived
-                    ? t('jobDetail.arrived')
-                    : m.category === 'com'
-                      ? t('jobDetail.expected')
-                      : m.is_ordered
-                        ? t('jobDetail.ordered')
-                        : t('jobDetail.notOrdered')}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <section key={g.job_code}>
+          <SectionLabel>
+            <JobCode code={g.job_code} /> · {localized(g.job_name, g.job_name_i18n, i18n.language)}
+          </SectionLabel>
+          <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+            {g.materials.map((m) => {
+              const state = m.is_arrived ? 'arrived' : m.category === 'com' ? 'expected' : m.is_ordered ? 'ordered' : 'notOrdered'
+              return (
+                <Card key={m.id} size="small" styles={{ body: { padding: '10px 12px' } }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <Typography.Text strong ellipsis style={{ display: 'block' }}>
+                        {localized(m.name, m.name_i18n, i18n.language)}
+                      </Typography.Text>
+                      <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                        {m.quantity}
+                        {m.unit ? ` ${m.unit}` : ''}
+                        {m.supplier ? ` · ${m.supplier}` : ''}
+                      </Typography.Text>
+                    </div>
+                    <Tag color={MATERIAL_TAG[state].color} style={{ marginInlineEnd: 0 }}>
+                      {t(MATERIAL_TAG[state].key)}
+                    </Tag>
+                  </div>
+                </Card>
+              )
+            })}
+          </Space>
+        </section>
       ))}
-    </div>
+    </Space>
   )
 }
 
@@ -335,18 +334,21 @@ function JobRow({ job }: { job: JobWithStages }) {
   const { t, i18n } = useTranslation()
   const current = job.stages.find((s) => s.id === job.current_stage_id)
   return (
-    <Link
-      to={`/jobs/${job.id}`}
-      className="block rounded-xl border border-slate-800 bg-slate-800/40 p-4 transition hover:border-slate-700 hover:bg-slate-800/70"
-    >
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <span className="font-mono font-semibold text-amber-300">{job.job_code}</span>
-        <span className="text-xs text-slate-400">
-          {current?.department?.name ?? t('jobDetail.complete')}
-        </span>
-      </div>
-      <p className="mb-3 truncate text-sm text-slate-300">{localized(job.name, job.name_i18n, i18n.language)}</p>
-      <StagePipeline stages={job.stages} />
+    <Link to={`/jobs/${job.id}`} style={{ display: 'block', color: 'inherit' }}>
+      <Card hoverable size="small" styles={{ body: { padding: 14 } }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <JobCode code={job.job_code} />
+            <Typography.Text type="secondary" ellipsis style={{ display: 'block', fontSize: 13 }}>
+              {localized(job.name, job.name_i18n, i18n.language)}
+            </Typography.Text>
+          </div>
+          <Tag style={{ marginInlineEnd: 0 }}>{current?.department?.name ?? t('jobDetail.complete')}</Tag>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <StagePipeline stages={job.stages} />
+        </div>
+      </Card>
     </Link>
   )
 }
@@ -364,7 +366,7 @@ export default function ProjectDetail() {
   const [showQr, setShowQr] = useState(false)
 
   if (loading) return <FullScreenLoader />
-  if (error || !project) return <ErrorState text={t('common.error')} />
+  if (error || !project) return <Alert type="error" showIcon title={t('common.error')} style={{ margin: 16 }} />
 
   const totalLabor = project.jobs.reduce((sum, j) => sum + j.total_labor_minutes, 0)
   const printAll = () =>
@@ -376,38 +378,41 @@ export default function ProjectDetail() {
     )
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6">
-      <Link to="/projects" className="text-sm text-slate-400 hover:text-slate-200">
-        ← {t('nav.projects')}
+    <div style={{ maxWidth: 768, width: '100%', margin: '0 auto', padding: '24px 16px' }}>
+      <Link to="/projects">
+        <Typography.Text type="secondary">
+          <ArrowLeftOutlined /> {t('nav.projects')}
+        </Typography.Text>
       </Link>
 
-      <div className="mt-3 mb-5">
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-semibold">{project.name}</h1>
-          <StatusBadge status={project.status} />
+      <div style={{ margin: '12px 0 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <Typography.Title level={3} style={{ margin: 0 }}>
+            {project.name}
+          </Typography.Title>
+          <Tag color={PROJECT_TAG_COLOR[project.status]} style={{ marginInlineEnd: 0, marginTop: 6 }}>
+            {t(`projectStatus.${project.status}`)}
+          </Tag>
         </div>
-        <p className="mt-1 text-sm text-slate-400">
-          {project.work_order_number ? `${project.work_order_number} · ` : ''}
-          {project.client_name}
-        </p>
-        <div className="mt-3 flex gap-2">
-          <button
-            type="button"
-            onClick={() => setShowQr(true)}
-            className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
-          >
-            {t('qr.projectQr')}
-          </button>
-          {project.jobs.length > 0 && (
-            <button
-              type="button"
-              onClick={printAll}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
-            >
-              {t('qr.printAll')}
-            </button>
+        <Typography.Text type="secondary" style={{ fontSize: 15 }}>
+          {project.work_order_number && (
+            <>
+              <JobCode code={project.work_order_number} />
+              {' · '}
+            </>
           )}
-        </div>
+          {project.client_name}
+        </Typography.Text>
+        <Space size={8} style={{ display: 'flex', marginTop: 12 }}>
+          <Button icon={<QrcodeOutlined />} onClick={() => setShowQr(true)}>
+            {t('qr.projectQr')}
+          </Button>
+          {project.jobs.length > 0 && (
+            <Button icon={<PrinterOutlined />} onClick={printAll}>
+              {t('qr.printAll')}
+            </Button>
+          )}
+        </Space>
       </div>
 
       {showQr && (
@@ -419,117 +424,119 @@ export default function ProjectDetail() {
       )}
 
       <Tabs
-        tabs={[
+        activeKey={tab}
+        onChange={setTab}
+        tabBarGutter={20}
+        items={[
           { key: 'overview', label: t('projectDetail.tabOverview') },
           { key: 'jobs', label: t('projectDetail.tabJobs') },
           { key: 'materials', label: t('jobDetail.tabMaterials') },
           { key: 'notes', label: t('jobDetail.tabNotes') },
           { key: 'files', label: t('jobDetail.tabFiles') },
         ]}
-        active={tab}
-        onChange={setTab}
       />
 
-      {tab === 'files' && (
-        <div className="mt-5">
-          <FilesTab projectId={project.id} />
-        </div>
-      )}
+      {tab === 'files' && <FilesTab projectId={project.id} />}
 
       {tab === 'materials' && <ProjectMaterials projectId={project.id} />}
 
-      {tab === 'notes' && (
-        <div className="mt-5">
-          <Notes scope={{ projectId: project.id }} />
-        </div>
-      )}
+      {tab === 'notes' && <Notes scope={{ projectId: project.id }} />}
 
       {tab === 'overview' && (
-        <ErLineItemsPanel jobs={project.jobs} onJobsChanged={() => setReloadKey((k) => k + 1)} />
-      )}
-      {/* The portal document shows prices — admins only (owner requirement). */}
-      {tab === 'overview' && profile?.role === 'admin' && project.er_portal_url && (
-        <a
-          href={project.er_portal_url}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-5 block rounded-lg border border-slate-700 px-3 py-2.5 text-center text-sm text-amber-300/90 hover:bg-slate-800"
-        >
-          {t('projectDetail.viewWorkOrder')} ↗
-        </a>
-      )}
-      {tab === 'overview' && (
-        <div className="mt-5">
-          <Appointments projectId={project.id} />
-        </div>
-      )}
-      {tab === 'overview' && (
-        <div className="mt-5 flex flex-col gap-5">
-          <dl className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <dt className="text-slate-500">{t('projectDetail.client')}</dt>
-              <dd className="text-slate-200">{project.client_name}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-500">{t('projectDetail.totalLabor')}</dt>
-              <dd className="text-slate-200">{formatMinutes(totalLabor, { h: t('units.h'), m: t('units.m') })}</dd>
-            </div>
+        <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+          <Row gutter={[12, 12]}>
+            <Col span={12}>
+              <Card size="small" style={{ height: '100%' }}>
+                <Statistic title={t('projectDetail.client')} value={project.client_name} styles={{ content: { fontSize: 16 } }} />
+              </Card>
+            </Col>
+            <Col span={12}>
+              <Card size="small" style={{ height: '100%' }}>
+                <Statistic
+                  title={t('projectDetail.totalLabor')}
+                  value={formatMinutes(totalLabor, { h: t('units.h'), m: t('units.m') })}
+                  styles={{ content: { fontSize: 16 } }}
+                />
+              </Card>
+            </Col>
             {project.scheduled_start && (
-              <div>
-                <dt className="text-slate-500">{t('projectDetail.scheduledStart')}</dt>
-                <dd className="text-slate-200">{formatDate(project.scheduled_start, i18n.language)}</dd>
-              </div>
+              <Col span={12}>
+                <Card size="small" style={{ height: '100%' }}>
+                  <Statistic
+                    title={t('projectDetail.scheduledStart')}
+                    value={formatDate(project.scheduled_start, i18n.language)}
+                    styles={{ content: { fontSize: 16 } }}
+                  />
+                </Card>
+              </Col>
             )}
             {project.scheduled_end && (
-              <div>
-                <dt className="text-slate-500">{t('projectDetail.scheduledEnd')}</dt>
-                <dd className="text-slate-200">{formatDate(project.scheduled_end, i18n.language)}</dd>
-              </div>
+              <Col span={12}>
+                <Card size="small" style={{ height: '100%' }}>
+                  <Statistic
+                    title={t('projectDetail.scheduledEnd')}
+                    value={formatDate(project.scheduled_end, i18n.language)}
+                    styles={{ content: { fontSize: 16 } }}
+                  />
+                </Card>
+              </Col>
             )}
-          </dl>
+          </Row>
 
-          {project.description && (
-            <div className="text-sm">
-              <p className="mb-1 text-slate-500">{t('projectDetail.scope')}</p>
-              <p className="whitespace-pre-line text-slate-300">{localized(project.description ?? '', project.description_i18n, i18n.language)}</p>
-            </div>
+          <ErLineItemsPanel jobs={project.jobs} onJobsChanged={() => setReloadKey((k) => k + 1)} />
+
+          {/* The portal document shows prices — admins only (owner requirement). */}
+          {profile?.role === 'admin' && project.er_portal_url && (
+            <Button block icon={<ExportOutlined />} href={project.er_portal_url} target="_blank" rel="noreferrer">
+              {t('projectDetail.viewWorkOrder')}
+            </Button>
           )}
 
-          <div>
-            <p className="mb-2 text-sm text-slate-500">{t('projectDetail.jobs')}</p>
-            <div className="flex flex-col gap-2">
+          <Appointments projectId={project.id} />
+
+          {project.description && (
+            <Card size="small" styles={{ body: { padding: 16 } }}>
+              <SectionLabel>{t('projectDetail.scope')}</SectionLabel>
+              <Typography.Paragraph style={{ whiteSpace: 'pre-line', margin: 0 }}>
+                {localized(project.description ?? '', project.description_i18n, i18n.language)}
+              </Typography.Paragraph>
+            </Card>
+          )}
+
+          <section>
+            <SectionLabel>{t('projectDetail.jobs')}</SectionLabel>
+            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
               {project.jobs.map((job) => {
                 const current = job.stages.find((s) => s.id === job.current_stage_id)
                 return (
-                  <Link
-                    key={job.id}
-                    to={`/jobs/${job.id}`}
-                    className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5 text-sm hover:bg-slate-800/70"
-                  >
-                    <span>
-                      <span className="font-mono font-medium text-amber-300">{job.job_code}</span>
-                      <span className="ml-2 text-slate-400">{localized(job.name, job.name_i18n, i18n.language)}</span>
-                    </span>
-                    <span className="shrink-0 text-xs text-slate-500">
-                      {current?.department?.name ?? t('jobDetail.complete')}
-                    </span>
+                  <Link key={job.id} to={`/jobs/${job.id}`} style={{ display: 'block', color: 'inherit' }}>
+                    <Card hoverable size="small" styles={{ body: { padding: '10px 12px' } }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                        <Typography.Text ellipsis style={{ minWidth: 0 }}>
+                          <JobCode code={job.job_code} />{' '}
+                          <Typography.Text type="secondary">{localized(job.name, job.name_i18n, i18n.language)}</Typography.Text>
+                        </Typography.Text>
+                        <Tag style={{ marginInlineEnd: 0 }}>{current?.department?.name ?? t('jobDetail.complete')}</Tag>
+                      </div>
+                    </Card>
                   </Link>
                 )
               })}
-            </div>
-          </div>
-        </div>
+            </Space>
+          </section>
+        </Space>
       )}
 
-      {tab === 'jobs' && (
-        <div className="mt-5 flex flex-col gap-3">
-          {project.jobs.length === 0 ? (
-            <EmptyState text={t('projectDetail.noJobs')} />
-          ) : (
-            project.jobs.map((job) => <JobRow key={job.id} job={job} />)
-          )}
-        </div>
-      )}
+      {tab === 'jobs' &&
+        (project.jobs.length === 0 ? (
+          <Empty description={t('projectDetail.noJobs')} />
+        ) : (
+          <Space orientation="vertical" size={10} style={{ width: '100%' }}>
+            {project.jobs.map((job) => (
+              <JobRow key={job.id} job={job} />
+            ))}
+          </Space>
+        ))}
     </div>
   )
 }
