@@ -76,7 +76,7 @@ type Draft = {
   channels: boolean
   tufting: boolean
   preshrink: boolean
-  /** Checkbox extras: trim, skirt, arm covers, barrel. */
+  /** Checkbox extras: trim, skirt, arm covers. */
   extras: Record<string, boolean>
   upcharges: Record<string, { qty: number | null; price: number | null }>
   fabric: string
@@ -120,7 +120,6 @@ function extraQty(d: Draft, id: string): number {
     return d.extras.band && inches !== null ? trimQty(inches, 'Foot') : 0
   }
   if (id === 'armcov') return d.extras.armcov && ARMED.has(d.typeId) ? 1 : 0
-  if (id === 'barrel') return d.extras.barrel && kind === 'chair' && d.typeId !== 'barrel' ? 1 : 0
   return 0
 }
 
@@ -741,9 +740,6 @@ export default function Upholstery() {
           />
           {ARMED.has(draft.typeId) && (
             <ExtraRow checked={!!draft.extras.armcov} onChange={(on) => setExtra('armcov', on)} label={t('upholstery.armCovers')} amount={priceOf('armcov')} />
-          )}
-          {type.kind === 'chair' && draft.typeId !== 'barrel' && (
-            <ExtraRow checked={!!draft.extras.barrel} onChange={(on) => setExtra('barrel', on)} label={upcharge('barrel').name} amount={priceOf('barrel')} />
           )}
           {est.service === 'slip' && (
             <ExtraRow

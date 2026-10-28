@@ -9,7 +9,7 @@ export type FurnitureType = { id: string; name: string; up: number; slip: number
 export const TYPES: FurnitureType[] = [
   { id: 'parsons', name: 'Parsons Chair', up: 225, slip: null, yd: 2, kind: 'chair', note: 'Usually a dining chair. Common upcharge: decorative band.' },
   { id: 'slipper', name: 'Slipper Chair', up: 725, slip: 545, yd: 4, kind: 'chair', note: 'No arms. Common upcharges: cushions, skirts, decorative band.' },
-  { id: 'arm', name: 'Arm Chair', up: 850, slip: 730, yd: 6, kind: 'chair', note: 'Common upcharges: cushions, barrel chair upcharge, arm covers, skirts, decorative band.' },
+  { id: 'arm', name: 'Arm Chair', up: 850, slip: 730, yd: 6, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band. Use Barrel / Tub Chair for a curved back.' },
   { id: 'club', name: 'Club Chair', up: 925, slip: null, yd: 6, kind: 'chair', note: 'Deep, low arm chair. Common upcharges: cushions, arm covers, skirts, nailheads.' },
   { id: 'barrel', name: 'Barrel / Tub Chair', up: 900, slip: null, yd: 6, kind: 'chair', note: 'Curved back that wraps into the arms. Common upcharges: cushions, channels, tufting.' },
   { id: 'swivel', name: 'Swivel Chair', up: 875, slip: null, yd: 6, kind: 'chair', note: 'On a swivel or glider base. Common upcharges: cushions, channels.' },
@@ -77,7 +77,6 @@ export type Upcharge = { id: string; name: string; price: number; unit: string; 
 
 export const UPCHARGES: Upcharge[] = [
   { id: 'armcov', name: 'Arm Covers', price: 67.5, unit: 'Pair', note: '' },
-  { id: 'barrel', name: 'Barrel Chair upcharge', price: 180, unit: 'Item', note: '' },
   { id: 'buttons', name: 'Buttons', price: 8.25, unit: 'Each', note: '' },
   { id: 'ties', name: 'Coordinating Ties', price: 45, unit: 'Pair', note: '' },
   { id: 'band', name: 'Decorative Banding', price: 7.5, unit: 'Foot', note: '' },
