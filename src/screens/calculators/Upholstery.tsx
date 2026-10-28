@@ -96,9 +96,9 @@ type Draft = {
   quotedRailroaded: boolean
 }
 
-const TRIM_NEEDS_HEIGHT = new Set(['arm', 'club', 'barrel', 'swivel', 'lounge', 'bergere'])
+const TRIM_NEEDS_HEIGHT = new Set(['arm', 'club', 'barrel', 'lounge', 'bergere'])
 /** Pieces with arms (arm covers apply). */
-const ARMED = new Set(['arm', 'club', 'barrel', 'swivel', 'lounge', 'wing', 'frenchW', 'bergere', 'love', 'sofa'])
+const ARMED = new Set(['arm', 'club', 'barrel', 'lounge', 'wing', 'frenchW', 'bergere', 'love', 'sofa'])
 /** Extras priced by a count the estimator types in. */
 const COUNTED: [string, 'each' | 'pair' | 'ft' | 'piece'][] = [
   ['buttons', 'each'],
@@ -120,6 +120,7 @@ function extraQty(d: Draft, id: string): number {
     return d.extras.band && inches !== null ? trimQty(inches, 'Foot') : 0
   }
   if (id === 'armcov') return d.extras.armcov && ARMED.has(d.typeId) ? 1 : 0
+  if (id === 'swivel') return d.extras.swivel && kind === 'chair' ? 1 : 0
   return 0
 }
 
@@ -224,6 +225,11 @@ function load<T extends object>(key: string, fallback: T): T {
 
 function loadDraft(): Draft {
   const d = load(DRAFT_KEY, blankDraft())
+  // "Swivel Chair" is now a checkbox on any chair: an old swivel draft becomes a Club Chair on a swivel base.
+  if (d.typeId === 'swivel') {
+    d.typeId = 'club'
+    d.extras = { ...d.extras, swivel: true }
+  }
   return {
     ...d,
     seatStyle: slashStyle(d.seatStyle),
@@ -740,6 +746,9 @@ export default function Upholstery() {
           />
           {ARMED.has(draft.typeId) && (
             <ExtraRow checked={!!draft.extras.armcov} onChange={(on) => setExtra('armcov', on)} label={t('upholstery.armCovers')} amount={priceOf('armcov')} />
+          )}
+          {type.kind === 'chair' && (
+            <ExtraRow checked={!!draft.extras.swivel} onChange={(on) => setExtra('swivel', on)} label={t('upholstery.swivel')} amount={priceOf('swivel')} />
           )}
           {est.service === 'slip' && (
             <ExtraRow
