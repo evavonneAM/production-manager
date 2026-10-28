@@ -140,14 +140,23 @@ export type EstimateRocketInput = EstimateRocketPart & {
   /** Custom sewn, or upholstered to plywood. */
   plan: 'sewn' | 'plywood'
   /** Several cushions on one line (same style, fill and fabric): one Dimensions entry each. */
-  sizes?: { qty: number; width: string; depth: string; height: string; confirmed: boolean }[]
+  sizes?: EstimateRocketSize[]
   /** Designer whose specifications these are; empty = "According To Design Specifications". */
   designer?: string
   /** Rows of Velcro on the base (0 = none). */
   velcroRows?: number
   /** A matching back cushion on the same line (seat + back set). */
-  back?: EstimateRocketPart & { depth: string; height: string }
+  back?: EstimateRocketPart & {
+    depth: string
+    height: string
+    /** Sectional line: how many backs, when it differs from the seats. */
+    qty?: number
+    /** Sectional line: every back size, listed under Back Dimensions (seats go in `sizes`). */
+    sizes?: EstimateRocketSize[]
+  }
 }
+
+export type EstimateRocketSize = { qty: number; width: string; depth: string; height: string; confirmed: boolean }
 
 const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up The Roll', railroaded: 'Railroaded' } as const
 
@@ -174,6 +183,10 @@ function fabricLines(label: string, qty: number, p: EstimateRocketPart): string[
 export function estimateRocketText(e: EstimateRocketInput): string {
   const dims = (label: string, d: string, h: string) =>
     `* **${label}:** QTY ${e.qty} @ ${e.width}W x ${d}D x ${h}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`
+  const list = (label: string, sizes: EstimateRocketSize[]) => [
+    `* **${label}:** `,
+    ...sizes.map((z) => ` * QTY ${z.qty} @ ${z.width}W x ${z.depth}D x ${z.height}H - ${z.confirmed ? 'Confirmed' : 'Not Confirmed'}`),
+  ]
   return [
     '____',
     `<center>_According To ${e.designer?.trim() ? `${e.designer.trim()} ` : ''}Design Specifications_</center>`,
@@ -181,9 +194,11 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     '#### Plan:',
     e.plan === 'plywood' ? '* **Custom Upholstered To Plywood**' : '* **Custom Sewn**',
     ...(e.back
-      ? [dims('Seat Dimensions', e.depth, e.height), dims('Back Dimensions', e.back.depth, e.back.height)]
+      ? e.sizes?.length
+        ? [...list('Seat Dimensions', e.sizes), ...list('Back Dimensions', e.back.sizes ?? [])]
+        : [dims('Seat Dimensions', e.depth, e.height), dims('Back Dimensions', e.back.depth, e.back.height)]
       : e.sizes?.length
-        ? ['* **Dimensions:** ', ...e.sizes.map((z) => ` * QTY ${z.qty} @ ${z.width}W x ${z.depth}D x ${z.height}H - ${z.confirmed ? 'Confirmed' : 'Not Confirmed'}`)]
+        ? list('Dimensions', e.sizes)
         : [dims('Dimensions', e.depth, e.height)]),
     '',
     '#### Style:',
@@ -197,6 +212,6 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     '',
     '#### Fabric:',
     ...fabricLines(e.back ? 'Seat' : 'Body', e.qty, e),
-    ...(e.back ? fabricLines('Back', e.qty, e.back) : []),
+    ...(e.back ? fabricLines('Back', e.back.qty ?? e.qty, e.back) : []),
   ].join('\n')
 }
