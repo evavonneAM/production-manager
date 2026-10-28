@@ -96,9 +96,9 @@ type Draft = {
   quotedRailroaded: boolean
 }
 
-const TRIM_NEEDS_HEIGHT = new Set(['arm', 'bergere'])
+const TRIM_NEEDS_HEIGHT = new Set(['arm', 'club', 'barrel', 'swivel', 'lounge', 'bergere'])
 /** Pieces with arms (arm covers apply). */
-const ARMED = new Set(['arm', 'wing', 'frenchW', 'bergere', 'love', 'sofa'])
+const ARMED = new Set(['arm', 'club', 'barrel', 'swivel', 'lounge', 'wing', 'frenchW', 'bergere', 'love', 'sofa'])
 /** Extras priced by a count the estimator types in. */
 const COUNTED: [string, 'each' | 'pair' | 'ft' | 'piece'][] = [
   ['buttons', 'each'],
@@ -120,7 +120,7 @@ function extraQty(d: Draft, id: string): number {
     return d.extras.band && inches !== null ? trimQty(inches, 'Foot') : 0
   }
   if (id === 'armcov') return d.extras.armcov && ARMED.has(d.typeId) ? 1 : 0
-  if (id === 'barrel') return d.extras.barrel && kind === 'chair' ? 1 : 0
+  if (id === 'barrel') return d.extras.barrel && kind === 'chair' && d.typeId !== 'barrel' ? 1 : 0
   return 0
 }
 
@@ -742,7 +742,7 @@ export default function Upholstery() {
           {ARMED.has(draft.typeId) && (
             <ExtraRow checked={!!draft.extras.armcov} onChange={(on) => setExtra('armcov', on)} label={t('upholstery.armCovers')} amount={priceOf('armcov')} />
           )}
-          {type.kind === 'chair' && (
+          {type.kind === 'chair' && draft.typeId !== 'barrel' && (
             <ExtraRow checked={!!draft.extras.barrel} onChange={(on) => setExtra('barrel', on)} label={upcharge('barrel').name} amount={priceOf('barrel')} />
           )}
           {est.service === 'slip' && (
