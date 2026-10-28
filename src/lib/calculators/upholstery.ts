@@ -12,7 +12,6 @@ export const TYPES: FurnitureType[] = [
   { id: 'arm', name: 'Arm Chair', up: 850, slip: 730, yd: 6, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band. Use Barrel / Tub Chair for a curved back.' },
   { id: 'club', name: 'Club Chair', up: 925, slip: null, yd: 6, kind: 'chair', note: 'Deep, low arm chair. Common upcharges: cushions, arm covers, skirts, nailheads.' },
   { id: 'barrel', name: 'Barrel / Tub Chair', up: 900, slip: null, yd: 6, kind: 'chair', note: 'Curved back that wraps into the arms. Common upcharges: cushions, channels, tufting.' },
-  { id: 'swivel', name: 'Swivel Chair', up: 875, slip: null, yd: 6, kind: 'chair', note: 'On a swivel or glider base. Common upcharges: cushions, channels.' },
   { id: 'lounge', name: 'Lounge Chair', up: 775, slip: null, yd: 6, kind: 'chair', note: 'Low, wide modern chair; prices vary widely, so check the history. Common upcharges: cushions.' },
   { id: 'accent', name: 'Small Accent / Side Chair', up: 375, slip: null, yd: 3, kind: 'chair', note: 'Small occasional, desk or vanity chair. Common upcharges: cushions, decorative band.' },
   { id: 'wing', name: 'Wingback Chair', up: 995, slip: 1095, yd: 8, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band.' },
@@ -37,7 +36,6 @@ export const TRIM_RULES: Record<string, { w: number; d: number; h: number; extra
   arm: { w: 3, d: 4, h: 2, extra: 0 },
   club: { w: 3, d: 4, h: 2, extra: 0 },
   barrel: { w: 3, d: 4, h: 2, extra: 0 },
-  swivel: { w: 3, d: 4, h: 2, extra: 0 },
   lounge: { w: 3, d: 4, h: 2, extra: 0 },
   accent: { w: 2, d: 2, h: 0, extra: 0 },
   wing: { w: 2, d: 2, h: 0, extra: 36 },
@@ -77,6 +75,8 @@ export type Upcharge = { id: string; name: string; price: number; unit: string; 
 
 export const UPCHARGES: Upcharge[] = [
   { id: 'armcov', name: 'Arm Covers', price: 67.5, unit: 'Pair', note: '' },
+  // Any chair can sit on a swivel or glider base: the old Swivel Chair price was $25 over an Arm Chair.
+  { id: 'swivel', name: 'Swivel / glider base', price: 25, unit: 'Item', note: '' },
   { id: 'buttons', name: 'Buttons', price: 8.25, unit: 'Each', note: '' },
   { id: 'ties', name: 'Coordinating Ties', price: 45, unit: 'Pair', note: '' },
   { id: 'band', name: 'Decorative Banding', price: 7.5, unit: 'Foot', note: '' },
