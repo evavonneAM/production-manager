@@ -641,6 +641,7 @@ export type Database = {
           category: Database["public"]["Enums"]["material_category"]
           created_at: string
           description: string | null
+          fulfillment: string | null
           id: string
           is_arrived: boolean
           is_ordered: boolean
@@ -652,6 +653,7 @@ export type Database = {
           product_url: string | null
           qr_code_uuid: string | null
           quantity: number
+          received_quantity: number | null
           sheet_row_ref: string | null
           specs: Json | null
           supplier: string | null
@@ -665,6 +667,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["material_category"]
           created_at?: string
           description?: string | null
+          fulfillment?: string | null
           id?: string
           is_arrived?: boolean
           is_ordered?: boolean
@@ -676,6 +679,7 @@ export type Database = {
           product_url?: string | null
           qr_code_uuid?: string | null
           quantity: number
+          received_quantity?: number | null
           sheet_row_ref?: string | null
           specs?: Json | null
           supplier?: string | null
@@ -689,6 +693,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["material_category"]
           created_at?: string
           description?: string | null
+          fulfillment?: string | null
           id?: string
           is_arrived?: boolean
           is_ordered?: boolean
@@ -700,6 +705,7 @@ export type Database = {
           product_url?: string | null
           qr_code_uuid?: string | null
           quantity?: number
+          received_quantity?: number | null
           sheet_row_ref?: string | null
           specs?: Json | null
           supplier?: string | null
@@ -947,6 +953,62 @@ export type Database = {
           work_order_number?: string | null
         }
         Relationships: []
+      }
+      supply_requests: {
+        Row: {
+          created_at: string
+          id: string
+          item: string
+          job_id: string | null
+          link: string | null
+          note: string | null
+          photo_paths: string[]
+          quantity: string | null
+          requested_by: string
+          status: string
+          status_at: string | null
+          status_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item: string
+          job_id?: string | null
+          link?: string | null
+          note?: string | null
+          photo_paths?: string[]
+          quantity?: string | null
+          requested_by?: string
+          status?: string
+          status_at?: string | null
+          status_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item?: string
+          job_id?: string | null
+          link?: string | null
+          note?: string | null
+          photo_paths?: string[]
+          quantity?: string | null
+          requested_by?: string
+          status?: string
+          status_at?: string | null
+          status_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supply_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
@@ -1352,6 +1414,10 @@ export type Database = {
         | "other"
         | "foam"
         | "hardware"
+        | "upholstery_supplies"
+        | "drapery_supplies"
+        | "drapery_hardware"
+        | "wood_shop"
       notification_type:
         | "task_assigned"
         | "task_assigned_dept"
@@ -1534,6 +1600,10 @@ export const Constants = {
         "other",
         "foam",
         "hardware",
+        "upholstery_supplies",
+        "drapery_supplies",
+        "drapery_hardware",
+        "wood_shop",
       ],
       notification_type: [
         "task_assigned",

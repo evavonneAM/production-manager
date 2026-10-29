@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getDepartments, setMaterialStatus, deleteMaterial, syncSheetsNow, type MaterialCategory } from '../lib/data'
+import { getDepartments, setMaterialStatus, deleteMaterial, syncSheetsNow, MATERIAL_CATEGORIES, type MaterialCategory } from '../lib/data'
 import { localized } from '../lib/i18nText'
 import { EmptyState } from './ui'
 import { MaterialModal } from './MaterialModal'
@@ -69,18 +69,19 @@ export function MaterialsTab({
     <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         {canManage ? (
-          <div className="flex flex-wrap gap-2">
-            {(['fabric', 'insert', 'foam', 'hardware'] as MaterialCategory[]).map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setModal({ open: true, material: null, category: cat })}
-                className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
-              >
-                + {t(`materialCategory.${cat}`)}
-              </button>
+          <select
+            value=""
+            aria-label={t('materials.add')}
+            onChange={(e) => e.target.value && setModal({ open: true, material: null, category: e.target.value as MaterialCategory })}
+            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-300"
+          >
+            <option value="">＋ {t('materials.add')}</option>
+            {MATERIAL_CATEGORIES.filter((cat) => cat !== 'com').map((cat) => (
+              <option key={cat} value={cat}>
+                {t(`materialCategory.${cat}`)}
+              </option>
             ))}
-          </div>
+          </select>
         ) : (
           <span />
         )}
@@ -148,7 +149,9 @@ export function MaterialsTab({
                 >
                   {m.is_arrived
                     ? t('jobDetail.arrived')
-                    : m.category === 'com'
+                    : (m.received_quantity ?? 0) > 0
+                      ? t('ordering.receivedOf', { got: m.received_quantity, qty: m.quantity, unit: m.unit ?? '' })
+                      : m.category === 'com'
                       ? t('jobDetail.expected')
                       : m.is_ordered
                         ? t('jobDetail.ordered')

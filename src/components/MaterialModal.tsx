@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { createMaterial, updateMaterial, type MaterialCategory } from '../lib/data'
+import { createMaterial, updateMaterial, type Fulfillment, type MaterialCategory } from '../lib/data'
 import { FOAM_TYPES } from '../lib/foamTypes'
 import type { Material } from '../lib/types'
 
@@ -31,6 +31,8 @@ const HARDWARE_VENDORS = [
   'Rejuvenation', 'Ronco', 'Miami Corp', 'Keystone', 'Flexco', 'Amazon', 'Trivantage',
   'Rowely Drapery Hardware', 'Alan Richard Textiles', 'Other',
 ]
+
+const SUPPLY_KINDS: MaterialCategory[] = ['upholstery_supplies', 'drapery_supplies', 'drapery_hardware', 'wood_shop', 'hardware']
 
 type Specs = {
   direction?: string
@@ -63,8 +65,14 @@ export function MaterialModal({
 }) {
   const { t } = useTranslation()
   const editCategory = (material?.category as MaterialCategory) ?? initialCategory
-  // The fabric form covers both 'fabric' and 'com' (checkbox decides which).
-  const formKind: MaterialCategory = editCategory === 'com' ? 'fabric' : editCategory
+  // The fabric form covers both 'fabric' and 'com' (checkbox decides which);
+  // the supply categories (2026-10-29) share the hardware form.
+  const formKind: MaterialCategory =
+    editCategory === 'com'
+      ? 'fabric'
+      : SUPPLY_KINDS.includes(editCategory)
+        ? 'hardware'
+        : editCategory
   const prior = (material?.specs ?? {}) as Specs
 
   const [name, setName] = useState(material?.name ?? '')
@@ -81,6 +89,7 @@ export function MaterialModal({
   const [customOrder, setCustomOrder] = useState(prior.customOrder ?? false)
   const [notes, setNotes] = useState(prior.notes ?? (formKind === 'other' ? material?.description ?? '' : ''))
   const [productUrl, setProductUrl] = useState(material?.product_url ?? '')
+  const [fulfillment, setFulfillment] = useState<Fulfillment | ''>((material?.fulfillment as Fulfillment | null) ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -113,7 +122,7 @@ export function MaterialModal({
     if (!canSave) return
     setBusy(true)
     setError(null)
-    const category: MaterialCategory = formKind === 'fabric' ? (isCom ? 'com' : 'fabric') : formKind
+    const category: MaterialCategory = formKind === 'fabric' ? (isCom ? 'com' : 'fabric') : editCategory
     const specs: Specs = {
       ...(direction ? { direction } : {}),
       ...(insertType ? { insertType } : {}),
@@ -133,6 +142,7 @@ export function MaterialModal({
       payment_required: paymentRequired,
       specs,
       product_url: productUrl.trim() || null,
+      fulfillment: fulfillment || null,
     }
     const result = material
       ? await updateMaterial(material.id, {
@@ -202,7 +212,7 @@ export function MaterialModal({
         <h2 className="text-lg font-semibold">
           {material
             ? t('materials.editTitle')
-            : t('materials.addCategoryTitle', { category: t(`materialCategory.${formKind}`) })}
+            : t('materials.addCategoryTitle', { category: t(`materialCategory.${formKind === 'fabric' ? 'fabric' : editCategory}`) })}
         </h2>
 
         {formKind === 'fabric' && (
@@ -293,7 +303,19 @@ export function MaterialModal({
 
         {formKind === 'hardware' && (
           <>
-            {vendorSelect(HARDWARE_VENDORS)}
+            {editCategory === 'hardware' ? (
+              vendorSelect(HARDWARE_VENDORS)
+            ) : (
+              <label className="text-sm text-slate-300">
+                {t('materials.vendor')}
+                <input value={supplier} onChange={(e) => setSupplier(e.target.value)} list="supply-vendors" className={`mt-1 ${field}`} />
+                <datalist id="supply-vendors">
+                  {HARDWARE_VENDORS.filter((v) => v !== 'Other').map((v) => (
+                    <option key={v} value={v} />
+                  ))}
+                </datalist>
+              </label>
+            )}
             {checkbox(customOrder, setCustomOrder, t('materials.customOrder'))}
             <label className="text-sm text-slate-300">
               {t('materials.item')}
@@ -340,6 +362,15 @@ export function MaterialModal({
             </label>
           </>
         )}
+
+        <label className="text-sm text-slate-300">
+          {t('materials.fulfillment')}
+          <select value={fulfillment} onChange={(e) => setFulfillment(e.target.value as Fulfillment | '')} className={`mt-1 ${field}`}>
+            <option value="">{t('materials.fulfillmentNone')}</option>
+            <option value="delivery">{t('ordering.delivery')}</option>
+            <option value="pickup">{t('ordering.pickup')}</option>
+          </select>
+        </label>
 
         {checkbox(paymentRequired, setPaymentRequired, t('materials.paymentRequired'))}
 
