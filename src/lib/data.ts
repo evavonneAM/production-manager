@@ -653,12 +653,23 @@ export type CalendarEvent = {
 }
 
 /** Scheduled projects (+ jobs for the job-level toggle) for the calendar. */
+/** The standing "Shop stock" project/job (work order STOCK) holds supplies
+ *  with no client job; it has no dates or priority, so schedules skip it. */
+export const SHOP_STOCK_CODE = 'STOCK'
+const NOT_SHOP_STOCK = `work_order_number.is.null,work_order_number.neq.${SHOP_STOCK_CODE}`
+
+export async function getShopStockJobId(): Promise<string | null> {
+  const { data } = await client().from('jobs').select('id').eq('job_code', SHOP_STOCK_CODE).maybeSingle()
+  return data?.id ?? null
+}
+
 export async function getCalendarProjects(): Promise<CalendarProject[]> {
   const { data, error } = await client()
     .from('projects')
     .select(
       'id, name, work_order_number, client_name, status, scheduled_start, scheduled_end, priority_rank, jobs:jobs ( id, job_code, name, name_i18n, status )',
     )
+    .or(NOT_SHOP_STOCK)
   if (error) throw error
   return (data ?? []) as unknown as CalendarProject[]
 }
@@ -742,6 +753,7 @@ export async function getPriorityProjects(): Promise<
     .from('projects')
     .select('id, name, client_name, status, scheduled_end, priority_rank')
     .not('status', 'in', '(complete,delivered)')
+    .or(NOT_SHOP_STOCK)
   if (error) throw error
   const list = (data ?? []) as Pick<
     Project,

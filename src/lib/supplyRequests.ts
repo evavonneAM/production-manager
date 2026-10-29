@@ -31,13 +31,14 @@ export type SupplyRequest = {
   status: SupplyRequestStatus
   requested_by: string
   created_at: string
+  material_id: string | null
   job: { id: string; job_code: string; name: string } | null
 }
 
 export async function getSupplyRequests(): Promise<SupplyRequest[]> {
   const { data, error } = await client()
     .from('supply_requests')
-    .select('id, item, quantity, link, note, photo_paths, status, requested_by, created_at, job:jobs ( id, job_code, name )')
+    .select('id, item, quantity, link, note, photo_paths, status, requested_by, created_at, material_id, job:jobs ( id, job_code, name )')
     .order('created_at', { ascending: false })
     .limit(300)
   if (error) throw error
@@ -50,6 +51,7 @@ export async function getRequestableJobs(): Promise<{ id: string; job_code: stri
     .from('jobs')
     .select('id, job_code, name')
     .in('status', ['queued', 'in_production'])
+    .neq('job_code', 'STOCK')
     .order('created_at', { ascending: false })
     .limit(300)
   if (error) throw error
@@ -98,6 +100,15 @@ export async function setSupplyRequestStatus(id: string, status: SupplyRequestSt
   const { error } = await client()
     .from('supply_requests')
     .update({ status, status_by: userId, status_at: new Date().toISOString() })
+    .eq('id', id)
+  return { error: error ? error.message : null }
+}
+
+/** "Add to order": the request now points at the material it became. */
+export async function linkRequestToMaterial(id: string, materialId: string, userId: string): Promise<{ error: string | null }> {
+  const { error } = await client()
+    .from('supply_requests')
+    .update({ material_id: materialId, status: 'ordered', status_by: userId, status_at: new Date().toISOString() })
     .eq('id', id)
   return { error: error ? error.message : null }
 }

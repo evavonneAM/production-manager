@@ -1331,6 +1331,13 @@
     "yours": "Your requests",
     "empty": "No requests yet.",
     "withdraw": "Withdraw",
-    "tooLarge": "That photo is too big (20 MB max)."
+    "tooLarge": "That photo is too big (20 MB max).",
+    "addToOrder": "Add to order",
+    "addToOrderHelp": "Pick where it goes. Next you'll fill in the vendor and details.",
+    "category": "Category",
+    "jobLabel": "Job",
+    "shopStockJob": "Shop stock",
+    "continue": "Continue",
+    "onOrder": "On order"
   }
 }
