@@ -258,6 +258,14 @@ export default function Ordering() {
     if (await copyOrderEmail(email)) void toast.success(t('ordering.copied'))
     else void toast.error(t('ordering.copyFailed'))
   }
+  async function copyText(text: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      void toast.success(t('ordering.copied'))
+    } catch {
+      void toast.error(t('ordering.copyFailed'))
+    }
+  }
   async function emailMarkOrdered() {
     if (!emailFor) return
     setBusy(true)
@@ -647,6 +655,19 @@ export default function Ordering() {
         }
       >
         <Typography.Paragraph type="secondary">{t('ordering.orderEmailHelp')}</Typography.Paragraph>
+        {email && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Typography.Text type="secondary" style={{ flexShrink: 0 }}>
+              {t('ordering.subject')}:
+            </Typography.Text>
+            <Typography.Text strong style={{ flex: 1, minWidth: 0 }} ellipsis>
+              {email.subject}
+            </Typography.Text>
+            <Button size="small" icon={<CopyOutlined />} onClick={() => void copyText(email.subject)}>
+              {t('ordering.copySubject')}
+            </Button>
+          </div>
+        )}
         {email && (
           <div
             // Built from escaped item fields in lib/orderEmail.

@@ -13,7 +13,7 @@ export type OrderLine = {
   supplier: string | null
   description: string | null
   specs: unknown
-  job: { job_code: string; project: { client_name: string } | null } | null
+  job: { job_code: string; project: { client_name: string; work_order_number?: string | null } | null } | null
 }
 
 const HEADINGS: Record<string, string> = {
@@ -37,15 +37,24 @@ const LI = 'style="margin:4px 0"'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 const qty = (n: number) => String(Math.round(n * 100) / 100)
+// The project number vendors file the order under: the work order, else the job code.
+const projectNo = (l: OrderLine) => l.job?.project?.work_order_number || l.job?.job_code || ''
+
+/** "New Order: 9644, 3370, 3828" (owner's subject-line habit). */
+export function orderSubject(lines: OrderLine[]): string {
+  const nos = [...new Set(lines.map(projectNo).filter(Boolean))]
+  return nos.length ? `New Order: ${nos.join(', ')}` : 'New Order'
+}
 
 function bullet(l: OrderLine): string {
   const specs = (l.specs ?? {}) as Specs
   const amount = `${qty(l.quantity)}${l.unit ? ` ${l.unit}` : ''}`
   const extra = [specs.dimensions, specs.direction, specs.notes].filter(Boolean).join(', ')
-  return `${l.name}${extra ? ` (${extra})` : ''} — ${amount}`
+  const no = projectNo(l)
+  return `${l.name}${extra ? ` (${extra})` : ''} — ${amount}${no ? ` [${no}]` : ''}`
 }
 
-export function buildOrderEmail(lines: OrderLine[], greetName = ''): { html: string; text: string } {
+export function buildOrderEmail(lines: OrderLine[], greetName = ''): { html: string; text: string; subject: string } {
   const inserts = lines.filter((l) => l.category === 'insert')
   const rest = lines.filter((l) => l.category !== 'insert')
   const groups = new Map<string, OrderLine[]>()
@@ -61,10 +70,10 @@ export function buildOrderEmail(lines: OrderLine[], greetName = ''): { html: str
   const text: string[] = [hi, '', ask, '']
 
   if (inserts.length) {
-    const cols = ['SIDEMARK', 'QTY', 'DIMENSIONS', 'NOTES', 'BLEND', 'TYPE', 'SUPPLIER']
+    const cols = ['PROJECT #', 'SIDEMARK', 'QTY', 'DIMENSIONS', 'NOTES', 'BLEND', 'TYPE', 'SUPPLIER']
     const rows = inserts.map((l) => {
       const s = (l.specs ?? {}) as Specs
-      return [l.job?.project?.client_name ?? '', qty(l.quantity), s.dimensions ?? '', s.notes ?? '', s.blend ?? '', s.insertType ?? '', l.supplier ?? '']
+      return [projectNo(l), l.job?.project?.client_name ?? '', qty(l.quantity), s.dimensions ?? '', s.notes ?? '', s.blend ?? '', s.insertType ?? '', l.supplier ?? '']
     })
     const th = 'style="background:#b6d7a8;border:1px solid #999;padding:4px 10px;font-family:serif"'
     const td = 'style="border:1px solid #999;padding:4px 10px;text-align:center;font-family:serif"'
@@ -72,7 +81,7 @@ export function buildOrderEmail(lines: OrderLine[], greetName = ''): { html: str
     if (showHeadings && groups.size) html.push(`<h3 ${H3}>Inserts</h3>`)
     html.push(
       `<table style="border-collapse:collapse"><tr>${cols.map((c) => `<th ${c === 'QTY' ? th.replace('#b6d7a8', '#ffff66') : th}>${c}</th>`).join('')}</tr>` +
-        rows.map((r) => `<tr>${r.map((v, i) => `<td ${i === 1 ? qtd : td}>${esc(v)}</td>`).join('')}</tr>`).join('') +
+        rows.map((r) => `<tr>${r.map((v, i) => `<td ${i === 2 ? qtd : td}>${esc(v)}</td>`).join('')}</tr>`).join('') +
         '</table><br>',
     )
     if (showHeadings && groups.size) text.push('Inserts')
@@ -93,7 +102,7 @@ export function buildOrderEmail(lines: OrderLine[], greetName = ''): { html: str
 
   html.push(`<p ${P}>Thank you,</p>`)
   text.push('Thank you,')
-  return { html: html.join('\n'), text: text.join('\n') }
+  return { html: html.join('\n'), text: text.join('\n'), subject: orderSubject(lines) }
 }
 
 /** Copy as rich text (tables paste into Gmail) with a plain-text fallback. */

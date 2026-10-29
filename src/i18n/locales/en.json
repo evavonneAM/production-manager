@@ -146,7 +146,9 @@
     "copied": "Copied. Paste it into your email.",
     "copyFailed": "Couldn't copy. Select the text and copy it instead.",
     "markTheseOrdered": "Mark these ordered",
-    "severalVendors": "several vendors"
+    "severalVendors": "several vendors",
+    "subject": "Subject",
+    "copySubject": "Copy subject"
   },
   "jobEdit": {
     "button": "Edit job",

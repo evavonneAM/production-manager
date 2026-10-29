@@ -136,7 +136,9 @@
     "copied": "Copiado. Péguelo en su correo.",
     "copyFailed": "No se pudo copiar. Seleccione el texto y cópielo.",
     "markTheseOrdered": "Marcar estos como pedidos",
-    "severalVendors": "varios proveedores"
+    "severalVendors": "varios proveedores",
+    "subject": "Asunto",
+    "copySubject": "Copiar asunto"
   },
   "jobEdit": {
     "button": "Editar trabajo",

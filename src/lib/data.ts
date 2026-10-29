@@ -380,12 +380,18 @@ export type Fulfillment = 'delivery' | 'pickup'
 /** All materials across all jobs, for the ordering dashboard (Procurement + Admin). */
 export async function getAllMaterials(): Promise<
   (Material & {
-    job: { id: string; job_code: string; name: string; name_i18n: unknown; project: { client_name: string } | null } | null
+    job: {
+      id: string
+      job_code: string
+      name: string
+      name_i18n: unknown
+      project: { client_name: string; work_order_number: string | null } | null
+    } | null
   })[]
 > {
   const { data, error } = await client()
     .from('materials')
-    .select('*, job:jobs ( id, job_code, name, name_i18n, project:projects ( client_name ) )')
+    .select('*, job:jobs ( id, job_code, name, name_i18n, project:projects ( client_name, work_order_number ) )')
     .order('created_at', { ascending: false })
   if (error) throw error
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
