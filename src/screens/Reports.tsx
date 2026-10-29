@@ -271,7 +271,7 @@ export default function Reports() {
                   </Typography.Text>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                     {showEst && (
-                      <Tag color={over ? 'gold' : 'default'} bordered={false} style={{ marginInlineEnd: 0 }}>
+                      <Tag color={over ? 'gold' : 'default'} variant="filled" style={{ marginInlineEnd: 0 }}>
                         {t('reports.estVsActual', {
                           est: `${g.estH}${units.h}`,
                           actual: formatMinutes(g.actualMin, units),
@@ -308,7 +308,7 @@ export default function Reports() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                   {r.admin_override && (
-                    <Tag color="gold" bordered={false} style={{ marginInlineEnd: 0 }}>
+                    <Tag color="gold" variant="filled" style={{ marginInlineEnd: 0 }}>
                       {t('reports.flagged')}
                     </Tag>
                   )}
