@@ -349,7 +349,33 @@ export function requestSheetSync(): void {
     .catch(() => {/* cron sweep covers it */})
 }
 
-export type MaterialCategory = 'fabric' | 'com' | 'insert' | 'foam' | 'hardware' | 'other'
+export type MaterialCategory =
+  | 'fabric'
+  | 'com'
+  | 'insert'
+  | 'foam'
+  | 'upholstery_supplies'
+  | 'drapery_supplies'
+  | 'drapery_hardware'
+  | 'hardware'
+  | 'other'
+  | 'wood_shop'
+
+/** Categories offered when adding a material, in the owner's order (2026-10-29).
+ *  'hardware' is legacy: it shows as Components/Other alongside 'other'. */
+export const MATERIAL_CATEGORIES: MaterialCategory[] = [
+  'fabric',
+  'com',
+  'insert',
+  'foam',
+  'upholstery_supplies',
+  'drapery_supplies',
+  'drapery_hardware',
+  'other',
+  'wood_shop',
+]
+
+export type Fulfillment = 'delivery' | 'pickup'
 
 /** All materials across all jobs, for the ordering dashboard (Procurement + Admin). */
 export async function getAllMaterials(): Promise<
@@ -439,11 +465,12 @@ export async function deleteMaterial(id: string): Promise<ClockResult> {
 /** Ordered/arrived flags — any role may flip these (guard trigger enforces). */
 export async function setMaterialStatus(
   id: string,
-  patch: { is_ordered?: boolean; is_arrived?: boolean },
+  patch: { is_ordered?: boolean; is_arrived?: boolean; received_quantity?: number | null },
 ): Promise<ClockResult> {
   const stamped: {
     is_ordered?: boolean
     is_arrived?: boolean
+    received_quantity?: number | null
     ordered_at?: string | null
     arrived_at?: string | null
     sync_source: 'app' | 'sheet'
@@ -452,6 +479,22 @@ export async function setMaterialStatus(
   if (patch.is_arrived !== undefined) stamped.arrived_at = patch.is_arrived ? new Date().toISOString() : null
   const { error } = await client().from('materials').update(stamped).eq('id', id)
   if (!error) requestSheetSync()
+  return { error: error ? error.message : null }
+}
+
+/** Some of an order came in. Reaching the full quantity marks it arrived. */
+export async function receiveMaterial(m: { id: string; quantity: number; received_quantity: number | null }, amount: number): Promise<ClockResult> {
+  const total = (m.received_quantity ?? 0) + amount
+  return setMaterialStatus(m.id, {
+    is_ordered: true,
+    received_quantity: total,
+    ...(total >= m.quantity ? { is_arrived: true } : {}),
+  })
+}
+
+/** Pick up from the store vs delivered (app-only; not in the sheet). */
+export async function setMaterialFulfillment(ids: string[], fulfillment: Fulfillment | null): Promise<ClockResult> {
+  const { error } = await client().from('materials').update({ fulfillment }).in('id', ids)
   return { error: error ? error.message : null }
 }
 

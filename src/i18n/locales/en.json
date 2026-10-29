@@ -77,7 +77,9 @@
     "syncNow": "Sync sheet",
     "syncing": "Syncing…",
     "syncDone": "Synced.",
-    "syncFailed": "Sync failed."
+    "syncFailed": "Sync failed.",
+    "fulfillment": "How does it get here?",
+    "fulfillmentNone": "Not set"
   },
   "files": {
     "upload": "Add photo or PDF",
@@ -91,10 +93,14 @@
   "materialCategory": {
     "fabric": "Fabric",
     "com": "COM",
-    "insert": "Pillow Inserts",
+    "insert": "Inserts",
     "foam": "Foam",
-    "hardware": "Hardware/Supplies",
-    "other": "Other"
+    "hardware": "Components/Other",
+    "other": "Components/Other",
+    "upholstery_supplies": "Upholstery supplies",
+    "drapery_supplies": "Drapery supplies",
+    "drapery_hardware": "Drapery hardware",
+    "wood_shop": "Wood/shop"
   },
   "ordering": {
     "title": "Ordering",
@@ -110,7 +116,29 @@
     "noVendor": "No vendor",
     "allVendors": "All vendors",
     "empty": "Nothing here — all clear.",
-    "notEligible": "The ordering dashboard is for Procurement and Admins."
+    "notEligible": "The ordering dashboard is for Procurement and Admins.",
+    "tabFabric": "Fabric",
+    "tabSupplies": "Supplies",
+    "tabRequests": "Requests",
+    "open": "Open",
+    "partial": "Partly here",
+    "here": "Here",
+    "pickupOnly": "Pick up only",
+    "pickup": "Pick up",
+    "delivery": "Delivery",
+    "receivedOf": "{{got}} of {{qty}} {{unit}} here",
+    "selected": "{{count}} selected",
+    "markHere": "Mark here",
+    "receivedSome": "Part came in…",
+    "receivedTitle": "How much came in?",
+    "receivedHelp": "Already here: {{got}} of {{qty}} {{unit}}",
+    "setPickup": "Set to pick up",
+    "setDelivery": "Set to delivery",
+    "more": "More",
+    "trackingToMatch_one": "{{count}} tracking number to match",
+    "trackingToMatch_other": "{{count}} tracking numbers to match",
+    "showDone": "Show done",
+    "noRequests": "No open requests."
   },
   "jobEdit": {
     "button": "Edit job",
@@ -1264,5 +1292,35 @@
       "frontView": "FRONT VIEW - FINISHED LENGTH",
       "notesTitle": "NOTES"
     }
+  },
+  "supplyRequests": {
+    "title": "Supply requests",
+    "button": "Request supplies",
+    "cta": "Running low on something, or need a supply for a job? Let us know.",
+    "formTitle": "Request supplies",
+    "item": "What do you need?",
+    "itemPlaceholder": "e.g. Poplar 1x4, 8 ft",
+    "quantity": "How much?",
+    "quantityPlaceholder": "e.g. 12 boards",
+    "job": "For a job? (optional)",
+    "noJob": "No, shop stock",
+    "link": "Link to the exact item (optional)",
+    "linkPlaceholder": "Paste a link",
+    "photos": "Photo, e.g. to match something (optional)",
+    "addPhoto": "Add",
+    "note": "Note (why, how soon)",
+    "send": "Send request",
+    "sent": "Request sent",
+    "status_new": "New",
+    "status_ordered": "Ordered",
+    "status_done": "Done",
+    "markOrdered": "Mark ordered",
+    "markDone": "Done",
+    "shopStock": "shop stock",
+    "forJob": "for",
+    "yours": "Your requests",
+    "empty": "No requests yet.",
+    "withdraw": "Withdraw",
+    "tooLarge": "That photo is too big (20 MB max)."
   }
 }

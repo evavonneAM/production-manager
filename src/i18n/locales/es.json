@@ -76,15 +76,21 @@
     "syncNow": "Sincronizar hoja",
     "syncing": "Sincronizando…",
     "syncDone": "Sincronizado.",
-    "syncFailed": "Error de sincronización."
+    "syncFailed": "Error de sincronización.",
+    "fulfillment": "¿Cómo llega?",
+    "fulfillmentNone": "Sin definir"
   },
   "materialCategory": {
     "fabric": "Tela",
     "com": "Tela del cliente",
     "insert": "Rellenos de cojín",
     "foam": "Espuma",
-    "hardware": "Herrajes/Insumos",
-    "other": "Otro"
+    "hardware": "Componentes/Otro",
+    "other": "Componentes/Otro",
+    "upholstery_supplies": "Insumos de tapicería",
+    "drapery_supplies": "Insumos de cortinas",
+    "drapery_hardware": "Herrajes de cortinas",
+    "wood_shop": "Madera/taller"
   },
   "ordering": {
     "title": "Pedidos",
@@ -100,7 +106,29 @@
     "noVendor": "Sin proveedor",
     "allVendors": "Todos los proveedores",
     "empty": "Nada aquí — todo en orden.",
-    "notEligible": "El panel de pedidos es para Compras y administradores."
+    "notEligible": "El panel de pedidos es para Compras y administradores.",
+    "tabFabric": "Tela",
+    "tabSupplies": "Insumos",
+    "tabRequests": "Pedidos",
+    "open": "Abiertos",
+    "partial": "Llegó en parte",
+    "here": "Aquí",
+    "pickupOnly": "Solo recoger",
+    "pickup": "Recoger",
+    "delivery": "Entrega",
+    "receivedOf": "{{got}} de {{qty}} {{unit}} aquí",
+    "selected": "{{count}} seleccionados",
+    "markHere": "Marcar aquí",
+    "receivedSome": "Llegó una parte…",
+    "receivedTitle": "¿Cuánto llegó?",
+    "receivedHelp": "Ya aquí: {{got}} de {{qty}} {{unit}}",
+    "setPickup": "Cambiar a recoger",
+    "setDelivery": "Cambiar a entrega",
+    "more": "Más",
+    "trackingToMatch_one": "{{count}} número de rastreo por asignar",
+    "trackingToMatch_other": "{{count}} números de rastreo por asignar",
+    "showDone": "Mostrar listos",
+    "noRequests": "No hay pedidos abiertos."
   },
   "jobEdit": {
     "button": "Editar trabajo",
@@ -1264,5 +1292,35 @@
       "frontView": "VISTA DE FRENTE - LARGO TERMINADO",
       "notesTitle": "NOTAS"
     }
+  },
+  "supplyRequests": {
+    "title": "Pedidos de suministros",
+    "button": "Pedir suministros",
+    "cta": "¿Se está acabando algo o necesita un suministro para un trabajo? Avísenos.",
+    "formTitle": "Pedir suministros",
+    "item": "¿Qué necesita?",
+    "itemPlaceholder": "p. ej. Álamo 1x4, 8 pies",
+    "quantity": "¿Cuánto?",
+    "quantityPlaceholder": "p. ej. 12 tablas",
+    "job": "¿Para un trabajo? (opcional)",
+    "noJob": "No, stock del taller",
+    "link": "Enlace al artículo exacto (opcional)",
+    "linkPlaceholder": "Pegue un enlace",
+    "photos": "Foto, p. ej. para que combine (opcional)",
+    "addPhoto": "Agregar",
+    "note": "Nota (por qué, para cuándo)",
+    "send": "Enviar pedido",
+    "sent": "Pedido enviado",
+    "status_new": "Nuevo",
+    "status_ordered": "Pedido",
+    "status_done": "Listo",
+    "markOrdered": "Marcar pedido",
+    "markDone": "Listo",
+    "shopStock": "stock del taller",
+    "forJob": "para",
+    "yours": "Sus pedidos",
+    "empty": "Aún no hay pedidos.",
+    "withdraw": "Retirar",
+    "tooLarge": "Esa foto es demasiado grande (máx. 20 MB)."
   }
 }
