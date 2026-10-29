@@ -403,6 +403,7 @@ export async function createMaterial(fields: {
   payment_required?: boolean
   specs?: unknown
   product_url?: string | null
+  fulfillment?: Fulfillment | null
   /** "Use Inventory" vendor: pulled from stock, so it skips the ordering flow. */
   fromStock?: boolean
 }): Promise<{ error: string | null; id?: string }> {
@@ -419,6 +420,7 @@ export async function createMaterial(fields: {
       payment_required: fields.payment_required ?? false,
       specs: (fields.specs ?? null) as never,
       product_url: fields.product_url ?? null,
+      fulfillment: fields.fulfillment ?? null,
       ...(fields.fromStock
         ? { is_ordered: true, ordered_at: new Date().toISOString(), is_arrived: true, arrived_at: new Date().toISOString() }
         : {}),
@@ -444,6 +446,7 @@ export async function updateMaterial(
     payment_required?: boolean
     specs?: unknown
     product_url?: string | null
+    fulfillment?: Fulfillment | null
   },
 ): Promise<ClockResult> {
   const { error } = await client()
