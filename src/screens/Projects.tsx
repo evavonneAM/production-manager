@@ -80,7 +80,7 @@ function ProjectCard({ project }: { project: ProjectOverview }) {
         {breakdown.length > 0 && (
           <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {breakdown.map(([dept, count]) => (
-              <Tag key={dept} bordered={false} style={{ marginInlineEnd: 0 }}>
+              <Tag key={dept} variant="filled" style={{ marginInlineEnd: 0 }}>
                 {t('projects.inStage', { count, dept })}
               </Tag>
             ))}

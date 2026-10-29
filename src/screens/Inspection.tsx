@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Alert, Button, Card, Empty, Input, Modal, Space, Tag, Typography, theme } from 'antd'
+import { CameraOutlined, CheckOutlined } from '@ant-design/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
 import {
@@ -11,11 +13,19 @@ import {
 } from '../lib/data'
 import { uploadFile } from '../lib/files'
 import { formatMinutes } from '../lib/format'
-import { EmptyState, ErrorState, TaskStatusBadge } from '../components/ui'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { localized } from '../lib/i18nText'
-import type { InspectionQueueItem } from '../lib/types'
+import type { InspectionQueueItem, TaskStatus } from '../lib/types'
 import { type AppLanguage } from '../i18n'
+
+const TASK_TAG_COLOR: Record<TaskStatus, string> = {
+  pending_approval: 'orange',
+  unstarted: 'default',
+  in_progress: 'processing',
+  paused: 'gold',
+  completed: 'success',
+  cancelled: 'default',
+}
 
 function waitingMinutes(since: string | null): number {
   if (!since) return 0
@@ -24,6 +34,7 @@ function waitingMinutes(since: string | null): number {
 
 export default function Inspection() {
   const { t, i18n } = useTranslation()
+  const { token } = theme.useToken()
   const { profile } = useAuth()
   const [reloadKey, setReloadKey] = useState(0)
   const [deptFilter, setDeptFilter] = useState('all')
@@ -52,17 +63,29 @@ export default function Inspection() {
   }
 
   if (loading) return <FullScreenLoader />
-  if (error) return <ErrorState text={t('common.error')} />
+  if (error) return <Alert type="error" showIcon title={t('common.error')} style={{ margin: 16 }} />
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-6">
-      <h1 className="mb-4 text-2xl font-semibold">{t('nav.inspection')}</h1>
+    <div style={{ maxWidth: 672, width: '100%', margin: '0 auto', padding: '24px 16px' }}>
+      <Typography.Title level={3} style={{ margin: '0 0 16px' }}>
+        {t('nav.inspection')}
+      </Typography.Title>
 
       {departments.length > 1 && (
         <select
           value={deptFilter}
           onChange={(e) => setDeptFilter(e.target.value)}
-          className="mb-4 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-2 text-sm text-slate-200 focus:border-amber-500 focus:outline-none"
+          aria-label={t('inspection.allDepartments')}
+          style={{
+            height: 32,
+            padding: '0 8px',
+            marginBottom: 16,
+            fontSize: 14,
+            color: token.colorText,
+            background: token.colorBgContainer,
+            border: `1px solid ${token.colorBorder}`,
+            borderRadius: token.borderRadius,
+          }}
         >
           <option value="all">{t('inspection.allDepartments')}</option>
           {departments.map(([id, name]) => (
@@ -74,32 +97,27 @@ export default function Inspection() {
       )}
 
       {items.length === 0 ? (
-        <EmptyState text={t('inspection.empty')} />
+        <Empty description={t('inspection.empty')} style={{ marginTop: 40 }} />
       ) : (
-        <div className="flex flex-col gap-2">
+        <Space orientation="vertical" size={10} style={{ width: '100%' }}>
           {items.map((it) => (
-            <button
-              key={it.id}
-              type="button"
-              onClick={() => setSelected(it)}
-              className="rounded-xl border border-slate-800 bg-slate-800/40 p-4 text-left hover:bg-slate-800/70"
-            >
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="font-mono font-semibold text-amber-300">{it.job?.job_code}</span>
-                <span className="text-xs text-slate-500">{it.department?.name}</span>
+            <Card key={it.id} hoverable size="small" onClick={() => setSelected(it)} styles={{ body: { padding: 14 } }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontFamily: token.fontFamilyCode, fontWeight: 600, color: token.colorPrimary }}>{it.job?.job_code}</span>
+                <Tag style={{ marginInlineEnd: 0 }}>{it.department?.name}</Tag>
               </div>
-              <p className="mt-1 truncate text-sm text-slate-300">
+              <Typography.Text strong ellipsis style={{ display: 'block', marginTop: 4 }}>
                 {it.job ? localized(it.job.name, it.job.name_i18n, i18n.language) : ''}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
+              </Typography.Text>
+              <Typography.Text type="secondary" style={{ fontSize: 13 }}>
                 {t('inspection.submittedBy', { name: nameOf(it.submitted_by) })} ·{' '}
                 {t('inspection.waiting', {
                   time: formatMinutes(waitingMinutes(it.submitted_at), { h: t('units.h'), m: t('units.m') }),
                 })}
-              </p>
-            </button>
+              </Typography.Text>
+            </Card>
           ))}
-        </div>
+        </Space>
       )}
 
       {selected && (
@@ -131,6 +149,7 @@ function InspectionPanel({
   onDone: () => void
 }) {
   const { t, i18n } = useTranslation()
+  const { token } = theme.useToken()
   const { profile } = useAuth()
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
@@ -171,102 +190,110 @@ function InspectionPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={onClose}>
-      <div
-        className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-900 p-5"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal open onCancel={onClose} footer={null} title={null} destroyOnHidden>
+      <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         <div>
-          <p className="font-mono text-lg font-bold text-amber-300">{item.job?.job_code}</p>
-          <p className="text-sm text-slate-400">
+          <Typography.Title level={4} style={{ margin: 0, fontFamily: token.fontFamilyCode, color: token.colorPrimary }}>
+            {item.job?.job_code}
+          </Typography.Title>
+          <Typography.Text type="secondary">
             {item.job?.name} · {item.department?.name}
-          </p>
+          </Typography.Text>
         </div>
 
         <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <Typography.Text
+            style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, letterSpacing: 0.3, textTransform: 'uppercase', color: token.colorTextTertiary }}
+          >
             {t('inspection.tasksHeader')}
-          </p>
+          </Typography.Text>
           {item.tasks.length === 0 ? (
-            <p className="text-sm text-slate-500">{t('jobDetail.noTasks')}</p>
+            <Typography.Text type="secondary">{t('jobDetail.noTasks')}</Typography.Text>
           ) : (
-            <div className="flex flex-col gap-1.5">
-              {item.tasks.map((tk) => (
-                <div key={tk.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="truncate text-slate-300">{localized(tk.name, tk.name_i18n, i18n.language)}</span>
-                  <TaskStatusBadge status={tk.status} />
+            <Card size="small" styles={{ body: { padding: 0 } }}>
+              {item.tasks.map((tk, i) => (
+                <div
+                  key={tk.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    padding: '8px 12px',
+                    borderBottom: i === item.tasks.length - 1 ? 'none' : `1px solid ${token.colorBorderSecondary}`,
+                  }}
+                >
+                  <Typography.Text ellipsis>{localized(tk.name, tk.name_i18n, i18n.language)}</Typography.Text>
+                  <Tag color={TASK_TAG_COLOR[tk.status]} style={{ marginInlineEnd: 0 }}>
+                    {t(`taskStatus.${tk.status}`)}
+                  </Tag>
                 </div>
               ))}
-            </div>
+            </Card>
           )}
         </div>
 
-        {error && <ErrorState text={error} />}
+        {error && <Alert type="error" showIcon title={error} />}
 
         {!canInspect ? (
-          <p className="rounded-lg bg-slate-800 px-3 py-2 text-sm text-slate-400">
-            {t('inspection.notEligible')}
-          </p>
+          <Alert type="info" title={t('inspection.notEligible')} />
         ) : rejecting ? (
-          <div className="flex flex-col gap-3">
-            <textarea
+          <Space orientation="vertical" size={10} style={{ width: '100%' }}>
+            <Input.TextArea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder={t('inspection.rejectNotePlaceholder')}
               rows={3}
-              className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
+              autoFocus
             />
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-400">
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
-              />
-              <span className="rounded-lg border border-slate-700 px-3 py-1.5 hover:bg-slate-800">
-                📷 {t('inspection.attachPhoto')}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input type="file" accept="image/*" hidden onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '4px 12px',
+                  border: `1px dashed ${token.colorBorder}`,
+                  borderRadius: token.borderRadius,
+                }}
+              >
+                <CameraOutlined /> {t('inspection.attachPhoto')}
               </span>
-              {photo && <span className="min-w-0 truncate text-xs text-slate-500">{photo.name}</span>}
+              {photo && (
+                <Typography.Text type="secondary" ellipsis style={{ fontSize: 12, minWidth: 0 }}>
+                  {photo.name}
+                </Typography.Text>
+              )}
             </label>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setRejecting(false)}
-                className="flex-1 rounded-lg border border-slate-600 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800"
-              >
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button block size="large" onClick={() => setRejecting(false)}>
                 {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={() => void onReject()}
-                disabled={busy || !note.trim()}
-                className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
-              >
+              </Button>
+              <Button block size="large" danger type="primary" loading={busy} disabled={!note.trim()} onClick={() => void onReject()}>
                 {t('inspection.confirmReject')}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Space>
         ) : (
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setRejecting(true)}
-              disabled={busy}
-              className="flex-1 rounded-lg border border-red-600/60 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-red-600/10"
-            >
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button block size="large" danger disabled={busy} onClick={() => setRejecting(true)}>
               {t('inspection.reject')}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              block
+              size="large"
+              type="primary"
+              icon={<CheckOutlined />}
+              loading={busy}
+              style={{ background: token.colorSuccess }}
               onClick={() => void onApprove()}
-              disabled={busy}
-              className="flex-1 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 disabled:opacity-60"
             >
               {t('inspection.approve')}
-            </button>
+            </Button>
           </div>
         )}
-      </div>
-    </div>
+      </Space>
+    </Modal>
   )
 }

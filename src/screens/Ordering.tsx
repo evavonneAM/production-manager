@@ -405,12 +405,12 @@ export default function Ordering() {
           )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
             {m.fulfillment === 'pickup' && (
-              <Tag icon={<ShopOutlined />} color="orange" bordered={false}>
+              <Tag icon={<ShopOutlined />} color="orange" variant="filled">
                 {t('ordering.pickup')}
               </Tag>
             )}
             {m.fulfillment === 'delivery' && (
-              <Tag icon={<CarOutlined />} bordered={false}>
+              <Tag icon={<CarOutlined />} variant="filled">
                 {t('ordering.delivery')}
               </Tag>
             )}
@@ -418,7 +418,7 @@ export default function Ordering() {
               const url = carrierTrackingUrl(tn)
               const label = `${CARRIER_LABEL[tn.carrier]} ${tn.tracking_number}`
               return (
-                <Tag key={tn.id} color="purple" bordered={false} style={{ fontFamily: token.fontFamilyCode }}>
+                <Tag key={tn.id} color="purple" variant="filled" style={{ fontFamily: token.fontFamilyCode }}>
                   {url ? (
                     <a href={url} target="_blank" rel="noreferrer">
                       {label} <ExportOutlined />
@@ -429,7 +429,7 @@ export default function Ordering() {
                 </Tag>
               )
             })}
-            {tab === 'supplies' && groupMode === 'vendor' && <Tag bordered={false}>{t(`materialCategory.${m.category}`)}</Tag>}
+            {tab === 'supplies' && groupMode === 'vendor' && <Tag variant="filled">{t(`materialCategory.${m.category}`)}</Tag>}
             {m.product_url && (
               <a href={m.product_url} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>
                 {t('materials.productLink')} <ExportOutlined />
