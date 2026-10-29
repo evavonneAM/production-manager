@@ -128,7 +128,15 @@
     "trackingToMatch_one": "{{count}} número de rastreo por asignar",
     "trackingToMatch_other": "{{count}} números de rastreo por asignar",
     "showDone": "Mostrar listos",
-    "noRequests": "No hay pedidos abiertos."
+    "noRequests": "No hay pedidos abiertos.",
+    "orderEmail": "Correo de pedido",
+    "orderEmailTitle": "Correo de pedido: {{vendor}}",
+    "orderEmailHelp": "Cópielo, péguelo en un correo nuevo al proveedor y agregue su nombre.",
+    "copyEmail": "Copiar correo",
+    "copied": "Copiado. Péguelo en su correo.",
+    "copyFailed": "No se pudo copiar. Seleccione el texto y cópielo.",
+    "markTheseOrdered": "Marcar estos como pedidos",
+    "severalVendors": "varios proveedores"
   },
   "jobEdit": {
     "button": "Editar trabajo",

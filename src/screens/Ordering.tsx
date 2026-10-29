@@ -19,9 +19,10 @@ import {
   Switch,
   Tag,
   Typography,
+  message,
   theme,
 } from 'antd'
-import { CarOutlined, ExportOutlined, MoreOutlined, PlusOutlined, ShopOutlined, SyncOutlined } from '@ant-design/icons'
+import { CarOutlined, CopyOutlined, ExportOutlined, MailOutlined, MoreOutlined, PlusOutlined, ShopOutlined, SyncOutlined } from '@ant-design/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
 import {
@@ -42,6 +43,7 @@ import { getSupplyRequests, setSupplyRequestStatus, useRequestPhotos, type Suppl
 import { SupplyRequestCard, SupplyRequestModal } from '../components/SupplyRequests'
 import { localized } from '../lib/i18nText'
 import { formatDate } from '../lib/format'
+import { buildOrderEmail, copyOrderEmail } from '../lib/orderEmail'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 
 type Tab = 'fabric' | 'supplies' | 'requests'
@@ -119,6 +121,8 @@ export default function Ordering() {
   const [search, setSearch] = useState('')
   const [requesting, setRequesting] = useState(false)
   const [showDone, setShowDone] = useState(false)
+  const [emailFor, setEmailFor] = useState<Mat[] | null>(null)
+  const [toast, toastHolder] = message.useMessage()
   const [reloadKey, setReloadKey] = useState(0)
   const reload = () => setReloadKey((k) => k + 1)
 
@@ -239,6 +243,28 @@ export default function Ordering() {
     setBusy(true)
     await dismissTracking(tn.id)
     setBusy(false)
+    reload()
+  }
+
+  // Not-yet-ordered items first; a vendor with nothing waiting gets all of them.
+  const openEmail = (items: Mat[]) => {
+    const waiting = items.filter((m) => !m.is_ordered && !m.is_arrived)
+    setEmailFor(waiting.length ? waiting : items)
+  }
+  const email = emailFor ? buildOrderEmail(emailFor) : null
+  const emailVendors = [...new Set((emailFor ?? []).map((m) => m.supplier ?? ''))]
+  async function copyEmail() {
+    if (!email) return
+    if (await copyOrderEmail(email)) void toast.success(t('ordering.copied'))
+    else void toast.error(t('ordering.copyFailed'))
+  }
+  async function emailMarkOrdered() {
+    if (!emailFor) return
+    setBusy(true)
+    for (const m of emailFor) if (!m.is_ordered) await setMaterialStatus(m.id, { is_ordered: true })
+    setBusy(false)
+    setEmailFor(null)
+    setSelected([])
     reload()
   }
 
@@ -529,7 +555,18 @@ export default function Ordering() {
             <Row gutter={[20, 0]}>
               {groups.map((g) => (
                 <Col key={g.key} xs={24} lg={tab === 'supplies' ? 12 : 24}>
-                  {g.label ? sectionLabel(`${g.label} · ${g.items.length}`) : <div style={{ height: 14 }} />}
+                  {g.label ? (
+                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+                      {sectionLabel(`${g.label} · ${g.items.length}`)}
+                      {groupMode === 'vendor' && (
+                        <Button size="small" type="link" icon={<MailOutlined />} onClick={() => openEmail(g.items)} style={{ marginBottom: 2 }}>
+                          {t('ordering.orderEmail')}
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ height: 14 }} />
+                  )}
                   <Card styles={{ body: { padding: 0 } }}>{g.items.map((m, i) => row(m, i === g.items.length - 1))}</Card>
                 </Col>
               ))}
@@ -570,11 +607,13 @@ export default function Ordering() {
                   ...(selectedMats.length === 1
                     ? [{ key: 'partial', label: t('ordering.receivedSome') }]
                     : []),
+                  { key: 'email', label: t('ordering.orderEmail'), icon: <MailOutlined /> },
                   { key: 'pickup', label: t('ordering.setPickup'), icon: <ShopOutlined /> },
                   { key: 'delivery', label: t('ordering.setDelivery'), icon: <CarOutlined /> },
                 ],
                 onClick: ({ key }) => {
-                  if (key === 'partial') {
+                  if (key === 'email') setEmailFor(selectedMats)
+                  else if (key === 'partial') {
                     const m = selectedMats[0]
                     setReceiveAmount(Math.max(0, m.quantity - (m.received_quantity ?? 0)) || null)
                     setReceiving(m)
@@ -587,6 +626,44 @@ export default function Ordering() {
           </div>
         </div>
       )}
+
+      {toastHolder}
+      <Modal
+        open={!!emailFor}
+        title={t('ordering.orderEmailTitle', {
+          vendor: emailVendors.length === 1 ? emailVendors[0] || t('ordering.noVendor') : t('ordering.severalVendors'),
+        })}
+        onCancel={() => setEmailFor(null)}
+        width={900}
+        footer={
+          <Space wrap style={{ justifyContent: 'flex-end' }}>
+            <Button disabled={busy} onClick={() => void emailMarkOrdered()}>
+              {t('ordering.markTheseOrdered')}
+            </Button>
+            <Button type="primary" icon={<CopyOutlined />} onClick={() => void copyEmail()}>
+              {t('ordering.copyEmail')}
+            </Button>
+          </Space>
+        }
+      >
+        <Typography.Paragraph type="secondary">{t('ordering.orderEmailHelp')}</Typography.Paragraph>
+        {email && (
+          <div
+            // Built from escaped item fields in lib/orderEmail.
+            dangerouslySetInnerHTML={{ __html: email.html }}
+            style={{
+              padding: 16,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              borderRadius: token.borderRadiusLG,
+              background: '#fff',
+              color: '#222',
+              fontSize: 13,
+              overflowX: 'auto',
+              userSelect: 'text',
+            }}
+          />
+        )}
+      </Modal>
 
       {/* Part of an order came in */}
       <Modal

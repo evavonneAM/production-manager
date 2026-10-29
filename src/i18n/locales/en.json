@@ -138,7 +138,15 @@
     "trackingToMatch_one": "{{count}} tracking number to match",
     "trackingToMatch_other": "{{count}} tracking numbers to match",
     "showDone": "Show done",
-    "noRequests": "No open requests."
+    "noRequests": "No open requests.",
+    "orderEmail": "Order email",
+    "orderEmailTitle": "Order email: {{vendor}}",
+    "orderEmailHelp": "Copy it, paste it into a new email to the vendor, and add their name.",
+    "copyEmail": "Copy email",
+    "copied": "Copied. Paste it into your email.",
+    "copyFailed": "Couldn't copy. Select the text and copy it instead.",
+    "markTheseOrdered": "Mark these ordered",
+    "severalVendors": "several vendors"
   },
   "jobEdit": {
     "button": "Edit job",
