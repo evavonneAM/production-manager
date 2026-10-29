@@ -362,7 +362,6 @@ export default function Ordering() {
               )
             })}
             {tab === 'supplies' && groupMode === 'vendor' && <Tag bordered={false}>{t(`materialCategory.${m.category}`)}</Tag>}
-            {m.category === 'com' && <Tag bordered={false}>{t('materialCategory.com')}</Tag>}
             {m.product_url && (
               <a href={m.product_url} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>
                 {t('materials.productLink')} <ExportOutlined />
