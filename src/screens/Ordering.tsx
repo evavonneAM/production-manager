@@ -31,6 +31,9 @@ import {
   getAllMaterials,
   getDepartments,
   getDirectory,
+  getShopStockJobId,
+  MATERIAL_CATEGORIES,
+  type MaterialCategory,
   getTrackingNumbers,
   matchTracking,
   receiveMaterial,
@@ -39,7 +42,16 @@ import {
   syncSheetsNow,
   type TrackingNumber,
 } from '../lib/data'
-import { getSupplyRequests, setSupplyRequestStatus, useRequestPhotos, type SupplyRequestStatus } from '../lib/supplyRequests'
+import {
+  getRequestableJobs,
+  getSupplyRequests,
+  linkRequestToMaterial,
+  setSupplyRequestStatus,
+  useRequestPhotos,
+  type SupplyRequest,
+  type SupplyRequestStatus,
+} from '../lib/supplyRequests'
+import { MaterialModal } from '../components/MaterialModal'
 import { SupplyRequestCard, SupplyRequestModal } from '../components/SupplyRequests'
 import { localized } from '../lib/i18nText'
 import { formatDate } from '../lib/format'
@@ -122,6 +134,11 @@ export default function Ordering() {
   const [requesting, setRequesting] = useState(false)
   const [showDone, setShowDone] = useState(false)
   const [emailFor, setEmailFor] = useState<Mat[] | null>(null)
+  // "Add to order": pick category + job, then the usual Add material form.
+  const [placing, setPlacing] = useState<SupplyRequest | null>(null)
+  const [placeCat, setPlaceCat] = useState<MaterialCategory>('upholstery_supplies')
+  const [placeJob, setPlaceJob] = useState('')
+  const [materialFor, setMaterialFor] = useState<{ req: SupplyRequest; jobId: string; category: MaterialCategory } | null>(null)
   const [toast, toastHolder] = message.useMessage()
   const [reloadKey, setReloadKey] = useState(0)
   const reload = () => setReloadKey((k) => k + 1)
@@ -131,6 +148,10 @@ export default function Ordering() {
   const { data: tracking } = useAsync(getTrackingNumbers, [reloadKey])
   const { data: requests } = useAsync(getSupplyRequests, [reloadKey])
   const { data: directory } = useAsync(getDirectory, [])
+  const { data: placeJobs } = useAsync(
+    () => (placing ? Promise.all([getRequestableJobs(), getShopStockJobId()]) : Promise.resolve(null)),
+    [placing],
+  )
 
   const procurementId = useMemo(() => departments?.find((d) => d.name === 'Procurement')?.id, [departments])
   const eligible = profile?.role === 'admin' || (!!procurementId && profile?.department_id === procurementId)
@@ -225,6 +246,17 @@ export default function Ordering() {
     setBusy(false)
     setReceiving(null)
     setSelected([])
+    reload()
+  }
+  function startPlacing(r: SupplyRequest) {
+    setPlaceCat('upholstery_supplies')
+    setPlaceJob(r.job?.id ?? '')
+    setPlacing(r)
+  }
+  async function onMaterialSaved(id?: string) {
+    const req = materialFor?.req
+    setMaterialFor(null)
+    if (req && id) await linkRequestToMaterial(req.id, id, profile!.id)
     reload()
   }
   async function moveRequest(id: string, status: SupplyRequestStatus) {
@@ -490,11 +522,20 @@ export default function Ordering() {
                   actions={
                     r.status === 'new' ? (
                       <>
-                        <Button size="small" onClick={() => void moveRequest(r.id, 'ordered')}>
-                          {t('supplyRequests.markOrdered')}
-                        </Button>
-                        <Button size="small" type="primary" onClick={() => void moveRequest(r.id, 'done')}>
-                          {t('supplyRequests.markDone')}
+                        <Dropdown
+                          trigger={['click']}
+                          menu={{
+                            items: [
+                              { key: 'ordered', label: t('supplyRequests.markOrdered') },
+                              { key: 'done', label: t('supplyRequests.markDone') },
+                            ],
+                            onClick: ({ key }) => void moveRequest(r.id, key as SupplyRequestStatus),
+                          }}
+                        >
+                          <Button size="small" icon={<MoreOutlined />} aria-label={t('ordering.more')} />
+                        </Dropdown>
+                        <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => startPlacing(r)}>
+                          {t('supplyRequests.addToOrder')}
                         </Button>
                       </>
                     ) : r.status === 'ordered' ? (
@@ -636,6 +677,79 @@ export default function Ordering() {
       )}
 
       {toastHolder}
+
+      {/* Add to order, step 1: where it goes */}
+      <Modal
+        open={!!placing}
+        title={t('supplyRequests.addToOrder')}
+        onCancel={() => setPlacing(null)}
+        okText={t('supplyRequests.continue')}
+        cancelText={t('common.cancel')}
+        okButtonProps={{ disabled: !placeJob && !placeJobs?.[1] }}
+        onOk={() => {
+          if (!placing) return
+          const jobId = placeJob || placeJobs?.[1] || ''
+          setMaterialFor({ req: placing, jobId, category: placeCat })
+          setPlacing(null)
+        }}
+        destroyOnHidden
+      >
+        {placing && (
+          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+            <Typography.Text strong>
+              {placing.item}
+              {placing.quantity ? ` · ${placing.quantity}` : ''}
+            </Typography.Text>
+            <Typography.Text type="secondary">{t('supplyRequests.addToOrderHelp')}</Typography.Text>
+            <div>
+              <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 2 }}>
+                {t('supplyRequests.category')}
+              </Typography.Text>
+              <select value={placeCat} onChange={(e) => setPlaceCat(e.target.value as MaterialCategory)} style={{ ...selectStyle, width: '100%' }}>
+                {MATERIAL_CATEGORIES.filter((c) => c !== 'com').map((c) => (
+                  <option key={c} value={c}>
+                    {t(`materialCategory.${c}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 2 }}>
+                {t('supplyRequests.jobLabel')}
+              </Typography.Text>
+              <select value={placeJob} onChange={(e) => setPlaceJob(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
+                <option value="">{t('supplyRequests.shopStockJob')}</option>
+                {(placeJobs?.[0] ?? []).map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.job_code} · {j.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </Space>
+        )}
+      </Modal>
+
+      {/* Add to order, step 2: the usual Add material form, pre-filled */}
+      {materialFor && (
+        <MaterialModal
+          jobId={materialFor.jobId}
+          material={null}
+          category={materialFor.category}
+          prefill={{
+            name: materialFor.req.item,
+            quantity: String(parseFloat(materialFor.req.quantity ?? '') || ''),
+            notes: [materialFor.req.quantity, materialFor.req.note].filter(Boolean).join(' · '),
+            productUrl: materialFor.req.link
+              ? /^https?:\/\//i.test(materialFor.req.link)
+                ? materialFor.req.link
+                : `https://${materialFor.req.link}`
+              : undefined,
+          }}
+          onClose={() => setMaterialFor(null)}
+          onSaved={(id) => void onMaterialSaved(id)}
+        />
+      )}
       <Modal
         open={!!emailFor}
         title={t('ordering.orderEmailTitle', {

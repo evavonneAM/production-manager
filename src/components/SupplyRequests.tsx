@@ -174,7 +174,7 @@ export function SupplyRequestCard({
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
         <Typography.Text strong>{req.item}</Typography.Text>
         <Tag color={REQUEST_STATUS_COLOR[req.status]} style={{ marginInlineEnd: 0, flexShrink: 0 }}>
-          {t(`supplyRequests.status_${req.status}`)}
+          {req.status === 'ordered' && req.material_id ? t('supplyRequests.onOrder') : t(`supplyRequests.status_${req.status}`)}
         </Tag>
       </div>
       <Typography.Text type="secondary" style={{ display: 'block', fontSize: 13 }}>

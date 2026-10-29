@@ -54,14 +54,17 @@ export function MaterialModal({
   jobId,
   material,
   category: initialCategory,
+  prefill,
   onClose,
   onSaved,
 }: {
   jobId: string
   material: Material | null
   category: MaterialCategory
+  /** Starting values for a new material (e.g. from a supply request). */
+  prefill?: { name?: string; quantity?: string; notes?: string; productUrl?: string }
   onClose: () => void
-  onSaved: () => void
+  onSaved: (id?: string) => void
 }) {
   const { t } = useTranslation()
   const editCategory = (material?.category as MaterialCategory) ?? initialCategory
@@ -75,9 +78,9 @@ export function MaterialModal({
         : editCategory
   const prior = (material?.specs ?? {}) as Specs
 
-  const [name, setName] = useState(material?.name ?? '')
+  const [name, setName] = useState(material?.name ?? prefill?.name ?? '')
   const [isCom, setIsCom] = useState(editCategory === 'com')
-  const [quantity, setQuantity] = useState(material ? String(material.quantity) : '1')
+  const [quantity, setQuantity] = useState(material ? String(material.quantity) : prefill?.quantity || '1')
   const [unit, setUnit] = useState(material?.unit ?? (formKind === 'fabric' ? 'yd' : 'pcs'))
   const [supplier, setSupplier] = useState(material?.supplier ?? '')
   const [paymentRequired, setPaymentRequired] = useState(material?.payment_required ?? false)
@@ -87,8 +90,10 @@ export function MaterialModal({
   const [foamType, setFoamType] = useState(prior.foamType ?? '')
   const [dimensions, setDimensions] = useState(prior.dimensions ?? '')
   const [customOrder, setCustomOrder] = useState(prior.customOrder ?? false)
-  const [notes, setNotes] = useState(prior.notes ?? (formKind === 'other' ? material?.description ?? '' : ''))
-  const [productUrl, setProductUrl] = useState(material?.product_url ?? '')
+  const [notes, setNotes] = useState(
+    prior.notes ?? (material ? (formKind === 'other' ? material.description ?? '' : '') : prefill?.notes ?? ''),
+  )
+  const [productUrl, setProductUrl] = useState(material?.product_url ?? prefill?.productUrl ?? '')
   const [fulfillment, setFulfillment] = useState<Fulfillment | ''>((material?.fulfillment as Fulfillment | null) ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -152,7 +157,7 @@ export function MaterialModal({
       : await createMaterial({ jobId, name: finalName, ...shared, fromStock })
     setBusy(false)
     if (result.error) setError(t('common.error'))
-    else onSaved()
+    else onSaved((result as { id?: string }).id)
   }
 
   const field = 'w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none'

@@ -961,6 +961,7 @@ export type Database = {
           item: string
           job_id: string | null
           link: string | null
+          material_id: string | null
           note: string | null
           photo_paths: string[]
           quantity: string | null
@@ -976,6 +977,7 @@ export type Database = {
           item: string
           job_id?: string | null
           link?: string | null
+          material_id?: string | null
           note?: string | null
           photo_paths?: string[]
           quantity?: string | null
@@ -991,6 +993,7 @@ export type Database = {
           item?: string
           job_id?: string | null
           link?: string | null
+          material_id?: string | null
           note?: string | null
           photo_paths?: string[]
           quantity?: string | null

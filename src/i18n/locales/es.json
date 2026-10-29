@@ -1331,6 +1331,13 @@
     "yours": "Sus pedidos",
     "empty": "Aún no hay pedidos.",
     "withdraw": "Retirar",
-    "tooLarge": "Esa foto es demasiado grande (máx. 20 MB)."
+    "tooLarge": "Esa foto es demasiado grande (máx. 20 MB).",
+    "addToOrder": "Agregar al pedido",
+    "addToOrderHelp": "Elija dónde va. Luego complete el proveedor y los detalles.",
+    "category": "Categoría",
+    "jobLabel": "Trabajo",
+    "shopStockJob": "Stock del taller",
+    "continue": "Continuar",
+    "onOrder": "En pedido"
   }
 }
