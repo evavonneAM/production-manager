@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Alert, Button, Card, Empty, Segmented, Tag, Typography, theme } from 'antd'
+import { DownloadOutlined } from '@ant-design/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
 import { getDirectory, getLaborReport, type LaborReportRow } from '../lib/data'
 import { laborCsv, type LaborCsvRow } from '../lib/csv'
 import { formatMinutes } from '../lib/format'
 import { localized } from '../lib/i18nText'
-import { EmptyState, ErrorState } from '../components/ui'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 
 type Preset = 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom'
@@ -55,6 +56,7 @@ const hhmm = (iso: string | null, locale: string) =>
 /** Labor reports (S18 / SPEC §15): filter, group, and export hours — never costs. */
 export default function Reports() {
   const { t, i18n } = useTranslation()
+  const { token } = theme.useToken()
   const { profile } = useAuth()
   const [preset, setPreset] = useState<Preset>('thisWeek')
   const [custom, setCustom] = useState(presetRange('thisWeek'))
@@ -159,142 +161,162 @@ export default function Reports() {
     URL.revokeObjectURL(a.href)
   }
 
-  const selectClass =
-    'rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-2 text-sm text-slate-200 focus:border-amber-500 focus:outline-none'
+  // Native <select> / date inputs (Ant Select has frozen in the owner's browser), styled like Ant inputs.
+  const selectStyle: CSSProperties = {
+    height: 32,
+    padding: '0 8px',
+    fontSize: 14,
+    color: token.colorText,
+    background: token.colorBgContainer,
+    border: `1px solid ${token.colorBorder}`,
+    borderRadius: token.borderRadius,
+    maxWidth: '100%',
+  }
+  const sectionLabel = (text: string) => (
+    <Typography.Text
+      style={{ display: 'block', margin: '20px 0 6px', fontSize: 12, fontWeight: 600, letterSpacing: 0.3, textTransform: 'uppercase', color: token.colorTextTertiary }}
+    >
+      {text}
+    </Typography.Text>
+  )
+  const rowStyle = (last: boolean): CSSProperties => ({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    padding: '10px 14px',
+    borderBottom: last ? 'none' : `1px solid ${token.colorBorderSecondary}`,
+  })
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{t('reports.title')}</h1>
+    <div style={{ maxWidth: 896, width: '100%', margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+        <Typography.Title level={3} style={{ margin: 0 }}>
+          {t('reports.title')}
+        </Typography.Title>
         {canExport && (
-          <button
-            type="button"
-            disabled={rows.length === 0}
-            onClick={download}
-            className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
-          >
+          <Button type="primary" icon={<DownloadOutlined />} disabled={rows.length === 0} onClick={download}>
             {t('reports.export')}
-          </button>
+          </Button>
         )}
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <select value={preset} onChange={(e) => setPreset(e.target.value as Preset)} className={selectClass}>
-          {(['thisWeek', 'lastWeek', 'thisMonth', 'lastMonth', 'custom'] as const).map((p) => (
-            <option key={p} value={p}>{t(`reports.${p}`)}</option>
-          ))}
-        </select>
-        {preset === 'custom' && (
-          <>
-            <input type="date" value={custom.from} max={custom.to}
-              onChange={(e) => setCustom({ ...custom, from: e.target.value })} className={selectClass} />
-            <input type="date" value={custom.to} min={custom.from}
-              onChange={(e) => setCustom({ ...custom, to: e.target.value })} className={selectClass} />
-          </>
-        )}
-        <select value={projectF} onChange={(e) => setProjectF(e.target.value)} className={selectClass}>
-          <option value="all">{t('reports.allProjects')}</option>
-          {options.projects.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-        </select>
-        <select value={jobF} onChange={(e) => setJobF(e.target.value)} className={selectClass}>
-          <option value="all">{t('reports.allJobs')}</option>
-          {options.jobs.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-        </select>
-        <select value={deptF} onChange={(e) => setDeptF(e.target.value)} className={selectClass}>
-          <option value="all">{t('reports.allDepartments')}</option>
-          {options.depts.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-        </select>
-        <select value={userF} onChange={(e) => setUserF(e.target.value)} className={selectClass}>
-          <option value="all">{t('reports.allPeople')}</option>
-          {options.users.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-        </select>
-        <select value={statusF} onChange={(e) => setStatusF(e.target.value)} className={selectClass}>
-          <option value="all">{t('reports.allStatuses')}</option>
-          {options.statuses.map((s) => <option key={s} value={s}>{t(`taskStatus.${s}`)}</option>)}
-        </select>
-      </div>
+      <Card size="small" styles={{ body: { padding: 12 } }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <select value={preset} onChange={(e) => setPreset(e.target.value as Preset)} style={selectStyle}>
+            {(['thisWeek', 'lastWeek', 'thisMonth', 'lastMonth', 'custom'] as const).map((p) => (
+              <option key={p} value={p}>{t(`reports.${p}`)}</option>
+            ))}
+          </select>
+          {preset === 'custom' && (
+            <>
+              <input type="date" value={custom.from} max={custom.to}
+                onChange={(e) => setCustom({ ...custom, from: e.target.value })} style={selectStyle} />
+              <input type="date" value={custom.to} min={custom.from}
+                onChange={(e) => setCustom({ ...custom, to: e.target.value })} style={selectStyle} />
+            </>
+          )}
+          <select value={projectF} onChange={(e) => setProjectF(e.target.value)} style={selectStyle}>
+            <option value="all">{t('reports.allProjects')}</option>
+            {options.projects.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          </select>
+          <select value={jobF} onChange={(e) => setJobF(e.target.value)} style={selectStyle}>
+            <option value="all">{t('reports.allJobs')}</option>
+            {options.jobs.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          </select>
+          <select value={deptF} onChange={(e) => setDeptF(e.target.value)} style={selectStyle}>
+            <option value="all">{t('reports.allDepartments')}</option>
+            {options.depts.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          </select>
+          <select value={userF} onChange={(e) => setUserF(e.target.value)} style={selectStyle}>
+            <option value="all">{t('reports.allPeople')}</option>
+            {options.users.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          </select>
+          <select value={statusF} onChange={(e) => setStatusF(e.target.value)} style={selectStyle}>
+            <option value="all">{t('reports.allStatuses')}</option>
+            {options.statuses.map((s) => <option key={s} value={s}>{t(`taskStatus.${s}`)}</option>)}
+          </select>
+        </div>
+      </Card>
 
       {loading && <FullScreenLoader />}
-      {error && <ErrorState text={t('common.error')} />}
-      {!loading && !error && rows.length === 0 && <EmptyState text={t('reports.empty')} />}
+      {error && <Alert type="error" showIcon title={t('common.error')} style={{ marginTop: 16 }} />}
+      {!loading && !error && rows.length === 0 && <Empty description={t('reports.empty')} style={{ marginTop: 40 }} />}
 
       {!loading && !error && rows.length > 0 && (
         <>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-1 rounded-lg border border-slate-800 p-1">
-              {(['user', 'department', 'project', 'job'] as const).map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => setGroupBy(g)}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium ${
-                    groupBy === g ? 'bg-amber-600/20 text-amber-300' : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {t(`reports.by_${g}`)}
-                </button>
-              ))}
-            </div>
-            <p className="text-sm text-slate-400">
-              {t('reports.total')}: <span className="font-semibold text-slate-100">{formatMinutes(totalMin, units)}</span>
-            </p>
+          {/* Scrolls sideways on narrow phones rather than cutting the labels. */}
+          <div style={{ marginTop: 16, overflowX: 'auto' }}>
+            <Segmented
+              value={groupBy}
+              onChange={(v) => setGroupBy(v as GroupBy)}
+              options={(['user', 'department', 'project', 'job'] as const).map((g) => ({ value: g, label: t(`reports.by_${g}`) }))}
+            />
           </div>
 
-          <div className="mb-6 flex flex-col gap-1.5">
-            {groups.map((g) => {
+          <Card style={{ marginTop: 12 }} styles={{ body: { padding: 0 } }}>
+            <div style={{ ...rowStyle(false), background: token.colorFillQuaternary }}>
+              <Typography.Text strong>{t('reports.total')}</Typography.Text>
+              <Typography.Text strong style={{ fontSize: 18 }}>
+                {formatMinutes(totalMin, units)}
+              </Typography.Text>
+            </div>
+            {groups.map((g, i) => {
               const over = g.estH > 0 && g.actualMin > g.estH * 60
               const showEst = (groupBy === 'job' || groupBy === 'project') && g.estH > 0
               return (
-                <div
-                  key={g.label}
-                  className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm ${
-                    over && showEst ? 'border-amber-500/40 bg-amber-500/10' : 'border-slate-800 bg-slate-800/40'
-                  }`}
-                >
-                  <span className="min-w-0 truncate text-slate-100">{g.label}</span>
-                  <span className="shrink-0 text-slate-300">
-                    {formatMinutes(g.minutes, units)}
+                <div key={g.label} style={rowStyle(i === groups.length - 1)}>
+                  <Typography.Text strong ellipsis style={{ minWidth: 0 }}>
+                    {g.label}
+                  </Typography.Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                     {showEst && (
-                      <span className={`ml-2 text-xs ${over ? 'text-amber-300' : 'text-slate-500'}`}>
+                      <Tag color={over ? 'gold' : 'default'} bordered={false} style={{ marginInlineEnd: 0 }}>
                         {t('reports.estVsActual', {
                           est: `${g.estH}${units.h}`,
                           actual: formatMinutes(g.actualMin, units),
                         })}
-                      </span>
+                      </Tag>
                     )}
-                  </span>
+                    <Typography.Text strong>{formatMinutes(g.minutes, units)}</Typography.Text>
+                  </div>
                 </div>
               )
             })}
-          </div>
+          </Card>
 
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('reports.entries')}</p>
-          <div className="flex flex-col gap-1.5">
-            {rows.map((r) => (
-              <div key={r.id} className="rounded-lg border border-slate-800 bg-slate-800/30 px-3 py-2 text-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="min-w-0 truncate text-slate-200">
-                    {nameOf(r.user_id)}
-                    <span className="mx-1.5 text-slate-600">·</span>
+          {sectionLabel(t('reports.entries'))}
+          <Card styles={{ body: { padding: 0 } }}>
+            {rows.map((r, i) => (
+              <div key={r.id} style={{ ...rowStyle(i === rows.length - 1), alignItems: 'flex-start' }}>
+                <div style={{ minWidth: 0 }}>
+                  <Typography.Text ellipsis style={{ display: 'block' }}>
+                    <Typography.Text strong>{nameOf(r.user_id)}</Typography.Text>
+                    {' · '}
                     {localized(r.task?.name ?? '—', r.task?.name_i18n, i18n.language)}
-                  </span>
-                  <span className="shrink-0 text-slate-300">
-                    {formatMinutes(r.duration_minutes ?? 0, units)}
-                    {r.admin_override && (
-                      <span className="ml-1.5 rounded bg-amber-500/15 px-1 py-0.5 text-[10px] text-amber-300">
-                        {t('reports.flagged')}
-                      </span>
+                  </Typography.Text>
+                  <Typography.Text type="secondary" ellipsis style={{ display: 'block', fontSize: 13 }}>
+                    {day(new Date(r.clocked_in_at))} · {hhmm(r.clocked_in_at, i18n.language)}–{hhmm(r.clocked_out_at, i18n.language)}
+                    {r.job && (
+                      <>
+                        {' · '}
+                        <span style={{ fontFamily: token.fontFamilyCode, color: token.colorPrimary }}>{r.job.job_code}</span>
+                      </>
                     )}
-                  </span>
+                    {deptOf(r) && <> · {deptOf(r)!.name}</>}
+                  </Typography.Text>
                 </div>
-                <p className="mt-0.5 truncate text-xs text-slate-500">
-                  {day(new Date(r.clocked_in_at))} · {hhmm(r.clocked_in_at, i18n.language)}–{hhmm(r.clocked_out_at, i18n.language)}
-                  {r.job && <> · <span className="font-mono">{r.job.job_code}</span></>}
-                  {deptOf(r) && <> · {deptOf(r)!.name}</>}
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  {r.admin_override && (
+                    <Tag color="gold" bordered={false} style={{ marginInlineEnd: 0 }}>
+                      {t('reports.flagged')}
+                    </Tag>
+                  )}
+                  <Typography.Text>{formatMinutes(r.duration_minutes ?? 0, units)}</Typography.Text>
+                </div>
               </div>
             ))}
-          </div>
+          </Card>
         </>
       )}
     </div>
