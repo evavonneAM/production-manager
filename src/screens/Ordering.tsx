@@ -12,6 +12,8 @@ import {
   InputNumber,
   Modal,
   Progress,
+  Row,
+  Col,
   Segmented,
   Space,
   Switch,
@@ -390,7 +392,7 @@ export default function Ordering() {
   const openRequests = (requests ?? []).filter((r) => r.status === 'new').length
 
   return (
-    <div style={{ maxWidth: 768, width: '100%', margin: '0 auto', padding: `24px 16px ${selected.length ? 96 : 24}px` }}>
+    <div style={{ maxWidth: 1152, width: '100%', margin: '0 auto', padding: `24px 16px ${selected.length ? 96 : 24}px` }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
         <Typography.Title level={3} style={{ margin: 0 }}>
           {t('ordering.title')}
@@ -444,10 +446,10 @@ export default function Ordering() {
           {shownRequests.length === 0 ? (
             <Empty description={t('ordering.noRequests')} style={{ marginTop: 32 }} />
           ) : (
-            <Space orientation="vertical" size={10} style={{ width: '100%' }}>
+            <Row gutter={[12, 12]}>
               {shownRequests.map((r) => (
+                <Col key={r.id} xs={24} lg={12}>
                 <SupplyRequestCard
-                  key={r.id}
                   req={r}
                   photos={requestPhotos}
                   who={nameOf(r.requested_by)}
@@ -468,8 +470,9 @@ export default function Ordering() {
                     ) : null
                   }
                 />
+                </Col>
               ))}
-            </Space>
+            </Row>
           )}
         </>
       ) : (
@@ -500,7 +503,7 @@ export default function Ordering() {
               onChange={(e) => setQ(e.target.value)}
               placeholder={t('ordering.search')}
               aria-label={t('ordering.search')}
-              style={{ flex: '1 1 200px' }}
+              style={{ flex: '1 1 200px', maxWidth: 420 }}
             />
             <select value={vendorF} onChange={(e) => setVendorF(e.target.value)} style={selectStyle} aria-label={t('ordering.allVendors')}>
               <option value="all">{t('ordering.allVendors')}</option>
@@ -522,12 +525,15 @@ export default function Ordering() {
           {shown.length === 0 ? (
             <Empty description={t('ordering.empty')} style={{ marginTop: 40 }} />
           ) : (
-            groups.map((g) => (
-              <section key={g.key}>
-                {g.label ? sectionLabel(`${g.label} · ${g.items.length}`) : <div style={{ height: 14 }} />}
-                <Card styles={{ body: { padding: 0 } }}>{g.items.map((m, i) => row(m, i === g.items.length - 1))}</Card>
-              </section>
-            ))
+            // Computers: supply sections side by side in two columns.
+            <Row gutter={[20, 0]}>
+              {groups.map((g) => (
+                <Col key={g.key} xs={24} lg={tab === 'supplies' ? 12 : 24}>
+                  {g.label ? sectionLabel(`${g.label} · ${g.items.length}`) : <div style={{ height: 14 }} />}
+                  <Card styles={{ body: { padding: 0 } }}>{g.items.map((m, i) => row(m, i === g.items.length - 1))}</Card>
+                </Col>
+              ))}
+            </Row>
           )}
         </>
       )}
@@ -547,7 +553,7 @@ export default function Ordering() {
             boxShadow: '0 -2px 8px rgba(0,0,0,.06)',
           }}
         >
-          <div style={{ maxWidth: 736, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ maxWidth: 1120, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Typography.Text strong style={{ flex: 1 }}>
               {t('ordering.selected', { count: selected.length })}
             </Typography.Text>
