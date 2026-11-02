@@ -2,11 +2,14 @@ import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Alert, Button, Card, Col, Empty, InputNumber, Modal, Row, Space, Statistic, Tabs, Tag, Typography, theme } from 'antd'
-import { ArrowLeftOutlined, ExportOutlined, PrinterOutlined, QrcodeOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, ExportOutlined, PlusOutlined, PrinterOutlined, QrcodeOutlined } from '@ant-design/icons'
+import { MaterialModal } from '../components/MaterialModal'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
 import {
   createMaterial,
+  getDepartments,
+  MATERIAL_CATEGORIES,
   createTask,
   getErLineItems,
   getProject,
@@ -285,16 +288,101 @@ const MATERIAL_TAG: Record<string, { color: string; key: string }> = {
 }
 
 /** Read-only materials roll-up grouped by job (S05 Tab 3). */
-function ProjectMaterials({ projectId }: { projectId: string }) {
+function ProjectMaterials({ projectId, jobs, canAdd }: { projectId: string; jobs: JobWithStages[]; canAdd: boolean }) {
   const { t, i18n } = useTranslation()
-  const { data: groups, loading } = useAsync(() => getProjectMaterials(projectId), [projectId])
+  const selectStyle = useSelectStyle()
+  const [reloadKey, setReloadKey] = useState(0)
+  const { data: groups, loading } = useAsync(() => getProjectMaterials(projectId), [projectId, reloadKey])
+  // Add material: pick the job and category here, then the usual form.
+  const [picking, setPicking] = useState(false)
+  const [pickJob, setPickJob] = useState('')
+  const [pickCat, setPickCat] = useState<MaterialCategory>('fabric')
+  const [adding, setAdding] = useState<{ jobId: string; category: MaterialCategory } | null>(null)
 
   if (loading) return <Typography.Text type="secondary">{t('common.loading')}</Typography.Text>
   const nonEmpty = (groups ?? []).filter((g) => g.materials.length > 0)
-  if (nonEmpty.length === 0) return <Empty description={t('jobDetail.noMaterials')} />
+
+  const addControls = (
+    <>
+      {canAdd && jobs.length > 0 && (
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => {
+            setPickJob(jobs[0].id)
+            setPickCat('fabric')
+            setPicking(true)
+          }}
+          style={{ alignSelf: 'flex-start' }}
+        >
+          {t('materials.add')}
+        </Button>
+      )}
+      <Modal
+        open={picking}
+        title={t('materials.add')}
+        onCancel={() => setPicking(false)}
+        okText={t('supplyRequests.continue')}
+        cancelText={t('common.cancel')}
+        onOk={() => {
+          setAdding({ jobId: pickJob, category: pickCat })
+          setPicking(false)
+        }}
+        destroyOnHidden
+      >
+        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+          <div>
+            <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 2 }}>
+              {t('supplyRequests.jobLabel')}
+            </Typography.Text>
+            <select value={pickJob} onChange={(e) => setPickJob(e.target.value)} style={selectStyle}>
+              {jobs.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.job_code} · {localized(j.name, j.name_i18n, i18n.language)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 2 }}>
+              {t('supplyRequests.category')}
+            </Typography.Text>
+            <select value={pickCat} onChange={(e) => setPickCat(e.target.value as MaterialCategory)} style={selectStyle}>
+              {MATERIAL_CATEGORIES.filter((c) => c !== 'com').map((c) => (
+                <option key={c} value={c}>
+                  {t(`materialCategory.${c}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Space>
+      </Modal>
+      {adding && (
+        <MaterialModal
+          jobId={adding.jobId}
+          material={null}
+          category={adding.category}
+          onClose={() => setAdding(null)}
+          onSaved={() => {
+            setAdding(null)
+            setReloadKey((k) => k + 1)
+          }}
+        />
+      )}
+    </>
+  )
+
+  if (nonEmpty.length === 0)
+    return (
+      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+        {addControls}
+        <Empty description={t('jobDetail.noMaterials')} />
+      </Space>
+    )
 
   return (
     <Space orientation="vertical" size={20} style={{ width: '100%' }}>
+      {addControls}
       {nonEmpty.map((g) => (
         <section key={g.job_code}>
           <SectionLabel>
@@ -363,6 +451,11 @@ export default function ProjectDetail() {
     [projectId, reloadKey],
   )
   const [tab, setTab] = useState('overview')
+  const { data: departments } = useAsync(getDepartments, [])
+  // Same rule as the job's Materials tab: Admin or Procurement.
+  const canAddMaterial =
+    profile?.role === 'admin' ||
+    (!!departments?.find((d) => d.name === 'Procurement' && d.id === profile?.department_id))
   const [showQr, setShowQr] = useState(false)
 
   if (loading) return <FullScreenLoader />
@@ -438,7 +531,7 @@ export default function ProjectDetail() {
 
       {tab === 'files' && <FilesTab projectId={project.id} />}
 
-      {tab === 'materials' && <ProjectMaterials projectId={project.id} />}
+      {tab === 'materials' && <ProjectMaterials projectId={project.id} jobs={project.jobs} canAdd={canAddMaterial} />}
 
       {tab === 'notes' && <Notes scope={{ projectId: project.id }} />}
 

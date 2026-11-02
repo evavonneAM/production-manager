@@ -135,10 +135,11 @@ export default function Ordering() {
   const [showDone, setShowDone] = useState(false)
   const [emailFor, setEmailFor] = useState<Mat[] | null>(null)
   // "Add to order": pick category + job, then the usual Add material form.
-  const [placing, setPlacing] = useState<SupplyRequest | null>(null)
+  // A request being turned into an order, or { req: null } for a plain new material.
+  const [placing, setPlacing] = useState<{ req: SupplyRequest | null } | null>(null)
   const [placeCat, setPlaceCat] = useState<MaterialCategory>('upholstery_supplies')
   const [placeJob, setPlaceJob] = useState('')
-  const [materialFor, setMaterialFor] = useState<{ req: SupplyRequest; jobId: string; category: MaterialCategory } | null>(null)
+  const [materialFor, setMaterialFor] = useState<{ req: SupplyRequest | null; jobId: string; category: MaterialCategory } | null>(null)
   const [toast, toastHolder] = message.useMessage()
   const [reloadKey, setReloadKey] = useState(0)
   const reload = () => setReloadKey((k) => k + 1)
@@ -248,10 +249,10 @@ export default function Ordering() {
     setSelected([])
     reload()
   }
-  function startPlacing(r: SupplyRequest) {
-    setPlaceCat('upholstery_supplies')
-    setPlaceJob(r.job?.id ?? '')
-    setPlacing(r)
+  function startPlacing(r: SupplyRequest | null) {
+    setPlaceCat(r ? 'upholstery_supplies' : tab === 'fabric' ? 'fabric' : 'upholstery_supplies')
+    setPlaceJob(r?.job?.id ?? '')
+    setPlacing({ req: r })
   }
   async function onMaterialSaved(id?: string) {
     const req = materialFor?.req
@@ -459,13 +460,18 @@ export default function Ordering() {
 
   return (
     <div style={{ maxWidth: 1152, width: '100%', margin: '0 auto', padding: `24px 16px ${selected.length ? 96 : 24}px` }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
         <Typography.Title level={3} style={{ margin: 0 }}>
           {t('ordering.title')}
         </Typography.Title>
-        <Button icon={<SyncOutlined />} onClick={() => void syncSheetsNow().then(reload)}>
-          {t('materials.syncNow')}
-        </Button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => startPlacing(null)}>
+            {t('materials.add')}
+          </Button>
+          <Button icon={<SyncOutlined />} onClick={() => void syncSheetsNow().then(reload)} aria-label={t('materials.syncNow')}>
+            {t('materials.syncNow')}
+          </Button>
+        </div>
       </div>
 
       {toMatch.length > 0 && (
@@ -681,7 +687,7 @@ export default function Ordering() {
       {/* Add to order, step 1: where it goes */}
       <Modal
         open={!!placing}
-        title={t('supplyRequests.addToOrder')}
+        title={placing?.req ? t('supplyRequests.addToOrder') : t('materials.add')}
         onCancel={() => setPlacing(null)}
         okText={t('supplyRequests.continue')}
         cancelText={t('common.cancel')}
@@ -689,17 +695,19 @@ export default function Ordering() {
         onOk={() => {
           if (!placing) return
           const jobId = placeJob || placeJobs?.[1] || ''
-          setMaterialFor({ req: placing, jobId, category: placeCat })
+          setMaterialFor({ req: placing.req, jobId, category: placeCat })
           setPlacing(null)
         }}
         destroyOnHidden
       >
         {placing && (
           <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-            <Typography.Text strong>
-              {placing.item}
-              {placing.quantity ? ` · ${placing.quantity}` : ''}
-            </Typography.Text>
+            {placing.req && (
+              <Typography.Text strong>
+                {placing.req.item}
+                {placing.req.quantity ? ` · ${placing.req.quantity}` : ''}
+              </Typography.Text>
+            )}
             <Typography.Text type="secondary">{t('supplyRequests.addToOrderHelp')}</Typography.Text>
             <div>
               <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 2 }}>
@@ -736,16 +744,20 @@ export default function Ordering() {
           jobId={materialFor.jobId}
           material={null}
           category={materialFor.category}
-          prefill={{
-            name: materialFor.req.item,
-            quantity: String(parseFloat(materialFor.req.quantity ?? '') || ''),
-            notes: [materialFor.req.quantity, materialFor.req.note].filter(Boolean).join(' · '),
-            productUrl: materialFor.req.link
-              ? /^https?:\/\//i.test(materialFor.req.link)
-                ? materialFor.req.link
-                : `https://${materialFor.req.link}`
-              : undefined,
-          }}
+          prefill={
+            materialFor.req
+              ? {
+                  name: materialFor.req.item,
+                  quantity: String(parseFloat(materialFor.req.quantity ?? '') || ''),
+                  notes: [materialFor.req.quantity, materialFor.req.note].filter(Boolean).join(' · '),
+                  productUrl: materialFor.req.link
+                    ? /^https?:\/\//i.test(materialFor.req.link)
+                      ? materialFor.req.link
+                      : `https://${materialFor.req.link}`
+                    : undefined,
+                }
+              : undefined
+          }
           onClose={() => setMaterialFor(null)}
           onSaved={(id) => void onMaterialSaved(id)}
         />
