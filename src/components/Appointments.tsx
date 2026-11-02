@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next'
+import { Card, Typography, theme } from 'antd'
+import { CalendarOutlined } from '@ant-design/icons'
 import { useAsync } from '../hooks/useAsync'
 import { getAppointments } from '../lib/data'
 
@@ -6,16 +8,19 @@ import { getAppointments } from '../lib/data'
  *  (the owner's "everything for a client in one place"). */
 export function Appointments({ projectId, jobId }: { projectId?: string; jobId?: string }) {
   const { t, i18n } = useTranslation()
+  const { token } = theme.useToken()
   const { data } = useAsync(() => getAppointments({ projectId, jobId }), [projectId, jobId])
 
   if (!data || data.length === 0) return null
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-800/20 p-3">
-      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-        {t('calendar.appointments')}
-      </p>
-      <div className="flex flex-col gap-1.5">
+    <Card size="small" styles={{ body: { padding: 14 } }}>
+      <Typography.Text
+        style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, letterSpacing: 0.3, textTransform: 'uppercase', color: token.colorTextTertiary }}
+      >
+        <CalendarOutlined /> {t('calendar.appointments')}
+      </Typography.Text>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {data.map((ev) => {
           const when = new Date(ev.starts_at)
           const dateLabel = when.toLocaleDateString(i18n.language, {
@@ -25,16 +30,20 @@ export function Appointments({ projectId, jobId }: { projectId?: string; jobId?:
             ...(ev.all_day ? {} : { hour: '2-digit', minute: '2-digit' }),
           })
           return (
-            <div key={ev.id} className="flex items-baseline justify-between gap-2 text-sm">
-              <span className="min-w-0 truncate text-slate-200">
+            <div key={ev.id} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+              <Typography.Text ellipsis style={{ minWidth: 0 }}>
                 {ev.title}
-                {ev.location && <span className="ml-1 text-xs text-slate-500">· {ev.location}</span>}
-              </span>
-              <span className="shrink-0 text-xs text-sky-300">{dateLabel}</span>
+                {ev.location && (
+                  <Typography.Text type="secondary" style={{ marginLeft: 4, fontSize: 12 }}>
+                    · {ev.location}
+                  </Typography.Text>
+                )}
+              </Typography.Text>
+              <Typography.Text style={{ flexShrink: 0, fontSize: 12, color: token.colorPrimary }}>{dateLabel}</Typography.Text>
             </div>
           )
         })}
       </div>
-    </div>
+    </Card>
   )
 }

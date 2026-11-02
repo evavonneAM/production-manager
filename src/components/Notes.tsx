@@ -1,11 +1,12 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Button, Card, Empty, Input, Typography, theme } from 'antd'
+import { DeleteOutlined } from '@ant-design/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
 import { getNotes, addNote, deleteNote, requestTranslation, getDirectory } from '../lib/data'
 import { formatDate } from '../lib/format'
 import { Avatar } from './Avatar'
-import { EmptyState } from './ui'
 import type { Note } from '../lib/types'
 import type { AppLanguage } from '../i18n'
 
@@ -18,6 +19,7 @@ function textFor(note: Note, lang: string): string {
 
 export function Notes({ scope }: { scope: Scope }) {
   const { t, i18n } = useTranslation()
+  const { token } = theme.useToken()
   const { profile } = useAuth()
   const [reloadKey, setReloadKey] = useState(0)
   const [text, setText] = useState('')
@@ -58,75 +60,69 @@ export function Notes({ scope }: { scope: Scope }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <form onSubmit={onAdd} className="flex flex-col gap-2">
-        <textarea
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <form onSubmit={onAdd} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <Input.TextArea
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={t('notes.placeholder')}
           rows={2}
           maxLength={2000}
-          className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
         />
-        <button
-          type="submit"
-          disabled={busy || !text.trim()}
-          className="self-end rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
-        >
-          {busy ? t('notes.posting') : t('notes.add')}
-        </button>
+        <Button type="primary" htmlType="submit" loading={busy} disabled={!text.trim()} style={{ alignSelf: 'flex-end' }}>
+          {t('notes.add')}
+        </Button>
       </form>
 
-      {loading && <p className="text-sm text-slate-500">{t('common.loading')}</p>}
-      {!loading && (notes?.length ?? 0) === 0 && <EmptyState text={t('notes.empty')} />}
+      {loading && <Typography.Text type="secondary">{t('common.loading')}</Typography.Text>}
+      {!loading && (notes?.length ?? 0) === 0 && <Empty description={t('notes.empty')} />}
 
-      <div className="flex flex-col gap-3">
-        {(notes ?? []).map((note) => {
-          const translated = note.original_language !== lang
-          const missing = translated && !note[`${lang}_text` as 'en_text' | 'ru_text' | 'es_text']
-          const canDelete = note.author_id === profile?.id || profile?.role === 'admin'
-          return (
-            <div key={note.id} className="rounded-xl border border-slate-800 bg-slate-800/40 p-3">
-              <div className="mb-1.5 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Avatar name={authorOf(note.author_id)} size={24} />
-                  <span className="text-sm text-slate-300">{authorOf(note.author_id)}</span>
+      {(notes?.length ?? 0) > 0 && (
+        <Card styles={{ body: { padding: 0 } }}>
+          {(notes ?? []).map((note, i, all) => {
+            const translated = note.original_language !== lang
+            const missing = translated && !note[`${lang}_text` as 'en_text' | 'ru_text' | 'es_text']
+            const canDelete = note.author_id === profile?.id || profile?.role === 'admin'
+            return (
+              <div
+                key={note.id}
+                style={{ padding: '12px 14px', borderBottom: i === all.length - 1 ? 'none' : `1px solid ${token.colorBorderSecondary}` }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Avatar name={authorOf(note.author_id)} size={24} />
+                    <Typography.Text strong>{authorOf(note.author_id)}</Typography.Text>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      {formatDate(note.created_at, lang)}
+                    </Typography.Text>
+                    {canDelete && (
+                      <Button size="small" type="text" icon={<DeleteOutlined />} aria-label={t('notes.delete')} onClick={() => void onDelete(note.id)} />
+                    )}
+                  </div>
                 </div>
-                <span className="text-xs text-slate-500">{formatDate(note.created_at, lang)}</span>
+                <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{textFor(note, lang)}</Typography.Paragraph>
+                {translated && !missing && (
+                  <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>
+                    {t('notes.originallyIn', { lang: t(`languages.${note.original_language}`) })}
+                  </Typography.Text>
+                )}
+                {missing && (
+                  <Typography.Text type="warning" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>
+                    {note.translation_status === 'failed' ? t('notes.translationFailed') : t('notes.translating')}
+                    {note.translation_status === 'failed' && (
+                      <Button size="small" type="link" onClick={() => void onRetry(note.id)}>
+                        {t('scan.tryAgain')}
+                      </Button>
+                    )}
+                  </Typography.Text>
+                )}
               </div>
-              <p className="whitespace-pre-wrap text-sm text-slate-200">{textFor(note, lang)}</p>
-              {translated && !missing && (
-                <p className="mt-1 text-xs text-slate-500">
-                  {t('notes.originallyIn', { lang: t(`languages.${note.original_language}`) })}
-                </p>
-              )}
-              {missing && (
-                <div className="mt-1 flex items-center gap-2 text-xs text-amber-400/80">
-                  <span>
-                    {note.translation_status === 'failed'
-                      ? t('notes.translationFailed')
-                      : t('notes.translating')}
-                  </span>
-                  {note.translation_status === 'failed' && (
-                    <button type="button" onClick={() => void onRetry(note.id)} className="underline">
-                      {t('scan.tryAgain')}
-                    </button>
-                  )}
-                </div>
-              )}
-              {canDelete && (
-                <button
-                  type="button"
-                  onClick={() => void onDelete(note.id)}
-                  className="mt-2 text-xs text-slate-500 hover:text-red-400"
-                >
-                  {t('notes.delete')}
-                </button>
-              )}
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </Card>
+      )}
     </div>
   )
 }
