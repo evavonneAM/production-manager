@@ -40,7 +40,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2,ttf}'],
         // Offline read cache (S14): recent Supabase reads stay available in
         // airplane mode — network first, fall back to the last good copy.
         runtimeCaching: [

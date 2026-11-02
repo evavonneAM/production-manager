@@ -1,23 +1,46 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Alert, Button, Card, Col, Empty, Input, Modal, Row, Space, Statistic, Tag, Typography, theme } from 'antd'
+import { ArrowLeftOutlined, CheckOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
 import { getTask, getDirectory, getActiveSession, clockIn, clockOut, completeTask, approveTask, rejectTask, deleteTask, cancelTask } from '../lib/data'
 import { clockOutResilient } from '../lib/offlineClock'
 import { type AppLanguage } from '../i18n'
 import { formatMinutes } from '../lib/format'
-import { ErrorState, Tabs, TaskStatusBadge } from '../components/ui'
 import { Notes } from '../components/Notes'
 import { EditTaskModal } from '../components/EditTaskModal'
 import { localized } from '../lib/i18nText'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import { LiveTimer } from '../components/LiveTimer'
+import type { TaskStatus } from '../lib/types'
+
+const TASK_TAG_COLOR: Record<TaskStatus, string> = {
+  pending_approval: 'orange',
+  unstarted: 'default',
+  in_progress: 'processing',
+  paused: 'gold',
+  completed: 'success',
+  cancelled: 'default',
+}
+
+function SectionLabel({ children }: { children: string }) {
+  const { token } = theme.useToken()
+  return (
+    <Typography.Text
+      style={{ display: 'block', marginBottom: 8, fontSize: 12, fontWeight: 600, letterSpacing: 0.3, textTransform: 'uppercase', color: token.colorTextTertiary }}
+    >
+      {children}
+    </Typography.Text>
+  )
+}
 
 export default function TaskDetail() {
   const { taskId } = useParams()
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
+  const { token } = theme.useToken()
   const { profile, refreshProfile } = useAuth()
   const [reloadKey, setReloadKey] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -41,7 +64,7 @@ export default function TaskDetail() {
   }, [directory])
 
   if (loading) return <FullScreenLoader />
-  if (loadErr || !task || !profile) return <ErrorState text={t('common.error')} />
+  if (loadErr || !task || !profile) return <Alert type="error" showIcon title={t('common.error')} style={{ margin: 16 }} />
 
   const myActive = profile.active_task_id
   const isActive = myActive === task.id
@@ -111,194 +134,190 @@ export default function TaskDetail() {
     }
   }
 
+  const stat = (title: string, value: string) => (
+    <Col span={12}>
+      <Card size="small" style={{ height: '100%' }}>
+        <Statistic title={title} value={value} styles={{ content: { fontSize: 16 } }} />
+      </Card>
+    </Col>
+  )
+
+  const onClockOut = () =>
+    void run(async () => {
+      const res = await clockOutResilient()
+      if (res.queued) setError(t('taskDetail.clockOutQueued'))
+      return { error: res.error }
+    })
+
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-6">
+    <div style={{ maxWidth: 672, width: '100%', margin: '0 auto', padding: '24px 16px' }}>
       {task.job && (
-        <Link to={`/jobs/${task.job.id}`} className="text-sm text-slate-400 hover:text-slate-200">
-          ← <span className="font-mono">{task.job.job_code}</span> · {task.job.name}
+        <Link to={`/jobs/${task.job.id}`}>
+          <Typography.Text type="secondary">
+            <ArrowLeftOutlined /> <span style={{ fontFamily: token.fontFamilyCode }}>{task.job.job_code}</span> · {task.job.name}
+          </Typography.Text>
         </Link>
       )}
 
-      <div className="mt-3 mb-5 flex items-start justify-between gap-3">
-        <h1 className="text-xl font-semibold">{localized(task.name, task.name_i18n, i18n.language)}</h1>
-        <TaskStatusBadge status={task.status} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, margin: '12px 0 16px' }}>
+        <Typography.Title level={3} style={{ margin: 0 }}>
+          {localized(task.name, task.name_i18n, i18n.language)}
+        </Typography.Title>
+        <Tag color={TASK_TAG_COLOR[task.status]} style={{ marginInlineEnd: 0, marginTop: 6 }}>
+          {t(`taskStatus.${task.status}`)}
+        </Tag>
       </div>
 
-      <dl className="mb-5 grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <dt className="text-slate-500">{t('taskDetail.department')}</dt>
-          <dd className="text-slate-200">{task.stage?.department?.name ?? '—'}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">{t('taskDetail.assignee')}</dt>
-          <dd className="text-slate-200">
-            {task.assigned_user_id ? nameOf(task.assigned_user_id) : t('jobDetail.unassigned')}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">{t('jobDetail.estimated')}</dt>
-          <dd className="text-slate-200">{task.estimated_hours ?? 0}{t('units.h')}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">{t('jobDetail.actual')}</dt>
-          <dd className="text-slate-200">{formatMinutes(task.actual_minutes, { h: t('units.h'), m: t('units.m') })}</dd>
-        </div>
-      </dl>
+      <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+        {isAdmin && (
+          <Space size={8}>
+            <Button size="small" icon={<EditOutlined />} disabled={busy} onClick={() => setEditing(true)}>
+              {t('taskEdit.edit')}
+            </Button>
+            <Button size="small" danger icon={<DeleteOutlined />} disabled={busy} onClick={() => setConfirmDelete(true)}>
+              {t('taskEdit.delete')}
+            </Button>
+          </Space>
+        )}
 
-      {task.instructions && (
-        <div className="mb-5 rounded-lg border border-slate-800 bg-slate-800/40 p-3">
-          <p className="mb-1 text-xs text-slate-500">{t('createTask.instructions')}</p>
-          <p className="whitespace-pre-wrap text-sm text-slate-200">{task.instructions}</p>
-        </div>
-      )}
-
-      {isAdmin && (
-        <div className="mb-6 flex gap-3">
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            disabled={busy}
-            className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
-          >
-            {t('taskEdit.edit')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirmDelete(true)}
-            disabled={busy}
-            className="rounded-lg border border-red-900/60 px-3 py-1.5 text-sm text-red-400/90 hover:bg-red-600/10"
-          >
-            {t('taskEdit.delete')}
-          </button>
-        </div>
-      )}
-
-      {/* Pending approval */}
-      {isPending && (
-        <div className="mb-6 rounded-xl border border-orange-600/40 bg-orange-600/10 p-4">
-          <p className="mb-3 text-sm text-orange-300">{t('taskDetail.pendingApprovalInfo')}</p>
-          {error && <ErrorState text={error} />}
-          {canApprove &&
-            (rejecting ? (
-              <div className="flex flex-col gap-3">
-                <textarea
-                  value={rejectNote}
-                  onChange={(e) => setRejectNote(e.target.value)}
-                  placeholder={t('inspection.rejectNotePlaceholder')}
-                  rows={2}
-                  className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
-                />
-                <div className="flex gap-3">
-                  <button type="button" onClick={() => setRejecting(false)} className="flex-1 rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800">
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy || !rejectNote.trim()}
-                    onClick={() => void run(() => rejectTask(task.id, rejectNote.trim(), i18n.language as AppLanguage))}
-                    className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+        {/* Pending approval */}
+        {isPending && (
+          <Card style={{ borderColor: token.colorWarningBorder, background: token.colorWarningBg }} styles={{ body: { padding: 16 } }}>
+            <Typography.Paragraph style={{ marginBottom: canApprove ? 12 : 0 }}>{t('taskDetail.pendingApprovalInfo')}</Typography.Paragraph>
+            {canApprove &&
+              (rejecting ? (
+                <Space orientation="vertical" size={10} style={{ width: '100%' }}>
+                  <Input.TextArea
+                    value={rejectNote}
+                    onChange={(e) => setRejectNote(e.target.value)}
+                    placeholder={t('inspection.rejectNotePlaceholder')}
+                    rows={2}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Button block onClick={() => setRejecting(false)}>
+                      {t('common.cancel')}
+                    </Button>
+                    <Button
+                      block
+                      danger
+                      type="primary"
+                      loading={busy}
+                      disabled={!rejectNote.trim()}
+                      onClick={() => void run(() => rejectTask(task.id, rejectNote.trim(), i18n.language as AppLanguage))}
+                    >
+                      {t('inspection.confirmReject')}
+                    </Button>
+                  </div>
+                </Space>
+              ) : (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Button block danger disabled={busy} onClick={() => setRejecting(true)}>
+                    {t('inspection.reject')}
+                  </Button>
+                  <Button
+                    block
+                    type="primary"
+                    loading={busy}
+                    style={{ background: token.colorSuccess }}
+                    onClick={() => void run(() => approveTask(task.id))}
                   >
-                    {t('inspection.confirmReject')}
-                  </button>
+                    {t('inspection.approve')}
+                  </Button>
                 </div>
-              </div>
-            ) : (
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setRejecting(true)} disabled={busy} className="flex-1 rounded-lg border border-red-600/60 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-600/10">
-                  {t('inspection.reject')}
-                </button>
-                <button type="button" onClick={() => void run(() => approveTask(task.id))} disabled={busy} className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500 disabled:opacity-60">
-                  {t('inspection.approve')}
-                </button>
-              </div>
-            ))}
-        </div>
-      )}
-
-      {/* Clock controls */}
-      <div className="mb-6 flex flex-col gap-3">
-        {error && <ErrorState text={error} />}
-
-        {isActive && active && (
-          <div className="flex items-center justify-between rounded-lg bg-amber-600/10 px-3 py-2 text-amber-200">
-            <span className="text-sm">{t('taskDetail.clockedIn')}</span>
-            <span className="font-mono text-lg"><LiveTimer since={active.clocked_in_at} /></span>
-          </div>
+              ))}
+          </Card>
         )}
 
-        <div className="flex gap-3">
-          {isActive ? (
-            <button
-              type="button"
-              onClick={() =>
-                void run(async () => {
-                  const res = await clockOutResilient()
-                  if (res.queued) setError(t('taskDetail.clockOutQueued'))
-                  return { error: res.error }
-                })
-              }
-              disabled={busy}
-              className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 font-medium text-white hover:bg-amber-500 disabled:opacity-60"
-            >
-              {t('myWork.clockOut')}
-            </button>
-          ) : (
-            clockable && (
-              <button
-                type="button"
-                onClick={onClockIn}
-                disabled={busy}
-                className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 font-medium text-white hover:bg-amber-500 disabled:opacity-60"
-              >
-                {t('taskDetail.clockIn')}
-              </button>
-            )
-          )}
-          {completable && (
-            <button
-              type="button"
-              onClick={() => void run(() => completeTask(task.id))}
-              disabled={busy}
-              className="flex-1 rounded-lg border border-slate-600 px-4 py-2.5 font-medium text-slate-100 hover:bg-slate-800 disabled:opacity-60"
-            >
-              {t('taskDetail.markComplete')}
-            </button>
-          )}
-        </div>
-      </div>
+        {error && <Alert type="error" showIcon title={error} />}
 
-      {/* Clock log */}
-      <Tabs tabs={[{ key: 'log', label: t('taskDetail.clockLog') }]} active="log" onChange={() => {}} />
-      <div className="mt-4 flex flex-col gap-2">
-        {logs.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-500">{t('taskDetail.noLog')}</p>
-        ) : (
-          logs.map((log) => (
-            <div key={log.id} className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5 text-sm">
-              <div>
-                <p>{nameOf(log.user_id)}</p>
-                <p className="text-xs text-slate-500">
-                  {fmtTime(log.clocked_in_at)} – {log.clocked_out_at ? fmtTime(log.clocked_out_at) : t('taskDetail.active')}
-                  {log.admin_override ? ` · ${t('taskDetail.autoClosed')}` : ''}
-                </p>
-              </div>
-              <span className="text-slate-300">
-                {log.duration_minutes != null
-                  ? formatMinutes(log.duration_minutes, { h: t('units.h'), m: t('units.m') })
-                  : '…'}
-              </span>
+        {/* Clock controls */}
+        {isActive ? (
+          <Card style={{ borderColor: token.colorPrimary, borderWidth: 1.5 }} styles={{ body: { padding: 16 } }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography.Text style={{ color: token.colorPrimary, fontWeight: 600 }}>● {t('taskDetail.clockedIn')}</Typography.Text>
+              {active && (
+                <span style={{ fontFamily: token.fontFamilyCode, fontSize: 20, fontWeight: 600 }}>
+                  <LiveTimer since={active.clocked_in_at} />
+                </span>
+              )}
             </div>
-          ))
+            <Button type="primary" size="large" block loading={busy} onClick={onClockOut} style={{ marginTop: 14 }}>
+              {t('myWork.clockOut')}
+            </Button>
+            {completable && (
+              <Button size="large" block icon={<CheckOutlined />} disabled={busy} onClick={() => void run(() => completeTask(task.id))} style={{ marginTop: 8 }}>
+                {t('taskDetail.markComplete')}
+              </Button>
+            )}
+          </Card>
+        ) : (
+          (clockable || completable) && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {clockable && (
+                <Button type="primary" size="large" block loading={busy} onClick={onClockIn}>
+                  {t('taskDetail.clockIn')}
+                </Button>
+              )}
+              {completable && (
+                <Button size="large" block icon={<CheckOutlined />} disabled={busy} onClick={() => void run(() => completeTask(task.id))}>
+                  {t('taskDetail.markComplete')}
+                </Button>
+              )}
+            </div>
+          )
         )}
-      </div>
 
-      {/* Task-level notes */}
-      {task.job && (
-        <div className="mt-8 border-t border-slate-800 pt-6">
-          <p className="mb-3 text-sm font-medium text-slate-300">{t('jobDetail.tabNotes')}</p>
-          <Notes scope={{ projectId: task.job.project_id, jobId: task.job.id, taskId: task.id }} />
-        </div>
-      )}
+        <Row gutter={[12, 12]}>
+          {stat(t('taskDetail.department'), task.stage?.department?.name ?? '—')}
+          {stat(t('taskDetail.assignee'), task.assigned_user_id ? nameOf(task.assigned_user_id) : t('jobDetail.unassigned'))}
+          {stat(t('jobDetail.estimated'), `${task.estimated_hours ?? 0}${t('units.h')}`)}
+          {stat(t('jobDetail.actual'), formatMinutes(task.actual_minutes, { h: t('units.h'), m: t('units.m') }))}
+        </Row>
+
+        {task.instructions && (
+          <Card size="small" styles={{ body: { padding: 16 } }}>
+            <SectionLabel>{t('createTask.instructions')}</SectionLabel>
+            <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{task.instructions}</Typography.Paragraph>
+          </Card>
+        )}
+
+        {/* Clock log */}
+        <section>
+          <SectionLabel>{t('taskDetail.clockLog')}</SectionLabel>
+          {logs.length === 0 ? (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('taskDetail.noLog')} />
+          ) : (
+            <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+              {logs.map((log) => (
+                <Card key={log.id} size="small" styles={{ body: { padding: '10px 12px' } }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div>
+                      <Typography.Text strong style={{ display: 'block' }}>{nameOf(log.user_id)}</Typography.Text>
+                      <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                        {fmtTime(log.clocked_in_at)} – {log.clocked_out_at ? fmtTime(log.clocked_out_at) : t('taskDetail.active')}
+                        {log.admin_override ? ` · ${t('taskDetail.autoClosed')}` : ''}
+                      </Typography.Text>
+                    </div>
+                    <Typography.Text>
+                      {log.duration_minutes != null
+                        ? formatMinutes(log.duration_minutes, { h: t('units.h'), m: t('units.m') })
+                        : '…'}
+                    </Typography.Text>
+                  </div>
+                </Card>
+              ))}
+            </Space>
+          )}
+        </section>
+
+        {/* Task-level notes */}
+        {task.job && (
+          <section>
+            <SectionLabel>{t('jobDetail.tabNotes')}</SectionLabel>
+            <Notes scope={{ projectId: task.job.project_id, jobId: task.job.id, taskId: task.id }} />
+          </section>
+        )}
+      </Space>
 
       {/* Admin: edit task */}
       {editing && (
@@ -314,61 +333,30 @@ export default function TaskDetail() {
       )}
 
       {/* Admin: delete / cancel confirmation */}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={() => setConfirmDelete(false)}>
-          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-2 text-lg font-semibold">
-              {hasLoggedTime ? t('taskEdit.cancelTitle') : t('taskEdit.deleteTitle')}
-            </h2>
-            <p className="mb-5 text-sm text-slate-400">
-              {hasLoggedTime ? t('taskEdit.cancelBody') : t('taskEdit.deleteBody')}
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(false)}
-                className="flex-1 rounded-lg border border-slate-600 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={() => void onConfirmDelete()}
-                disabled={busy}
-                className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-60"
-              >
-                {hasLoggedTime ? t('taskEdit.cancelConfirm') : t('taskEdit.deleteConfirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={confirmDelete}
+        title={hasLoggedTime ? t('taskEdit.cancelTitle') : t('taskEdit.deleteTitle')}
+        onCancel={() => setConfirmDelete(false)}
+        onOk={() => void onConfirmDelete()}
+        okText={hasLoggedTime ? t('taskEdit.cancelConfirm') : t('taskEdit.deleteConfirm')}
+        cancelText={t('common.cancel')}
+        okButtonProps={{ danger: true }}
+        confirmLoading={busy}
+      >
+        {hasLoggedTime ? t('taskEdit.cancelBody') : t('taskEdit.deleteBody')}
+      </Modal>
 
       {/* Switch-task confirmation (S08) */}
-      {confirmSwitch && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={() => setConfirmSwitch(false)}>
-          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-2 text-lg font-semibold">{t('taskDetail.switchTitle')}</h2>
-            <p className="mb-5 text-sm text-slate-400">{t('taskDetail.switchBody')}</p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setConfirmSwitch(false)}
-                className="flex-1 rounded-lg border border-slate-600 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={() => void onSwitch()}
-                className="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-500"
-              >
-                {t('taskDetail.switchConfirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={confirmSwitch}
+        title={t('taskDetail.switchTitle')}
+        onCancel={() => setConfirmSwitch(false)}
+        onOk={() => void onSwitch()}
+        okText={t('taskDetail.switchConfirm')}
+        cancelText={t('common.cancel')}
+      >
+        {t('taskDetail.switchBody')}
+      </Modal>
     </div>
   )
 }

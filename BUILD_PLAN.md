@@ -237,6 +237,14 @@ can open it.
       attach events whose titles contain a job/work-order code (e.g. "AM1234 — walkthrough")
       to that job/project — team will follow the code-in-title naming convention. Two-way
       editing deliberately deferred; these layers stack without rework if wanted later.
+- [ ] **Estimate Rocket calendars (owner request, 2026-10-27):** the AM, HOV and RHU
+      project deadlines (ER's scheduled completion dates, not appointments) show on the Calendar screen, one colour per business, read from
+      each ER account's "Subscribe to Calendar" iCal link (secrets `ER_ICS_AM/HOV/RHU`,
+      `er-calendar-sync` every 15 min, table `er_appointments`). Read-only: dates are
+      still set in ER. Past-due deadlines get a red dot. Calendar screen moved to the Ant Design look at the same time.
+- [ ] **Future (not now): Google Calendar events in the app's calendar.** Today only events
+      whose titles carry a job/work-order code are pulled in. Later: show all events from
+      the team's Google calendars on the Calendar screen, like the ER appointments.
 
 **Done when:** I can drag a project up the priority board and see it affect where its jobs
 land in department queues; notifications show in my language.
@@ -321,6 +329,73 @@ Note: no real labor logged yet — clock-in rollout is the adoption step after S
 
 **Done when:** I can look up a job with the phone in airplane mode, and a clock-out done
 offline syncs correctly when I reconnect.
+
+---
+
+## Workroom Tools (owner requests, outside the sprint order)
+
+The Tools screen holds the workroom calculators: Ripplefold Yardage, Drapery Pleat, Work Order
+Builder, Cushion Cut Dimensions, Cushion Pricing, Fabric Yardage, Upholstery Estimate, Leaf Bag
+and Floorplan Measure. They share the calculation libraries in `src/lib/calculators/`
+(`cushionCut.ts`, `fabricNesting.ts`, `cushionPricing.ts`), so the estimate and the cut list
+use the same math. Cutting rules live in the Cutter's Rulebook (Claude Doc).
+
+**Agreed workflow:** Cushion Pricing estimate → **Send to Cushion Cut** → project manager
+reviews (banner until marked Reviewed) → cut list and work order PDF.
+
+### 2026-10-26 changes (all live)
+
+**Cushion Pricing (estimate)** — #33, #28
+- [x] Outdoor Foam insert: (W×D×H)/144 × $12 + $30 (also in Upholstery Estimate).
+- [x] Styles match the TextExpander list (adds Knife Edge / Butterfly Corner Self Welted).
+- [x] Upholstery Estimate clean seam default $6.
+- [x] Shared Estimate Rocket line ("Add To The Estimate Rocket Line Above"): sizes listed as
+      ` * QTY` under Dimensions; yardage laid out for all of the line's cushions together.
+- [x] Velcro add-on: 1 row $5/ft or 2 rows $10/ft, per cushion length rounded to the nearest
+      foot; Modifications line on the Estimate Rocket text.
+- [x] Designer box: "According To {Designer} Design Specifications".
+- [x] Wedge cushions, on their own card or matching a seat's length.
+- [x] "Estimate only" note and **Send to Cushion Cut** button.
+- [x] When boxing is longer than the roll is wide, the estimate assumes corner seams and flags
+      the line.
+
+**Cushion Cut Dimensions** — #28, #39
+- [x] Board-mounted type (from the workroom cut list sheet): plate W+1 × D+1; boxing
+      2W+2D+1 × H+2½, no zipper; foam W+½ × D+½ × H; plywood board ⅛" in on every side.
+      Only board-mounted cushions get the extra ½".
+- [x] Wedge cushions.
+- [x] Fabric layout per fabric (color per cushion, pattern repeat and half drop with motif
+      marks) and plywood sheet diagrams.
+- [x] **Sewing style** picker replaces the cording checkbox and prints on the PDF. Only Boxed
+      styles calculate for now.
+- [x] **Boxing is always one strip.** If it's longer than the roll is wide it is flagged, not
+      pieced. Corner seams only with a manager's OK (checkbox).
+- [x] **Zipper on bottom** option: top plate as usual; boxing = full perimeter + one seam
+      allowance; no zipper strips; bottom plate prints "Calculate plate with zipper".
+- [x] Job **Notes** box, printed on the work order.
+
+**Work order and tool PDFs** — #39
+- [x] Cushion work order shows the sewing style, zipper position, and fabric layout pages
+      (roll in rows with yard marks, motif rings, bias block, join and "not on layout" lines).
+- [x] All tool PDFs (plywood, leaf bag, drapery pleat, cushion work order) print in the
+      language of whoever downloads them (en / es / ru), with an embedded Noto Sans font so
+      Cyrillic prints.
+- [x] Job notes and foam notes are translated with DeepL into the reader's language at
+      download, via the `translate-text` Edge Function (signed-in users only; nothing stored).
+      Translated notes are marked as translated.
+
+**Floorplan Measure** — #37, #38
+- [x] Drawing-scale and rounding dropdowns use a native select (the Ant list froze for Eva).
+- [x] Lengths in inches only (e.g. `150 1/2"`); areas stay in sq ft.
+
+### Open items
+- [ ] Boxing seam rules: Eva to give guidance. The rulebook says back corners are OK and front
+      corners or mid-side need approval; the corner-seam option currently seams the front
+      corners. Also decide whether patterned, up-the-roll boxing should assume corner seams.
+- [ ] Formulas for non-boxed sewing styles (knife edge, corner styles), from Eva.
+- [ ] Bottom plate with a zipper, from the workroom.
+- [ ] Team review of Spanish and Russian PDF wording (e.g. Cordón vs Vivo, Панели vs Плита,
+      the Russian Leaf Bag name). The leaf bag panel picture stays English (owner OK).
 
 ---
 

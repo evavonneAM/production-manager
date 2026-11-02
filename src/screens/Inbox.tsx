@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Alert, Badge, Button, Card, Empty, Typography, theme } from 'antd'
+import { CheckOutlined } from '@ant-design/icons'
 import { useAsync } from '../hooks/useAsync'
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../lib/data'
 import { formatDate } from '../lib/format'
-import { EmptyState, ErrorState } from '../components/ui'
 import { FullScreenLoader } from '../components/FullScreenLoader'
 import type { Notification } from '../lib/types'
 
@@ -17,6 +18,7 @@ function textOf(n: Notification, lang: string): { title: string; body: string } 
 export default function Inbox() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const { token } = theme.useToken()
   const [reloadKey, setReloadKey] = useState(0)
   const { data, loading, error } = useAsync(getNotifications, [reloadKey])
 
@@ -33,49 +35,61 @@ export default function Inbox() {
   }
 
   if (loading) return <FullScreenLoader />
-  if (error) return <ErrorState text={t('common.error')} />
+  if (error) return <Alert type="error" showIcon title={t('common.error')} style={{ margin: 16 }} />
 
   const unread = (data ?? []).filter((n) => !n.is_read).length
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-6">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{t('inbox.title')}</h1>
+    <div style={{ maxWidth: 672, width: '100%', margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+        <Typography.Title level={3} style={{ margin: 0 }}>
+          {t('inbox.title')}
+        </Typography.Title>
         {unread > 0 && (
-          <button type="button" onClick={() => void onMarkAll()}
-            className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800">
+          <Button icon={<CheckOutlined />} onClick={() => void onMarkAll()}>
             {t('inbox.markAllRead')}
-          </button>
+          </Button>
         )}
       </div>
 
       {(data?.length ?? 0) === 0 ? (
-        <EmptyState text={t('inbox.empty')} />
+        <Empty description={t('inbox.empty')} style={{ marginTop: 40 }} />
       ) : (
-        <div className="flex flex-col gap-2">
-          {(data ?? []).map((n) => {
+        <Card styles={{ body: { padding: 0 } }}>
+          {(data ?? []).map((n, i, all) => {
             const { title, body } = textOf(n, i18n.language)
             return (
-              <button
+              <div
                 key={n.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => void open(n)}
-                className={`rounded-xl border p-3 text-left transition hover:bg-slate-800/70 ${
-                  n.is_read ? 'border-slate-800 bg-slate-800/30' : 'border-amber-600/40 bg-amber-600/10'
-                }`}
+                onKeyDown={(e) => e.key === 'Enter' && void open(n)}
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  padding: '12px 14px',
+                  cursor: 'pointer',
+                  background: n.is_read ? undefined : token.colorPrimaryBg,
+                  borderBottom: i === all.length - 1 ? 'none' : `1px solid ${token.colorBorderSecondary}`,
+                }}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <p className={`text-sm ${n.is_read ? 'text-slate-300' : 'font-medium text-slate-100'}`}>
-                    {!n.is_read && <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-amber-500 align-middle" />}
-                    {title}
-                  </p>
-                  <span className="shrink-0 text-xs text-slate-500">{formatDate(n.sent_at, i18n.language)}</span>
+                <span style={{ width: 8, paddingTop: 2, flexShrink: 0 }}>{!n.is_read && <Badge status="processing" />}</span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                    <Typography.Text strong={!n.is_read}>{title}</Typography.Text>
+                    <Typography.Text type="secondary" style={{ flexShrink: 0, fontSize: 12 }}>
+                      {formatDate(n.sent_at, i18n.language)}
+                    </Typography.Text>
+                  </div>
+                  <Typography.Text type="secondary" style={{ display: 'block', fontSize: 13, marginTop: 2 }}>
+                    {body}
+                  </Typography.Text>
                 </div>
-                <p className="mt-0.5 text-xs text-slate-400">{body}</p>
-              </button>
+              </div>
             )
           })}
-        </div>
+        </Card>
       )}
     </div>
   )

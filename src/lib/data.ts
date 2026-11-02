@@ -349,17 +349,49 @@ export function requestSheetSync(): void {
     .catch(() => {/* cron sweep covers it */})
 }
 
-export type MaterialCategory = 'fabric' | 'com' | 'insert' | 'foam' | 'hardware' | 'other'
+export type MaterialCategory =
+  | 'fabric'
+  | 'com'
+  | 'insert'
+  | 'foam'
+  | 'upholstery_supplies'
+  | 'drapery_supplies'
+  | 'drapery_hardware'
+  | 'hardware'
+  | 'other'
+  | 'wood_shop'
+
+/** Categories offered when adding a material, in the owner's order (2026-10-29).
+ *  'hardware' is legacy: it shows as Components/Other alongside 'other'. */
+export const MATERIAL_CATEGORIES: MaterialCategory[] = [
+  'fabric',
+  'com',
+  'insert',
+  'foam',
+  'upholstery_supplies',
+  'drapery_supplies',
+  'drapery_hardware',
+  'other',
+  'wood_shop',
+]
+
+export type Fulfillment = 'delivery' | 'pickup'
 
 /** All materials across all jobs, for the ordering dashboard (Procurement + Admin). */
 export async function getAllMaterials(): Promise<
   (Material & {
-    job: { id: string; job_code: string; name: string; name_i18n: unknown; project: { client_name: string } | null } | null
+    job: {
+      id: string
+      job_code: string
+      name: string
+      name_i18n: unknown
+      project: { client_name: string; work_order_number: string | null } | null
+    } | null
   })[]
 > {
   const { data, error } = await client()
     .from('materials')
-    .select('*, job:jobs ( id, job_code, name, name_i18n, project:projects ( client_name ) )')
+    .select('*, job:jobs ( id, job_code, name, name_i18n, project:projects ( client_name, work_order_number ) )')
     .order('created_at', { ascending: false })
   if (error) throw error
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -377,6 +409,7 @@ export async function createMaterial(fields: {
   payment_required?: boolean
   specs?: unknown
   product_url?: string | null
+  fulfillment?: Fulfillment | null
   /** "Use Inventory" vendor: pulled from stock, so it skips the ordering flow. */
   fromStock?: boolean
 }): Promise<{ error: string | null; id?: string }> {
@@ -393,6 +426,7 @@ export async function createMaterial(fields: {
       payment_required: fields.payment_required ?? false,
       specs: (fields.specs ?? null) as never,
       product_url: fields.product_url ?? null,
+      fulfillment: fields.fulfillment ?? null,
       ...(fields.fromStock
         ? { is_ordered: true, ordered_at: new Date().toISOString(), is_arrived: true, arrived_at: new Date().toISOString() }
         : {}),
@@ -418,6 +452,7 @@ export async function updateMaterial(
     payment_required?: boolean
     specs?: unknown
     product_url?: string | null
+    fulfillment?: Fulfillment | null
   },
 ): Promise<ClockResult> {
   const { error } = await client()
@@ -439,11 +474,12 @@ export async function deleteMaterial(id: string): Promise<ClockResult> {
 /** Ordered/arrived flags — any role may flip these (guard trigger enforces). */
 export async function setMaterialStatus(
   id: string,
-  patch: { is_ordered?: boolean; is_arrived?: boolean },
+  patch: { is_ordered?: boolean; is_arrived?: boolean; received_quantity?: number | null },
 ): Promise<ClockResult> {
   const stamped: {
     is_ordered?: boolean
     is_arrived?: boolean
+    received_quantity?: number | null
     ordered_at?: string | null
     arrived_at?: string | null
     sync_source: 'app' | 'sheet'
@@ -452,6 +488,22 @@ export async function setMaterialStatus(
   if (patch.is_arrived !== undefined) stamped.arrived_at = patch.is_arrived ? new Date().toISOString() : null
   const { error } = await client().from('materials').update(stamped).eq('id', id)
   if (!error) requestSheetSync()
+  return { error: error ? error.message : null }
+}
+
+/** Some of an order came in. Reaching the full quantity marks it arrived. */
+export async function receiveMaterial(m: { id: string; quantity: number; received_quantity: number | null }, amount: number): Promise<ClockResult> {
+  const total = (m.received_quantity ?? 0) + amount
+  return setMaterialStatus(m.id, {
+    is_ordered: true,
+    received_quantity: total,
+    ...(total >= m.quantity ? { is_arrived: true } : {}),
+  })
+}
+
+/** Pick up from the store vs delivered (app-only; not in the sheet). */
+export async function setMaterialFulfillment(ids: string[], fulfillment: Fulfillment | null): Promise<ClockResult> {
+  const { error } = await client().from('materials').update({ fulfillment }).in('id', ids)
   return { error: error ? error.message : null }
 }
 
@@ -601,12 +653,23 @@ export type CalendarEvent = {
 }
 
 /** Scheduled projects (+ jobs for the job-level toggle) for the calendar. */
+/** The standing "Shop stock" project/job (work order STOCK) holds supplies
+ *  with no client job; it has no dates or priority, so schedules skip it. */
+export const SHOP_STOCK_CODE = 'STOCK'
+const NOT_SHOP_STOCK = `work_order_number.is.null,work_order_number.neq.${SHOP_STOCK_CODE}`
+
+export async function getShopStockJobId(): Promise<string | null> {
+  const { data } = await client().from('jobs').select('id').eq('job_code', SHOP_STOCK_CODE).maybeSingle()
+  return data?.id ?? null
+}
+
 export async function getCalendarProjects(): Promise<CalendarProject[]> {
   const { data, error } = await client()
     .from('projects')
     .select(
       'id, name, work_order_number, client_name, status, scheduled_start, scheduled_end, priority_rank, jobs:jobs ( id, job_code, name, name_i18n, status )',
     )
+    .or(NOT_SHOP_STOCK)
   if (error) throw error
   return (data ?? []) as unknown as CalendarProject[]
 }
@@ -621,6 +684,40 @@ export async function getCalendarEvents(fromIso: string, toIso: string): Promise
     .order('starts_at')
   if (error) throw error
   return (data ?? []) as CalendarEvent[]
+}
+
+export type ErBusiness = 'AM' | 'HOV' | 'RHU'
+
+/** An appointment copied from one of the Estimate Rocket calendars. */
+export type ErAppointment = {
+  id: string
+  business: ErBusiness
+  title: string
+  starts_at: string
+  ends_at: string | null
+  all_day: boolean
+  location: string | null
+  description: string | null
+  er_url: string | null
+  project_id: string | null
+}
+
+/** Estimate Rocket appointments in a date window. */
+export async function getErAppointments(fromIso: string, toIso: string): Promise<ErAppointment[]> {
+  const { data, error } = await client()
+    .from('er_appointments')
+    .select('id, business, title, starts_at, ends_at, all_day, location, description, er_url, project_id')
+    .gte('starts_at', fromIso)
+    .lte('starts_at', toIso)
+    .order('starts_at')
+  if (error) throw error
+  return (data ?? []) as ErAppointment[]
+}
+
+/** Re-read the Estimate Rocket calendars now (the Calendar screen's Sync button). */
+export async function syncErCalendarsNow(): Promise<ClockResult> {
+  const { error } = await client().functions.invoke('er-calendar-sync', { body: {} })
+  return { error: error ? error.message : null }
 }
 
 /** Fire-and-forget Google Calendar sync (after schedule edits). */
@@ -656,6 +753,7 @@ export async function getPriorityProjects(): Promise<
     .from('projects')
     .select('id, name, client_name, status, scheduled_end, priority_rank')
     .not('status', 'in', '(complete,delivered)')
+    .or(NOT_SHOP_STOCK)
   if (error) throw error
   const list = (data ?? []) as Pick<
     Project,

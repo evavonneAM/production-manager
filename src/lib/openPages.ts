@@ -5,7 +5,7 @@ import type { Profile } from '../auth/AuthProvider'
  * Testers (users.is_tester) see every page. To open a page to the whole team,
  * add its path here.
  */
-export const OPEN_PAGES = ['/tools', '/profile']
+export const OPEN_PAGES = ['/tools', '/calendar', '/profile']
 
 /** Where people land: the first open page, or My Work for testers. */
 export function homePath(profile: Profile | null): string {

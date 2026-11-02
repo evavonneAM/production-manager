@@ -284,6 +284,8 @@ Recommended: **DeepL API**. Highest quality for Russian and Spanish. Free tier: 
 | Status values | Yes | Via UI i18n strings |
 | File names | No | Preserved as uploaded |
 | In-app notifications | Yes | Stored per-language; user sees their own |
+| Tool PDFs (work orders, cut lists) | Yes | Printed in the downloader's UI language from the i18n files |
+| Notes typed on tool PDFs | Yes | Translated with DeepL at download (`translate-text`), not stored; marked as translated |
 
 ---
 

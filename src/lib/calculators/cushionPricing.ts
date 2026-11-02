@@ -17,6 +17,7 @@ export type PriceOption = {
 }
 
 const foam = (w: number, d: number, h: number) => ((w * d * h) / 144) * 7 + 30
+const outdoorFoam = (w: number, d: number, h: number) => ((w * d * h) / 144) * 12 + 30
 
 // Labor is the cover only; foam and every other fill is picked as the insert, so it is never charged twice.
 export const PRICE_OPTIONS: PriceOption[] = [
@@ -24,6 +25,7 @@ export const PRICE_OPTIONS: PriceOption[] = [
   { id: 'frenchCover', group: 'labor', formula: 'W × $18', price: (w) => w * 18 },
 
   { id: 'foam', group: 'insert', formula: '(W×D×H)/144 × $7 + $30', price: foam },
+  { id: 'outdoorFoam', group: 'insert', formula: '(W×D×H)/144 × $12 + $30', price: outdoorFoam },
   { id: 'celesteSolid', group: 'insert', formula: '(W×D) ÷ 4', maxBox: 6, price: (w, d) => (w * d) / 4 },
   { id: 'celesteEnv', group: 'insert', formula: '(W×D) ÷ 7.8 + foam at H − 1"', maxBox: 6, price: (w, d, h) => (w * d) / 7.8 + foam(w, d, h - 1) },
   { id: 'wgSolid', group: 'insert', formula: '(W×D) ÷ 0.87', maxBox: 6, price: (w, d) => (w * d) / 0.87 },
@@ -46,6 +48,9 @@ export const ADD_ONS = {
   welting: 10,
   outdoorTick: 10,
   com15: 1.15,
+  /** Velcro, per foot of the total length: one row or two rows. */
+  velcro1: 5,
+  velcro2: 10,
 }
 
 export const money = (n: number) => (isFinite(n) ? `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—')
@@ -71,20 +76,27 @@ export const SEWING_STYLES = [
   'Knife Edge/Contrast Welted',
   'Knife Edge/Flange',
   'Knife Edge/Butterfly Corner',
+  'Knife Edge/Butterfly Corner Self Welted',
   'Pocket Corner',
-  'Pocket Corner/Welted',
-  'Closed Corner/Welted',
+  'Pocket Corner/Self Welted',
+  'Closed Corner/Self Welted',
 ] as const
+
+/** Any welted style (self or contrast) gets cording. */
+export const isWelted = (style: string) => /welt/i.test(style)
+/** Styles the cut formulas cover so far: boxed cushions. */
+export const isBoxedStyle = (style: string) => style.startsWith('Boxed/')
 
 /** Styles used to read "Boxed-Welted"; saved drafts get the current names (plain welted is self welted). */
 export const slashStyle = (style: string) =>
-  style.replace(/^(Boxed|Knife Edge|Pocket Corner|Closed Corner)-/, '$1/').replace(/^(Boxed|Knife Edge)\/Welted$/, '$1/Self Welted')
+  style.replace(/^(Boxed|Knife Edge|Pocket Corner|Closed Corner)-/, '$1/').replace(/^(Boxed|Knife Edge|Pocket Corner|Closed Corner)\/Welted$/, '$1/Self Welted')
 
 /** Insert names as they read on the estimate. */
 export const INSERT_NAMES: Record<string, string> = {
   tbd: 'To Be Determined',
   existing: 'Use Existing',
   foam: 'High Density/Resiliency Foam',
+  outdoorFoam: 'Outdoor Foam',
   celesteSolid: 'Solid Celeste',
   celesteEnv: 'Celeste Envelope w/ Foam',
   wgSolid: '50/50 WG Down Solid',
@@ -127,9 +139,24 @@ export type EstimateRocketInput = EstimateRocketPart & {
   insertLabel: 'Seat Insert' | 'Back Insert'
   /** Custom sewn, or upholstered to plywood. */
   plan: 'sewn' | 'plywood'
+  /** Several cushions on one line (same style, fill and fabric): one Dimensions entry each. */
+  sizes?: EstimateRocketSize[]
+  /** Designer whose specifications these are; empty = "According To Design Specifications". */
+  designer?: string
+  /** Rows of Velcro on the base (0 = none). */
+  velcroRows?: number
   /** A matching back cushion on the same line (seat + back set). */
-  back?: EstimateRocketPart & { depth: string; height: string }
+  back?: EstimateRocketPart & {
+    depth: string
+    height: string
+    /** Sectional line: how many backs, when it differs from the seats. */
+    qty?: number
+    /** Sectional line: every back size, listed under Back Dimensions (seats go in `sizes`). */
+    sizes?: EstimateRocketSize[]
+  }
 }
+
+export type EstimateRocketSize = { qty: number; width: string; depth: string; height: string; confirmed: boolean }
 
 const DIRECTION_TEXT = { tbd: 'To Be Determined', upTheRoll: 'Up The Roll', railroaded: 'Railroaded' } as const
 
@@ -156,17 +183,28 @@ function fabricLines(label: string, qty: number, p: EstimateRocketPart): string[
 export function estimateRocketText(e: EstimateRocketInput): string {
   const dims = (label: string, d: string, h: string) =>
     `* **${label}:** QTY ${e.qty} @ ${e.width}W x ${d}D x ${h}H - ${e.confirmed ? 'Confirmed' : 'Not Confirmed'}`
+  const list = (label: string, sizes: EstimateRocketSize[]) => [
+    `* **${label}:** `,
+    ...sizes.map((z) => ` * QTY ${z.qty} @ ${z.width}W x ${z.depth}D x ${z.height}H - ${z.confirmed ? 'Confirmed' : 'Not Confirmed'}`),
+  ]
   return [
     '____',
-    '<center>_According To Design Specifications_</center>',
+    `<center>_According To ${e.designer?.trim() ? `${e.designer.trim()} ` : ''}Design Specifications_</center>`,
     '____',
     '#### Plan:',
     e.plan === 'plywood' ? '* **Custom Upholstered To Plywood**' : '* **Custom Sewn**',
-    ...(e.back ? [dims('Seat Dimensions', e.depth, e.height), dims('Back Dimensions', e.back.depth, e.back.height)] : [dims('Dimensions', e.depth, e.height)]),
+    ...(e.back
+      ? e.sizes?.length
+        ? [...list('Seat Dimensions', e.sizes), ...list('Back Dimensions', e.back.sizes ?? [])]
+        : [dims('Seat Dimensions', e.depth, e.height), dims('Back Dimensions', e.back.depth, e.back.height)]
+      : e.sizes?.length
+        ? list('Dimensions', e.sizes)
+        : [dims('Dimensions', e.depth, e.height)]),
     '',
     '#### Style:',
     ...(e.back ? [`* **Seat Sewing Style:** ${e.sewingStyle}`, `* **Back Sewing Style:** ${e.back.sewingStyle}`] : [`* **Sewing Style:** ${e.sewingStyle}`]),
     '* **Zipper:** Standard',
+    ...(e.velcroRows ? [`* **Modifications:** ${e.velcroRows === 2 ? 'Two Rows' : 'One Row'} 2" Adhesive Backed Black Velcro Attached to Base`] : []),
     '',
     '#### Fill:',
     `* **${e.back ? 'Seat Insert' : e.insertLabel}:** ${insertName(e.insert, e.foamType)}`,
@@ -174,6 +212,6 @@ export function estimateRocketText(e: EstimateRocketInput): string {
     '',
     '#### Fabric:',
     ...fabricLines(e.back ? 'Seat' : 'Body', e.qty, e),
-    ...(e.back ? fabricLines('Back', e.qty, e.back) : []),
+    ...(e.back ? fabricLines('Back', e.back.qty ?? e.qty, e.back) : []),
   ].join('\n')
 }

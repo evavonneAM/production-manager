@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Avatar, Card, Col, Divider, Empty, Input, Row, Tag, Typography, theme } from 'antd'
-import { ExportOutlined } from '@ant-design/icons'
+import { Avatar, Button, Card, Col, Divider, Empty, Input, Row, Space, Tag, Typography, message, theme } from 'antd'
+import { ExportOutlined, ShoppingCartOutlined } from '@ant-design/icons'
 import { TOOLS, TOOL_GROUPS, type Tool } from '../lib/tools'
 import { useAuth } from '../auth/AuthProvider'
+import { useAsync } from '../hooks/useAsync'
+import { getSupplyRequests, useRequestPhotos } from '../lib/supplyRequests'
+import { SupplyRequestCard, SupplyRequestModal } from '../components/SupplyRequests'
 
 function ToolIcon({ tool, color }: { tool: Tool; color: string }) {
   return (
@@ -29,7 +32,18 @@ export default function Tools() {
   const { t } = useTranslation()
   const { token } = theme.useToken()
   const [query, setQuery] = useState('')
-  const isAdmin = useAuth().profile?.role === 'admin'
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === 'admin'
+  const [requesting, setRequesting] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
+  const [toast, toastHolder] = message.useMessage()
+  const { data: requests } = useAsync(getSupplyRequests, [reloadKey])
+  // Your own open requests, plus the last finished few, so you can see where they stand.
+  const mine = useMemo(
+    () => (requests ?? []).filter((r) => r.requested_by === profile?.id).slice(0, 5),
+    [requests, profile?.id],
+  )
+  const photos = useRequestPhotos(mine)
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -51,6 +65,45 @@ export default function Tools() {
         {t('tools.title')}
       </Typography.Title>
       <Typography.Text type="secondary">{t('tools.subtitle')}</Typography.Text>
+
+      {toastHolder}
+      <Card style={{ marginTop: 20 }} styles={{ body: { padding: 16 } }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+          <Avatar shape="square" size={44} style={{ background: token.colorPrimaryBg, color: token.colorPrimary }} icon={<ShoppingCartOutlined />} />
+          <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+            <Typography.Text strong style={{ display: 'block' }}>
+              {t('supplyRequests.title')}
+            </Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+              {t('supplyRequests.cta')}
+            </Typography.Text>
+          </div>
+          <Button type="primary" onClick={() => setRequesting(true)}>
+            {t('supplyRequests.button')}
+          </Button>
+        </div>
+      </Card>
+      {mine.length > 0 && (
+        <section style={{ marginTop: 12 }}>
+          <Typography.Text type="secondary" style={{ display: 'block', margin: '8px 0', fontSize: 12, fontWeight: 600, letterSpacing: 0.3, textTransform: 'uppercase' }}>
+            {t('supplyRequests.yours')}
+          </Typography.Text>
+          <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+            {mine.map((r) => (
+              <SupplyRequestCard key={r.id} req={r} photos={photos} />
+            ))}
+          </Space>
+        </section>
+      )}
+      <SupplyRequestModal
+        open={requesting}
+        onClose={() => setRequesting(false)}
+        onSent={() => {
+          setRequesting(false)
+          setReloadKey((k) => k + 1)
+          void toast.success(t('supplyRequests.sent'))
+        }}
+      />
 
       <Input.Search
         size="large"

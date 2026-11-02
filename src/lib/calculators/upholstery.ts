@@ -8,12 +8,16 @@ export type FurnitureType = { id: string; name: string; up: number; slip: number
 
 export const TYPES: FurnitureType[] = [
   { id: 'parsons', name: 'Parsons Chair', up: 225, slip: null, yd: 2, kind: 'chair', note: 'Usually a dining chair. Common upcharge: decorative band.' },
-  { id: 'slipper', name: 'Slipper Chair', up: 670, slip: 545, yd: 4, kind: 'chair', note: 'No arms. Common upcharges: cushions, skirts, decorative band.' },
-  { id: 'arm', name: 'Arm Chair', up: 850, slip: 730, yd: 6, kind: 'chair', note: 'Common upcharges: cushions, barrel chair upcharge, arm covers, skirts, decorative band.' },
-  { id: 'wing', name: 'Wingback Chair', up: 1250, slip: 1095, yd: 8, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band.' },
+  { id: 'slipper', name: 'Slipper Chair', up: 725, slip: 545, yd: 4, kind: 'chair', note: 'No arms. Common upcharges: cushions, skirts, decorative band.' },
+  { id: 'arm', name: 'Arm Chair', up: 850, slip: 730, yd: 6, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band. Use Barrel / Tub Chair for a curved back.' },
+  { id: 'club', name: 'Club Chair', up: 925, slip: null, yd: 6, kind: 'chair', note: 'Deep, low arm chair. Common upcharges: cushions, arm covers, skirts, nailheads.' },
+  { id: 'barrel', name: 'Barrel / Tub Chair', up: 900, slip: null, yd: 6, kind: 'chair', note: 'Curved back that wraps into the arms. Common upcharges: cushions, channels, tufting.' },
+  { id: 'lounge', name: 'Lounge Chair', up: 775, slip: null, yd: 6, kind: 'chair', note: 'Low, wide modern chair; prices vary widely, so check the history. Common upcharges: cushions.' },
+  { id: 'accent', name: 'Small Accent / Side Chair', up: 375, slip: null, yd: 3, kind: 'chair', note: 'Small occasional, desk or vanity chair. Common upcharges: cushions, decorative band.' },
+  { id: 'wing', name: 'Wingback Chair', up: 995, slip: 1095, yd: 8, kind: 'chair', note: 'Common upcharges: cushions, arm covers, skirts, decorative band.' },
   { id: 'frenchA', name: 'French Chair (armless)', up: 500, slip: null, yd: 2, kind: 'chair', note: 'Armless. Common upcharges: gimp or double welt cord.' },
   { id: 'frenchW', name: 'French Chair (with arms)', up: 565, slip: null, yd: 3, kind: 'chair', note: 'With arms. Common upcharges: gimp or double welt cord.' },
-  { id: 'bergere', name: 'Bergere Chair', up: 670, slip: null, yd: 5, kind: 'chair', note: 'A barrel chair with decorative wood. Common upcharges: cushions, gimp or double welt cord.' },
+  { id: 'bergere', name: 'Bergere Chair', up: 750, slip: null, yd: 5, kind: 'chair', note: 'A barrel chair with decorative wood. Common upcharges: cushions, gimp or double welt cord.' },
   { id: 'ottoman', name: 'Ottoman', up: 425, slip: 272, yd: 3, kind: 'ottoman', note: 'Common upcharges: cushions, skirts, decorative band.' },
   { id: 'love', name: 'Love Seat', up: 1750, slip: 1465, yd: 12, kind: 'love', note: 'Base covers up to 60 in. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
   { id: 'sofa', name: 'Sofa', up: 2250, slip: 1945, yd: 12, kind: 'sofa', note: 'Base covers up to 72 in. Yardage: 6 ft 12, 7 ft 14, 9 ft 16. Common upcharges: additional length, skirts, arm covers, cushions, decorative band.' },
@@ -30,6 +34,10 @@ export const TRIM_RULES: Record<string, { w: number; d: number; h: number; extra
   parsons: { w: 2, d: 2, h: 0, extra: 0 },
   slipper: { w: 2, d: 2, h: 0, extra: 0 },
   arm: { w: 3, d: 4, h: 2, extra: 0 },
+  club: { w: 3, d: 4, h: 2, extra: 0 },
+  barrel: { w: 3, d: 4, h: 2, extra: 0 },
+  lounge: { w: 3, d: 4, h: 2, extra: 0 },
+  accent: { w: 2, d: 2, h: 0, extra: 0 },
   wing: { w: 2, d: 2, h: 0, extra: 36 },
   frenchA: { w: 2, d: 2, h: 0, extra: 60 },
   frenchW: { w: 2, d: 2, h: 0, extra: 96 },
@@ -67,7 +75,8 @@ export type Upcharge = { id: string; name: string; price: number; unit: string; 
 
 export const UPCHARGES: Upcharge[] = [
   { id: 'armcov', name: 'Arm Covers', price: 67.5, unit: 'Pair', note: '' },
-  { id: 'barrel', name: 'Barrel Chair upcharge', price: 180, unit: 'Item', note: '' },
+  // Any chair can sit on a swivel or glider base: the old Swivel Chair price was $25 over an Arm Chair.
+  { id: 'swivel', name: 'Swivel / glider base', price: 25, unit: 'Item', note: '' },
   { id: 'buttons', name: 'Buttons', price: 8.25, unit: 'Each', note: '' },
   { id: 'ties', name: 'Coordinating Ties', price: 45, unit: 'Pair', note: '' },
   { id: 'band', name: 'Decorative Banding', price: 7.5, unit: 'Foot', note: '' },
@@ -86,6 +95,7 @@ export type Rates = {
   french: number
   foamRate: number
   foamFee: number
+  outdoorFoamRate: number
   pillow: number
   welt: number
   supplies: number
@@ -97,10 +107,11 @@ export type Rates = {
 }
 
 export const DEFAULT_RATES: Rates = {
-  clean: 7,
+  clean: 6,
   french: 18,
   foamRate: 7,
   foamFee: 30,
+  outdoorFoamRate: 12,
   pillow: 125,
   welt: 10,
   supplies: 15,
@@ -113,7 +124,7 @@ export const DEFAULT_RATES: Rates = {
 
 /** Cushion labor is the cover only; foam and other fills are chosen as the insert. */
 export type CushionStyle = 'clean' | 'french' | 'pillow'
-export type CushionInsert = '' | 'foam' | 'celeste' | 'celesteEnv' | 'wg' | 'wgEnv' | 'goose' | 'gooseEnv' | 'bolster' | 'ply'
+export type CushionInsert = '' | 'foam' | 'outdoorFoam' | 'celeste' | 'celesteEnv' | 'wg' | 'wgEnv' | 'goose' | 'gooseEnv' | 'bolster' | 'ply'
 
 export const STYLE_NAMES: Record<CushionStyle, string> = {
   clean: 'Clean seam, cover only',
@@ -124,6 +135,7 @@ export const STYLE_NAMES: Record<CushionStyle, string> = {
 export const INSERT_NAMES: Record<CushionInsert, string> = {
   '': 'No insert',
   foam: 'High Density/Resiliency Foam (insert only)',
+  outdoorFoam: 'Outdoor Foam',
   celeste: 'Solid Celeste',
   celesteEnv: 'Celeste envelope w/ foam',
   wg: '50/50 WG down, solid',
@@ -239,6 +251,7 @@ export function estimate(s: EstimateInput, R: Rates): Estimate {
     const fp = (((H - 1) * A) / 144) * R.foamRate + R.foamFee
     const I: Partial<Record<CushionInsert, number>> = {
       foam: bd * R.foamRate + R.foamFee,
+      outdoorFoam: bd * R.outdoorFoamRate + R.foamFee,
       celeste: A / 4,
       celesteEnv: A / 7.8 + fp,
       wg: A / 0.87,

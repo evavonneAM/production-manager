@@ -78,7 +78,7 @@ type Draft = {
   channels: boolean
   tufting: boolean
   preshrink: boolean
-  /** Checkbox extras: trim, skirt, arm covers, barrel. */
+  /** Checkbox extras: trim, skirt, arm covers. */
   extras: Record<string, boolean>
   upcharges: Record<string, { qty: number | null; price: number | null }>
   fabric: string
@@ -98,9 +98,9 @@ type Draft = {
   quotedRailroaded: boolean
 }
 
-const TRIM_NEEDS_HEIGHT = new Set(['arm', 'bergere'])
+const TRIM_NEEDS_HEIGHT = new Set(['arm', 'club', 'barrel', 'lounge', 'bergere'])
 /** Pieces with arms (arm covers apply). */
-const ARMED = new Set(['arm', 'wing', 'frenchW', 'bergere', 'love', 'sofa'])
+const ARMED = new Set(['arm', 'club', 'barrel', 'lounge', 'wing', 'frenchW', 'bergere', 'love', 'sofa'])
 /** Extras priced by a count the estimator types in. */
 const COUNTED: [string, 'each' | 'pair' | 'ft' | 'piece'][] = [
   ['buttons', 'each'],
@@ -122,7 +122,7 @@ function extraQty(d: Draft, id: string): number {
     return d.extras.band && inches !== null ? trimQty(inches, 'Foot') : 0
   }
   if (id === 'armcov') return d.extras.armcov && ARMED.has(d.typeId) ? 1 : 0
-  if (id === 'barrel') return d.extras.barrel && kind === 'chair' ? 1 : 0
+  if (id === 'swivel') return d.extras.swivel && kind === 'chair' ? 1 : 0
   return 0
 }
 
@@ -227,6 +227,11 @@ function load<T extends object>(key: string, fallback: T): T {
 
 function loadDraft(): Draft {
   const d = load(DRAFT_KEY, blankDraft())
+  // "Swivel Chair" is now a checkbox on any chair: an old swivel draft becomes a Club Chair on a swivel base.
+  if (d.typeId === 'swivel') {
+    d.typeId = 'club'
+    d.extras = { ...d.extras, swivel: true }
+  }
   return {
     ...d,
     seatStyle: slashStyle(d.seatStyle),
@@ -407,6 +412,7 @@ export default function Upholstery() {
     ['french', 'French mattress cover ($ / in of W)'],
     ['foamRate', 'Foam ($ / board ft)'],
     ['foamFee', 'Foam fee ($ / cushion)'],
+    ['outdoorFoamRate', 'Outdoor foam ($ / board ft)'],
     ['pillow', 'Throw pillow ($ each)'],
     ['welt', 'Welting ($ / piece)'],
     ['supplies', 'Upholstery supplies ($ / yard)'],
@@ -759,7 +765,7 @@ export default function Upholstery() {
             <ExtraRow checked={!!draft.extras.armcov} onChange={(on) => setExtra('armcov', on)} label={t('upholstery.armCovers')} amount={priceOf('armcov')} />
           )}
           {type.kind === 'chair' && (
-            <ExtraRow checked={!!draft.extras.barrel} onChange={(on) => setExtra('barrel', on)} label={upcharge('barrel').name} amount={priceOf('barrel')} />
+            <ExtraRow checked={!!draft.extras.swivel} onChange={(on) => setExtra('swivel', on)} label={t('upholstery.swivel')} amount={priceOf('swivel')} />
           )}
           {est.service === 'slip' && (
             <ExtraRow

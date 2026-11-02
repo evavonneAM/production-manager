@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Button, Card, Empty, Modal, Progress, Tag, Typography, theme } from 'antd'
+import { CarOutlined, DeleteOutlined, EditOutlined, ExportOutlined, PlusOutlined, QrcodeOutlined, ShopOutlined, SyncOutlined } from '@ant-design/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
-import { getDepartments, setMaterialStatus, deleteMaterial, syncSheetsNow, type MaterialCategory } from '../lib/data'
+import { getDepartments, setMaterialStatus, deleteMaterial, syncSheetsNow, MATERIAL_CATEGORIES, type MaterialCategory } from '../lib/data'
 import { localized } from '../lib/i18nText'
-import { EmptyState } from './ui'
 import { MaterialModal } from './MaterialModal'
 import { QrModal } from './QrModal'
 import { materialDeepLink } from '../lib/labels'
@@ -20,6 +21,7 @@ export function MaterialsTab({
   onChanged: () => void
 }) {
   const { t, i18n } = useTranslation()
+  const { token } = theme.useToken()
   const { profile } = useAuth()
   const { data: departments } = useAsync(getDepartments, [])
   const [modal, setModal] = useState<{ open: boolean; material: Material | null; category: MaterialCategory }>({
@@ -65,167 +67,176 @@ export function MaterialsTab({
 
   const materials = [...job.materials].sort((a, b) => a.created_at.localeCompare(b.created_at))
 
+  // Same states and colours as the Ordering screen.
+  const stateOf = (m: Material) =>
+    m.is_arrived
+      ? { color: 'green', label: t('jobDetail.arrived') }
+      : (m.received_quantity ?? 0) > 0
+        ? { color: 'gold', label: t('ordering.receivedOf', { got: m.received_quantity, qty: m.quantity, unit: m.unit ?? '' }) }
+        : m.category === 'com'
+          ? { color: 'cyan', label: t('jobDetail.expected') }
+          : m.is_ordered
+            ? { color: 'blue', label: t('jobDetail.ordered') }
+            : m.payment_required
+              ? { color: 'orange', label: t('materials.paymentRequiredShort') }
+              : { color: 'red', label: t('jobDetail.notOrdered') }
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-2">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
         {canManage ? (
-          <div className="flex flex-wrap gap-2">
-            {(['fabric', 'insert', 'foam', 'hardware'] as MaterialCategory[]).map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setModal({ open: true, material: null, category: cat })}
-                className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
-              >
-                + {t(`materialCategory.${cat}`)}
-              </button>
-            ))}
-          </div>
+          // Native <select> (Ant Select has frozen in the owner's browser), styled like a button.
+          <label
+            style={{
+              position: 'relative',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              height: 32,
+              padding: '0 12px',
+              color: '#fff',
+              background: token.colorPrimary,
+              borderRadius: token.borderRadius,
+              cursor: 'pointer',
+            }}
+          >
+            <PlusOutlined /> {t('materials.add')}
+            <select
+              value=""
+              aria-label={t('materials.add')}
+              onChange={(e) => e.target.value && setModal({ open: true, material: null, category: e.target.value as MaterialCategory })}
+              style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
+            >
+              <option value="">{t('materials.add')}</option>
+              {MATERIAL_CATEGORIES.filter((cat) => cat !== 'com').map((cat) => (
+                <option key={cat} value={cat}>
+                  {t(`materialCategory.${cat}`)}
+                </option>
+              ))}
+            </select>
+          </label>
         ) : (
           <span />
         )}
         {profile?.role === 'admin' && (
-          <div className="flex items-center gap-2">
-            {syncMsg && <span className="text-xs text-slate-500">{syncMsg}</span>}
-            <button
-              type="button"
-              onClick={() => void onSyncNow()}
-              disabled={syncing}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-50"
-            >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {syncMsg && (
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {syncMsg}
+              </Typography.Text>
+            )}
+            <Button icon={<SyncOutlined spin={syncing} />} disabled={syncing} onClick={() => void onSyncNow()}>
               {syncing ? t('materials.syncing') : t('materials.syncNow')}
-            </button>
+            </Button>
           </div>
         )}
       </div>
 
       {materials.length === 0 ? (
-        <EmptyState text={t('jobDetail.noMaterials')} />
+        <Empty description={t('jobDetail.noMaterials')} />
       ) : (
-        materials.map((m) => {
-          const highlighted = m.id === highlightId
-          return (
-            <div
-              key={m.id}
-              className={`rounded-xl border p-3 ${
-                highlighted ? 'border-amber-500 bg-amber-500/10' : 'border-slate-800 bg-slate-800/40'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm text-slate-100">
-                    {localized(m.name, m.name_i18n, i18n.language)}
-                    {m.category !== 'other' && (
-                      <span className="ml-2 rounded bg-slate-700/60 px-1.5 py-0.5 align-middle text-[10px] uppercase tracking-wide text-slate-400">
-                        {t(`materialCategory.${m.category}`)}
-                      </span>
+        <Card styles={{ body: { padding: 0 } }}>
+          {materials.map((m, i) => {
+            const highlighted = m.id === highlightId
+            const st = stateOf(m)
+            return (
+              <div
+                key={m.id}
+                style={{
+                  padding: '12px 14px',
+                  background: highlighted ? token.colorPrimaryBg : undefined,
+                  borderBottom: i === materials.length - 1 ? 'none' : `1px solid ${token.colorBorderSecondary}`,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <Typography.Text strong>{localized(m.name, m.name_i18n, i18n.language)}</Typography.Text>
+                    <Typography.Text type="secondary" style={{ display: 'block', fontSize: 13 }}>
+                      {m.quantity}
+                      {m.unit ? ` ${m.unit}` : ''}
+                      {m.supplier ? ` · ${m.supplier}` : ''}
+                    </Typography.Text>
+                    {m.description && (
+                      <Typography.Text type="secondary" style={{ display: 'block', fontSize: 13 }}>
+                        {m.description}
+                      </Typography.Text>
                     )}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {m.quantity}
-                    {m.unit ? ` ${m.unit}` : ''}
-                    {m.supplier ? ` · ${m.supplier}` : ''}
-                  </p>
-                  {m.description && <p className="mt-0.5 text-xs text-slate-500">{m.description}</p>}
+                  </div>
+                  <Tag color={st.color} style={{ marginInlineEnd: 0, flexShrink: 0 }}>
+                    {st.label}
+                  </Tag>
+                </div>
+                {(m.received_quantity ?? 0) > 0 && !m.is_arrived && (
+                  <Progress
+                    percent={Math.min(100, Math.round(((m.received_quantity ?? 0) / Math.max(m.quantity, 1)) * 100))}
+                    showInfo={false}
+                    size="small"
+                    strokeColor={token.colorWarning}
+                    style={{ margin: '2px 0 0', maxWidth: 220 }}
+                  />
+                )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                  {m.category !== 'other' && <Tag variant="filled">{t(`materialCategory.${m.category}`)}</Tag>}
+                  {m.fulfillment === 'pickup' && (
+                    <Tag icon={<ShopOutlined />} color="orange" variant="filled">
+                      {t('ordering.pickup')}
+                    </Tag>
+                  )}
+                  {m.fulfillment === 'delivery' && (
+                    <Tag icon={<CarOutlined />} variant="filled">
+                      {t('ordering.delivery')}
+                    </Tag>
+                  )}
                   {m.product_url && (
-                    <a href={m.product_url} target="_blank" rel="noreferrer" className="mt-0.5 inline-block text-xs text-blue-300/90 hover:underline">
-                      {t('materials.productLink')} ↗
+                    <a href={m.product_url} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>
+                      {t('materials.productLink')} <ExportOutlined />
                     </a>
                   )}
                 </div>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                    m.is_arrived
-                      ? 'bg-green-500/15 text-green-300'
-                      : m.category === 'com'
-                        ? 'bg-teal-500/15 text-teal-300'
-                        : m.is_ordered
-                          ? 'bg-blue-500/15 text-blue-300'
-                          : m.payment_required
-                            ? 'bg-orange-500/15 text-orange-300'
-                            : 'bg-slate-500/15 text-slate-300'
-                  }`}
-                >
-                  {m.is_arrived
-                    ? t('jobDetail.arrived')
-                    : m.category === 'com'
-                      ? t('jobDetail.expected')
-                      : m.is_ordered
-                        ? t('jobDetail.ordered')
-                        : m.payment_required
-                          ? t('materials.paymentRequiredShort')
-                          : t('jobDetail.notOrdered')}
-                </span>
-              </div>
 
-              <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                {m.category !== 'com' && !m.is_ordered && !m.is_arrived && (
-                  <button
-                    type="button"
-                    disabled={busyId === m.id}
-                    onClick={() => void flip(m, { is_ordered: true })}
-                    className="rounded-lg bg-blue-600/80 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-                  >
-                    {t('materials.markOrdered')}
-                  </button>
-                )}
-                {!m.is_arrived && (
-                  <button
-                    type="button"
-                    disabled={busyId === m.id}
-                    onClick={() => void flip(m, { is_arrived: true, is_ordered: true })}
-                    className="rounded-lg bg-green-600/80 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-500 disabled:opacity-50"
-                  >
-                    {t('materials.markArrived')}
-                  </button>
-                )}
-                {m.is_arrived && (
-                  <button
-                    type="button"
-                    disabled={busyId === m.id}
-                    onClick={() => void flip(m, { is_arrived: false })}
-                    className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-50"
-                  >
-                    {t('materials.undoArrived')}
-                  </button>
-                )}
-
-                <span className="flex-1" />
-
-                {m.qr_code_uuid && (
-                  <button
-                    type="button"
-                    onClick={() => setQrFor(m)}
-                    aria-label={t('qr.showQr')}
-                    className="rounded-lg border border-slate-700 p-1.5 text-slate-400 hover:bg-slate-800"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-4 w-4">
-                      <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" />
-                    </svg>
-                  </button>
-                )}
-                {canManage && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setModal({ open: true, material: m, category: (m.category as MaterialCategory) ?? 'other' })}
-                      className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-400 hover:bg-slate-800"
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                  {m.category !== 'com' && !m.is_ordered && !m.is_arrived && (
+                    <Button size="small" type="primary" disabled={busyId === m.id} onClick={() => void flip(m, { is_ordered: true })}>
+                      {t('materials.markOrdered')}
+                    </Button>
+                  )}
+                  {!m.is_arrived && (
+                    <Button
+                      size="small"
+                      type="primary"
+                      disabled={busyId === m.id}
+                      style={{ background: token.colorSuccess }}
+                      onClick={() => void flip(m, { is_arrived: true, is_ordered: true })}
                     >
-                      {t('materials.edit')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(m)}
-                      className="rounded-lg border border-red-900/60 px-2.5 py-1.5 text-xs text-red-400/90 hover:bg-red-600/10"
-                    >
-                      {t('notes.delete')}
-                    </button>
-                  </>
-                )}
+                      {t('materials.markArrived')}
+                    </Button>
+                  )}
+                  {m.is_arrived && (
+                    <Button size="small" disabled={busyId === m.id} onClick={() => void flip(m, { is_arrived: false })}>
+                      {t('materials.undoArrived')}
+                    </Button>
+                  )}
+                  <span style={{ flex: 1 }} />
+                  {m.qr_code_uuid && (
+                    <Button size="small" type="text" icon={<QrcodeOutlined />} aria-label={t('qr.showQr')} onClick={() => setQrFor(m)} />
+                  )}
+                  {canManage && (
+                    <>
+                      <Button
+                        size="small"
+                        type="text"
+                        icon={<EditOutlined />}
+                        aria-label={t('materials.edit')}
+                        onClick={() => setModal({ open: true, material: m, category: (m.category as MaterialCategory) ?? 'other' })}
+                      />
+                      <Button size="small" type="text" danger icon={<DeleteOutlined />} aria-label={t('notes.delete')} onClick={() => setConfirmDelete(m)} />
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          )
-        })
+            )
+          })}
+        </Card>
       )}
 
       {modal.open && (
@@ -260,22 +271,17 @@ export function MaterialsTab({
         />
       )}
 
-      {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={() => setConfirmDelete(null)}>
-          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-2 text-lg font-semibold">{t('materials.deleteTitle')}</h2>
-            <p className="mb-5 text-sm text-slate-400">{t('materials.deleteBody')}</p>
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setConfirmDelete(null)} className="flex-1 rounded-lg border border-slate-600 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800">
-                {t('common.cancel')}
-              </button>
-              <button type="button" onClick={() => void onDelete()} className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-500">
-                {t('taskEdit.deleteConfirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={!!confirmDelete}
+        title={t('materials.deleteTitle')}
+        onCancel={() => setConfirmDelete(null)}
+        onOk={() => void onDelete()}
+        okText={t('taskEdit.deleteConfirm')}
+        cancelText={t('common.cancel')}
+        okButtonProps={{ danger: true }}
+      >
+        {t('materials.deleteBody')}
+      </Modal>
     </div>
   )
 }
