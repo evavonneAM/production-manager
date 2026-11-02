@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Alert, Button, Empty, Typography } from 'antd'
+import { UploadOutlined } from '@ant-design/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useAsync } from '../hooks/useAsync'
 import { getDirectory } from '../lib/data'
 import { listFiles, uploadFile, signedUrls } from '../lib/files'
 import { formatDate } from '../lib/format'
-import { EmptyState, ErrorState } from './ui'
 import { FileViewer } from './FileViewer'
 import type { FileRow } from '../lib/types'
 
@@ -75,19 +76,14 @@ export function FilesTab({ projectId, jobId }: { projectId: string; jobId?: stri
           className="hidden"
           onChange={(e) => void onPick(e.target.files)}
         />
-        <button
-          type="button"
-          disabled={uploading}
-          onClick={() => inputRef.current?.click()}
-          className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-60"
-        >
-          {uploading ? t('files.uploading') : `+ ${t('files.upload')}`}
-        </button>
+        <Button type="primary" icon={<UploadOutlined />} loading={uploading} onClick={() => inputRef.current?.click()}>
+          {uploading ? t('files.uploading') : t('files.upload')}
+        </Button>
       </div>
 
-      {error && <ErrorState text={error} />}
-      {loading && <p className="text-sm text-slate-500">{t('common.loading')}</p>}
-      {!loading && (files?.length ?? 0) === 0 && <EmptyState text={t('jobDetail.noFiles')} />}
+      {error && <Alert type="error" showIcon title={error} />}
+      {loading && <Typography.Text type="secondary">{t('common.loading')}</Typography.Text>}
+      {!loading && (files?.length ?? 0) === 0 && <Empty description={t('jobDetail.noFiles')} />}
 
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
         {(files ?? []).map((f) => (
@@ -141,7 +137,7 @@ function FileTile({
     <button
       type="button"
       onClick={onOpen}
-      className="group relative aspect-square overflow-hidden rounded-lg border border-slate-800 bg-slate-800/40 text-left"
+      className="group relative aspect-square overflow-hidden rounded-lg border border-slate-800 bg-slate-800 text-left"
     >
       {file.file_type === 'photo' && thumbUrl ? (
         <img src={thumbUrl} alt={file.file_name} className="h-full w-full object-cover" loading="lazy" />
@@ -153,7 +149,7 @@ function FileTile({
           <span className="w-full truncate text-center text-[10px] text-slate-400">{file.file_name}</span>
         </div>
       )}
-      <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1.5 py-0.5 text-[9px] text-slate-300">
+      <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1.5 py-0.5 text-[9px]" style={{ color: '#fff' }}>
         {caption}
       </span>
     </button>

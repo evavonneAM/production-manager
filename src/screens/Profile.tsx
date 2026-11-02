@@ -4,13 +4,15 @@ import { useAuth } from '../auth/AuthProvider'
 import { Avatar } from '../components/Avatar'
 import { LanguageSelect } from '../components/LanguageSelect'
 import { uploadAvatar } from '../lib/files'
-import { Segmented } from 'antd'
+import { Alert, Button, Card, Input, Segmented, Typography, theme } from 'antd'
+import { CameraOutlined, LogoutOutlined } from '@ant-design/icons'
 import { useTheme, type ThemeMode } from '../lib/theme'
 
 export default function Profile() {
   const { t } = useTranslation()
   const { profile, updateProfile, setLanguage, changePassword, signOut, refreshProfile } = useAuth()
   const { mode: themeMode, setMode: setThemeMode } = useTheme()
+  const { token } = theme.useToken()
   const [avatarBusy, setAvatarBusy] = useState(false)
   const [avatarErr, setAvatarErr] = useState<string | null>(null)
 
@@ -68,81 +70,91 @@ export default function Profile() {
     }
   }
 
-  return (
-    <main className="min-h-full bg-slate-900 text-slate-100">
-      <div className="mx-auto w-full max-w-md px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">{t('profile.title')}</h1>
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            className="text-sm text-slate-400 hover:text-slate-200"
-          >
-            {t('common.signOut')}
-          </button>
-        </div>
+  const label = (text: string, htmlFor?: string) => (
+    <label htmlFor={htmlFor} style={{ display: 'block', marginBottom: 4, fontSize: 13, color: token.colorTextSecondary }}>
+      {text}
+    </label>
+  )
 
-        <div className="mb-8 flex items-center gap-4">
-          <label className="group relative cursor-pointer" title={t('profile.changePhoto')}>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => void onAvatarPick(e.target.files)}
-            />
+  return (
+    <div style={{ maxWidth: 480, width: '100%', margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <Typography.Title level={3} style={{ margin: 0 }}>
+          {t('profile.title')}
+        </Typography.Title>
+        <Button type="text" icon={<LogoutOutlined />} onClick={() => void signOut()}>
+          {t('common.signOut')}
+        </Button>
+      </div>
+
+      <Card styles={{ body: { padding: 16 } }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <label style={{ position: 'relative', cursor: 'pointer' }} title={t('profile.changePhoto')}>
+            <input type="file" accept="image/*" hidden onChange={(e) => void onAvatarPick(e.target.files)} />
             <Avatar name={profile.full_name} url={profile.avatar_url} size={56} />
-            <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-xs group-hover:bg-slate-700">
-              {avatarBusy ? '…' : '📷'}
+            <span
+              style={{
+                position: 'absolute',
+                right: -4,
+                bottom: -4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 24,
+                height: 24,
+                fontSize: 12,
+                borderRadius: '50%',
+                color: '#fff',
+                background: token.colorPrimary,
+                border: `2px solid ${token.colorBgContainer}`,
+              }}
+            >
+              {avatarBusy ? '…' : <CameraOutlined />}
             </span>
           </label>
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold">{profile.full_name}</h1>
-            <p className="truncate text-sm text-slate-400">{profile.email}</p>
-            <p className="mt-0.5 text-xs text-slate-500">{t(`roles.${profile.role}`)}</p>
-            {avatarErr && <p className="mt-1 text-xs text-red-400">{avatarErr}</p>}
+          <div style={{ minWidth: 0 }}>
+            <Typography.Text strong ellipsis style={{ display: 'block', fontSize: 16 }}>
+              {profile.full_name}
+            </Typography.Text>
+            <Typography.Text type="secondary" ellipsis style={{ display: 'block' }}>
+              {profile.email}
+            </Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {t(`roles.${profile.role}`)}
+            </Typography.Text>
+            {avatarErr && (
+              <Typography.Text type="danger" style={{ display: 'block', fontSize: 12 }}>
+                {avatarErr}
+              </Typography.Text>
+            )}
           </div>
         </div>
+      </Card>
 
-        {/* Profile details */}
-        <form onSubmit={onSaveProfile} className="flex flex-col gap-4">
+      {/* Profile details */}
+      <Card style={{ marginTop: 16 }} styles={{ body: { padding: 16 } }}>
+        <form onSubmit={onSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label htmlFor="fullName" className="mb-1 block text-sm text-slate-300">
-              {t('profile.name')}
-            </label>
-            <input
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 focus:border-amber-500 focus:outline-none"
-            />
+            {label(t('profile.name'), 'fullName')}
+            <Input id="fullName" size="large" value={fullName} onChange={(e) => setFullName(e.target.value)} />
           </div>
           <div>
-            <label htmlFor="phone" className="mb-1 block text-sm text-slate-300">
-              {t('profile.phone')}
-            </label>
-            <input
+            {label(t('profile.phone'), 'phone')}
+            <Input
               id="phone"
+              size="large"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder={t('profile.phonePlaceholder')}
-              className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
             />
           </div>
           <div>
-            <label htmlFor="language" className="mb-1 block text-sm text-slate-300">
-              {t('profile.language')}
-            </label>
-            <LanguageSelect
-              id="language"
-              value={profile.language}
-              onChange={(lang) => void setLanguage(lang)}
-            />
+            {label(t('profile.language'), 'language')}
+            <LanguageSelect id="language" value={profile.language} onChange={(lang) => void setLanguage(lang)} />
           </div>
           <div>
-            <span id="appearance-label" className="mb-1 block text-sm text-slate-300">
-              {t('profile.appearance')}
-            </span>
+            <span id="appearance-label">{label(t('profile.appearance'))}</span>
             <Segmented
               aria-labelledby="appearance-label"
               block
@@ -155,53 +167,42 @@ export default function Profile() {
                 { value: 'auto', label: t('profile.themeAuto') },
               ]}
             />
-            <p className="mt-1 text-xs text-slate-500">{t('profile.appearanceHelp')}</p>
+            <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>
+              {t('profile.appearanceHelp')}
+            </Typography.Text>
           </div>
 
-          {profileMsg && (
-            <p className="text-sm text-green-400">{profileMsg}</p>
-          )}
+          {profileMsg && <Alert type={profileMsg === t('common.error') ? 'error' : 'success'} showIcon title={profileMsg} />}
 
-          <button
-            type="submit"
-            disabled={savingProfile}
-            className="rounded-lg bg-amber-600 px-4 py-2.5 font-medium text-white hover:bg-amber-500 disabled:opacity-60"
-          >
-            {savingProfile ? t('common.saving') : t('common.save')}
-          </button>
+          <Button type="primary" size="large" htmlType="submit" loading={savingProfile} block>
+            {t('common.save')}
+          </Button>
         </form>
+      </Card>
 
-        {/* Change password */}
-        <form onSubmit={onChangePassword} className="mt-10 flex flex-col gap-4 border-t border-slate-800 pt-8">
-          <h2 className="text-sm font-medium text-slate-300">
-            {t('profile.changePassword')}
-          </h2>
+      {/* Change password */}
+      <Card style={{ marginTop: 16 }} styles={{ body: { padding: 16 } }}>
+        <form onSubmit={onChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Typography.Text strong>{t('profile.changePassword')}</Typography.Text>
           <div>
-            <label htmlFor="newPassword" className="mb-1 block text-sm text-slate-300">
-              {t('profile.newPassword')}
-            </label>
-            <input
+            {label(t('profile.newPassword'), 'newPassword')}
+            <Input.Password
               id="newPassword"
-              type="password"
+              size="large"
               autoComplete="new-password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 focus:border-amber-500 focus:outline-none"
             />
           </div>
 
-          {pwError && <p className="text-sm text-red-400">{pwError}</p>}
-          {pwMsg && <p className="text-sm text-green-400">{pwMsg}</p>}
+          {pwError && <Alert type="error" showIcon title={pwError} />}
+          {pwMsg && <Alert type="success" showIcon title={pwMsg} />}
 
-          <button
-            type="submit"
-            disabled={savingPw || newPassword.length === 0}
-            className="rounded-lg border border-slate-600 px-4 py-2.5 font-medium text-slate-100 hover:bg-slate-800 disabled:opacity-50"
-          >
-            {savingPw ? t('common.saving') : t('profile.updatePassword')}
-          </button>
+          <Button size="large" htmlType="submit" loading={savingPw} disabled={newPassword.length === 0} block>
+            {t('profile.updatePassword')}
+          </Button>
         </form>
-      </div>
-    </main>
+      </Card>
+    </div>
   )
 }
