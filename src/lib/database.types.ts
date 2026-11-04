@@ -248,11 +248,47 @@ export type Database = {
         }
         Relationships: []
       }
+      estimate_groups: {
+        Row: {
+          approved: boolean
+          created_at: string
+          estimate_id: string
+          id: string
+          name: string
+          position: number
+        }
+        Insert: {
+          approved?: boolean
+          created_at?: string
+          estimate_id: string
+          id?: string
+          name?: string
+          position?: number
+        }
+        Update: {
+          approved?: boolean
+          created_at?: string
+          estimate_id?: string
+          id?: string
+          name?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_groups_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_lines: {
         Row: {
           created_at: string
           description: string | null
           estimate_id: string
+          group_id: string | null
           id: string
           name: string
           position: number
@@ -267,6 +303,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           estimate_id: string
+          group_id?: string | null
           id?: string
           name?: string
           position?: number
@@ -280,6 +317,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           estimate_id?: string
+          group_id?: string | null
           id?: string
           name?: string
           position?: number
@@ -304,7 +342,11 @@ export type Database = {
           client_id: string | null
           created_at: string
           created_by: string | null
+          deposit_pct: number
           estimate_date: string
+          install_address: string | null
+          install_name: string | null
+          install_same: boolean
           id: string
           notes: string | null
           number: number
@@ -318,7 +360,11 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           created_by?: string | null
+          deposit_pct?: number
           estimate_date?: string
+          install_address?: string | null
+          install_name?: string | null
+          install_same?: boolean
           id?: string
           notes?: string | null
           number?: number
@@ -332,7 +378,11 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           created_by?: string | null
+          deposit_pct?: number
           estimate_date?: string
+          install_address?: string | null
+          install_name?: string | null
+          install_same?: boolean
           id?: string
           notes?: string | null
           number?: number

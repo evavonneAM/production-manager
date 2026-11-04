@@ -17,6 +17,7 @@ import {
   Select,
   Space,
   Statistic,
+  Switch,
   Tag,
   Typography,
   message,
@@ -39,6 +40,9 @@ import {
   STATUS_COLOR,
   STORES,
   createEstimate,
+  depositAmount,
+  groupTotals,
+  saveGroups,
   deleteEstimate,
   estimateCode,
   estimateTotal,
@@ -51,6 +55,7 @@ import {
   updateEstimate,
   type Client,
   type EstimateFull,
+  type EstimateGroup,
   type EstimateLine,
   type EstimateStatus,
   type NewLine,
@@ -140,6 +145,7 @@ function LineCard({
   index,
   count,
   sections,
+  groups,
   update,
   move,
   remove,
@@ -148,6 +154,7 @@ function LineCard({
   index: number
   count: number
   sections: string[]
+  groups: EstimateGroup[]
   update: (patch: Partial<EstimateLine>) => void
   move: (dir: -1 | 1) => void
   remove: () => void
@@ -168,6 +175,21 @@ function LineCard({
     >
       <Form layout="vertical" component="div">
         <Row gutter={12}>
+          {groups.length > 0 && (
+            <Col xs={24}>
+              <Form.Item label={t('estimates.room')} htmlFor={`room-${id}`} style={{ marginBottom: 12 }}>
+                <Select
+                  id={`room-${id}`}
+                  value={line.group_id ?? ''}
+                  onChange={(v) => update({ group_id: v || null })}
+                  options={[
+                    ...groups.map((g) => ({ value: g.id, label: g.name.trim() || t('estimates.unnamedRoom') })),
+                    { value: '', label: t('estimates.noRoom') },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+          )}
           <Col xs={24} sm={10}>
             <Form.Item label={t('estimates.section')} htmlFor={`sec-${id}`} extra={t('estimates.sectionHelp')} style={{ marginBottom: 12 }}>
               <AutoComplete
@@ -243,6 +265,10 @@ type Fields = {
   estimate_date: string
   notes: string | null
   terms: string | null
+  install_same: boolean
+  install_name: string | null
+  install_address: string | null
+  deposit_pct: number
 }
 
 /** One estimate (or a new one at /estimates/new). Admins only. */
@@ -265,11 +291,17 @@ export default function EstimateDetail() {
     estimate_date: today(),
     notes: null,
     terms: null,
+    install_same: true,
+    install_name: null,
+    install_address: null,
+    deposit_pct: 50,
   })
   const [lines, setLines] = useState<EstimateLine[]>(() =>
     ((location.state as { lines?: NewLine[] } | null)?.lines ?? []).map((l) => blankLine(l)),
   )
   const [removed, setRemoved] = useState<string[]>([])
+  const [groups, setGroups] = useState<EstimateGroup[]>([])
+  const [removedGroups, setRemovedGroups] = useState<string[]>([])
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState(false)
   const [clientEdit, setClientEdit] = useState<ClientDraft | null>(null)
@@ -288,9 +320,15 @@ export default function EstimateDetail() {
           estimate_date: e.estimate_date,
           notes: e.notes,
           terms: e.terms,
+          install_same: e.install_same,
+          install_name: e.install_name,
+          install_address: e.install_address,
+          deposit_pct: e.deposit_pct,
         })
         setLines(e.lines)
+        setGroups(e.groups)
         setRemoved([])
+        setRemovedGroups([])
         setDirty(false)
       },
       (e) => setLoadError(e.message),
@@ -313,12 +351,50 @@ export default function EstimateDetail() {
     setLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)))
     setDirty(true)
   }
-  const moveLine = (i: number, dir: -1 | 1) => {
+  /** Swaps a line with its neighbour in the same room (or among lines not in a room). */
+  const moveLine = (id: string, dir: -1 | 1) => {
     setLines((ls) => {
+      const i = ls.findIndex((l) => l.id === id)
+      const room = ls[i].group_id ?? null
+      let j = i + dir
+      while (j >= 0 && j < ls.length && (ls[j].group_id ?? null) !== room) j += dir
+      if (j < 0 || j >= ls.length) return ls
       const next = [...ls]
+      ;[next[i], next[j]] = [next[j], next[i]]
+      return next
+    })
+    setDirty(true)
+  }
+  const addLine = (groupId: string | null) => {
+    setLines((ls) => {
+      const inRoom = ls.filter((l) => (l.group_id ?? null) === groupId)
+      return [...ls, blankLine({ section: inRoom[inRoom.length - 1]?.section ?? null, unit: 'ea', group_id: groupId })]
+    })
+    setDirty(true)
+  }
+  const addGroup = () => {
+    const g: EstimateGroup = { id: crypto.randomUUID(), name: '', approved: true }
+    setGroups((gs) => [...gs, g])
+    // The first room collects the lines already on the estimate.
+    if (groups.length === 0) setLines((ls) => ls.map((l) => ({ ...l, group_id: g.id })))
+    setDirty(true)
+  }
+  const updateGroup = (id: string, patch: Partial<EstimateGroup>) => {
+    setGroups((gs) => gs.map((g) => (g.id === id ? { ...g, ...patch } : g)))
+    setDirty(true)
+  }
+  const moveGroup = (i: number, dir: -1 | 1) => {
+    setGroups((gs) => {
+      const next = [...gs]
       ;[next[i], next[i + dir]] = [next[i + dir], next[i]]
       return next
     })
+    setDirty(true)
+  }
+  const removeGroup = (id: string) => {
+    setGroups((gs) => gs.filter((g) => g.id !== id))
+    setLines((ls) => ls.map((l) => (l.group_id === id ? { ...l, group_id: null } : l)))
+    if (loaded?.groups.some((g) => g.id === id)) setRemovedGroups((r) => [...r, id])
     setDirty(true)
   }
   const removeLine = (id: string) => {
@@ -329,6 +405,10 @@ export default function EstimateDetail() {
 
   const sections = useMemo(() => [...new Set(lines.map((l) => l.section?.trim()).filter((s): s is string => !!s))], [lines])
   const total = estimateTotal(lines)
+  const totals = groupTotals(groups, lines)
+  const deposit = depositAmount(groups, lines, fields.deposit_pct)
+  const groupIds = new Set(groups.map((g) => g.id))
+  const looseLines = lines.filter((l) => !l.group_id || !groupIds.has(l.group_id))
   const client = clients.find((c) => c.id === fields.client_id) ?? null
   const business = BUSINESSES[fields.store]
 
@@ -358,12 +438,21 @@ export default function EstimateDetail() {
         estimate_date: fields.estimate_date,
         notes: fields.notes?.trim() || null,
         terms: fields.terms?.trim() || null,
+        install_same: fields.install_same,
+        install_name: fields.install_same ? null : fields.install_name?.trim() || null,
+        install_address: fields.install_same ? null : fields.install_address?.trim() || null,
+        deposit_pct: fields.deposit_pct,
       })
+      // Lines first move off rooms being removed, then rooms, then lines.
+      await saveGroups(loaded.id, groups, [])
       await saveLines(loaded.id, lines, removed)
+      if (removedGroups.length) await saveGroups(loaded.id, [], removedGroups)
       const fresh = await getEstimate(loaded.id)
       setLoaded(fresh)
       setLines(fresh.lines)
+      setGroups(fresh.groups)
       setRemoved([])
+      setRemovedGroups([])
       setDirty(false)
       msg.success(t('estimates.saved'))
     } catch (e) {
@@ -377,7 +466,7 @@ export default function EstimateDetail() {
     if (!loaded) return
     try {
       const { downloadEstimatePdf } = await import('../lib/estimatePdf')
-      await downloadEstimatePdf({ ...loaded, ...fields, client, lines })
+      await downloadEstimatePdf({ ...loaded, ...fields, client, lines, groups })
     } catch (e) {
       msg.error(errorText(e))
     }
@@ -477,39 +566,158 @@ export default function EstimateDetail() {
           </Form>
         </Card>
 
-        <Typography.Title level={4} style={{ margin: '8px 0 0' }}>
-          {t('estimates.lines')}
-        </Typography.Title>
-        {lines.length === 0 && <Typography.Text type="secondary">{t('estimates.noLines')}</Typography.Text>}
-        {lines.map((l, i) => (
+        <Space style={{ width: '100%', justifyContent: 'space-between', marginTop: 8 }} align="center" wrap>
+          <Typography.Title level={4} style={{ margin: 0 }}>
+            {t('estimates.lines')}
+          </Typography.Title>
+          {!isNew && (
+            <Button icon={<PlusOutlined />} onClick={addGroup}>
+              {t('estimates.addRoom')}
+            </Button>
+          )}
+        </Space>
+        {lines.length === 0 && groups.length === 0 && <Typography.Text type="secondary">{t('estimates.noLines')}</Typography.Text>}
+        {groups.length > 0 && <Typography.Text type="secondary">{t('estimates.roomsHelp')}</Typography.Text>}
+
+        {totals.rooms.map(({ group: g, total: sub }, gi) => {
+          const inRoom = lines.filter((l) => l.group_id === g.id)
+          return (
+            <div key={g.id} style={{ border: '1px solid var(--ant-color-border-secondary, #e5e5e5)', borderRadius: 10, padding: 12 }}>
+              <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 12 }} align="center" wrap>
+                <Input
+                  size="large"
+                  aria-label={t('estimates.roomName')}
+                  placeholder={t('estimates.roomPlaceholder')}
+                  value={g.name}
+                  onChange={(e) => updateGroup(g.id, { name: e.target.value })}
+                  style={{ minWidth: 200, fontWeight: 600 }}
+                />
+                <Space size={4} wrap align="center">
+                  <Switch checked={g.approved} onChange={(v) => updateGroup(g.id, { approved: v })} aria-label={t('estimates.clientApproved')} />
+                  <Typography.Text type={g.approved ? undefined : 'secondary'}>{t('estimates.clientApproved')}</Typography.Text>
+                  <Button type="text" icon={<ArrowUpOutlined />} aria-label={t('estimates.moveUp')} disabled={gi === 0} onClick={() => moveGroup(gi, -1)} />
+                  <Button type="text" icon={<ArrowDownOutlined />} aria-label={t('estimates.moveDown')} disabled={gi === groups.length - 1} onClick={() => moveGroup(gi, 1)} />
+                  <Popconfirm
+                    title={t('estimates.removeRoomConfirm')}
+                    okText={t('estimates.removeRoom')}
+                    cancelText={t('common.cancel')}
+                    onConfirm={() => removeGroup(g.id)}
+                  >
+                    <Button type="text" danger icon={<DeleteOutlined />} aria-label={t('estimates.removeRoom')} />
+                  </Popconfirm>
+                </Space>
+              </Space>
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+                {inRoom.length === 0 && <Typography.Text type="secondary">{t('estimates.emptyRoom')}</Typography.Text>}
+                {inRoom.map((l, i) => (
+                  <LineCard
+                    key={l.id}
+                    line={l}
+                    index={i}
+                    count={inRoom.length}
+                    sections={sections}
+                    groups={groups}
+                    update={(patch) => updateLine(l.id, patch)}
+                    move={(dir) => moveLine(l.id, dir)}
+                    remove={() => removeLine(l.id)}
+                  />
+                ))}
+                <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
+                  <Button type="dashed" icon={<PlusOutlined />} onClick={() => addLine(g.id)}>
+                    {t('estimates.addLine')}
+                  </Button>
+                  <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {t('estimates.roomSubtotal', { name: g.name.trim() || t('estimates.unnamedRoom') })}: {money(sub)}
+                  </Typography.Text>
+                </Space>
+              </Space>
+            </div>
+          )
+        })}
+
+        {groups.length > 0 && looseLines.length > 0 && (
+          <Typography.Title level={5} style={{ margin: '8px 0 0' }}>
+            {t('estimates.noRoom')}
+          </Typography.Title>
+        )}
+        {looseLines.map((l, i) => (
           <LineCard
             key={l.id}
             line={l}
             index={i}
-            count={lines.length}
+            count={looseLines.length}
             sections={sections}
+            groups={groups}
             update={(patch) => updateLine(l.id, patch)}
-            move={(dir) => moveLine(i, dir)}
+            move={(dir) => moveLine(l.id, dir)}
             remove={() => removeLine(l.id)}
           />
         ))}
-        <Button
-          type="dashed"
-          block
-          size="large"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            setLines((ls) => [...ls, blankLine({ section: ls[ls.length - 1]?.section ?? null, unit: 'ea' })])
-            setDirty(true)
-          }}
-        >
-          {t('estimates.addLine')}
-        </Button>
+        {groups.length === 0 && (
+          <Button type="dashed" block size="large" icon={<PlusOutlined />} onClick={() => addLine(null)}>
+            {t('estimates.addLine')}
+          </Button>
+        )}
         <Typography.Text type="secondary">{t('estimates.fromTools')}</Typography.Text>
 
         <Card>
-          <Statistic title={t('estimates.total')} value={money(total)} valueStyle={{ fontWeight: 700 }} />
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12}>
+              <Statistic title={t('estimates.total')} value={money(total)} valueStyle={{ fontWeight: 700 }} />
+            </Col>
+            {!isNew && (
+              <Col xs={24} sm={12}>
+                <Statistic title={t('estimates.depositTitle', { pct: fields.deposit_pct })} value={money(deposit)} />
+                <Space style={{ marginTop: 8 }} wrap>
+                  <InputNumber
+                    aria-label={t('estimates.depositPct')}
+                    min={0}
+                    max={100}
+                    precision={0}
+                    suffix="%"
+                    value={fields.deposit_pct}
+                    onChange={(v) => set({ deposit_pct: v ?? 0 })}
+                    style={{ width: 100 }}
+                  />
+                  {groups.length > 0 && <Typography.Text type="secondary">{t('estimates.depositRooms')}</Typography.Text>}
+                </Space>
+              </Col>
+            )}
+          </Row>
         </Card>
+
+        {!isNew && (
+          <Card title={t('estimates.installAt')}>
+            <Segmented
+              block
+              value={fields.install_same ? 'same' : 'different'}
+              onChange={(v) => set({ install_same: v === 'same' })}
+              options={[
+                { value: 'same', label: t('estimates.installSame') },
+                { value: 'different', label: t('estimates.installDifferent') },
+              ]}
+            />
+            {fields.install_same ? (
+              <Typography.Paragraph type="secondary" style={{ margin: '12px 0 0' }}>
+                {client?.address?.trim() ? client.address : t('estimates.installSameHelp')}
+              </Typography.Paragraph>
+            ) : (
+              <Form layout="vertical" component="div" style={{ marginTop: 12 }}>
+                <Form.Item label={t('estimates.installName')} htmlFor="est-iname" extra={t('estimates.installNameHelp')} style={{ marginBottom: 12 }}>
+                  <Input id="est-iname" value={fields.install_name ?? ''} onChange={(e) => set({ install_name: e.target.value })} />
+                </Form.Item>
+                <Form.Item label={t('estimates.address')} htmlFor="est-iaddr" style={{ marginBottom: 0 }}>
+                  <Input.TextArea
+                    id="est-iaddr"
+                    autoSize={{ minRows: 2, maxRows: 4 }}
+                    value={fields.install_address ?? ''}
+                    onChange={(e) => set({ install_address: e.target.value })}
+                  />
+                </Form.Item>
+              </Form>
+            )}
+          </Card>
+        )}
 
         {!isNew && (
           <Card>
@@ -548,6 +756,11 @@ export default function EstimateDetail() {
           <Card size="small" styles={{ body: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' } }}>
             <Typography.Text strong style={{ marginRight: 'auto', fontVariantNumeric: 'tabular-nums' }}>
               {t('estimates.total')}: {money(total)}
+              {!isNew && (
+                <Typography.Text type="secondary" style={{ marginLeft: 8, fontWeight: 400 }}>
+                  {t('estimates.depositShort')}: {money(deposit)}
+                </Typography.Text>
+              )}
               {!isNew && (
                 <Typography.Text type={dirty ? 'warning' : 'success'} style={{ marginLeft: 8, fontWeight: 400 }}>
                   {dirty ? t('estimates.unsaved') : t('estimates.allSaved')}

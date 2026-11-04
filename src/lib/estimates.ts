@@ -83,6 +83,16 @@ export type EstimateLine = {
   unit: string | null
   unit_price: number
   source: string | null
+  /** Room / window group; null = not in a room. */
+  group_id?: string | null
+}
+
+/** A room or window on the estimate, with its own subtotal. */
+export type EstimateGroup = {
+  id: string
+  name: string
+  /** "Client approved": only approved rooms count toward the deposit (and later become jobs). */
+  approved: boolean
 }
 
 /** A line sent over from a pricing tool, before it belongs to an estimate. */
@@ -98,12 +108,16 @@ export type Estimate = {
   estimate_date: string
   notes: string | null
   terms: string | null
+  install_same: boolean
+  install_name: string | null
+  install_address: string | null
+  deposit_pct: number
   created_at: string
   updated_at: string
 }
 
 export type EstimateSummary = Estimate & { client: Pick<Client, 'name' | 'company'> | null; total: number }
-export type EstimateFull = Estimate & { client: Client | null; lines: EstimateLine[] }
+export type EstimateFull = Estimate & { client: Client | null; lines: EstimateLine[]; groups: EstimateGroup[] }
 
 /** HOV10001 — the same shape as the job code the project will get. */
 export const estimateCode = (e: { store: string; number: number }) => `${e.store}${e.number}`
@@ -113,6 +127,22 @@ export const cents = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
 export const lineTotal = (l: Pick<EstimateLine, 'quantity' | 'unit_price'>) => cents((l.quantity || 0) * (l.unit_price || 0))
 export const estimateTotal = (lines: Pick<EstimateLine, 'quantity' | 'unit_price'>[]) =>
   cents(lines.reduce((n, l) => n + lineTotal(l), 0))
+
+/** Subtotal of each room, in room order, plus lines not in a room. */
+export function groupTotals(groups: EstimateGroup[], lines: EstimateLine[]) {
+  const ids = new Set(groups.map((g) => g.id))
+  return {
+    rooms: groups.map((g) => ({ group: g, total: estimateTotal(lines.filter((l) => l.group_id === g.id)) })),
+    loose: estimateTotal(lines.filter((l) => !l.group_id || !ids.has(l.group_id))),
+  }
+}
+
+/** Deposit on the approved rooms (and anything not in a room). */
+export function depositAmount(groups: EstimateGroup[], lines: EstimateLine[], pct: number) {
+  const { rooms, loose } = groupTotals(groups, lines)
+  const base = loose + rooms.filter((r) => r.group.approved).reduce((n, r) => n + r.total, 0)
+  return cents((base * (pct || 0)) / 100)
+}
 
 export const money = (n: number) =>
   `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -163,14 +193,17 @@ export async function listEstimates(): Promise<EstimateSummary[]> {
 export async function getEstimate(id: string): Promise<EstimateFull> {
   const { data, error } = await db()
     .from('estimates')
-    .select('*, client:clients ( * ), lines:estimate_lines ( * )')
+    .select('*, client:clients ( * ), lines:estimate_lines ( * ), groups:estimate_groups ( id, name, approved, position )')
     .eq('id', id)
     .order('position', { referencedTable: 'estimate_lines' })
+    .order('position', { referencedTable: 'estimate_groups' })
     .single()
   if (error) throw error
   const e = data as unknown as EstimateFull
   return {
     ...e,
+    deposit_pct: Number(e.deposit_pct ?? 50),
+    groups: (e.groups ?? []).map(({ id, name, approved }) => ({ id, name, approved })),
     lines: e.lines.map((l) => ({ ...l, quantity: Number(l.quantity), unit_price: Number(l.unit_price) })),
   }
 }
@@ -191,7 +224,12 @@ export async function createEstimate(
 
 export async function updateEstimate(
   id: string,
-  patch: Partial<Pick<Estimate, 'client_id' | 'title' | 'status' | 'estimate_date' | 'notes' | 'terms'>>,
+  patch: Partial<
+    Pick<
+      Estimate,
+      'client_id' | 'title' | 'status' | 'estimate_date' | 'notes' | 'terms' | 'install_same' | 'install_name' | 'install_address' | 'deposit_pct'
+    >
+  >,
 ) {
   const { error } = await db().from('estimates').update(patch).eq('id', id)
   if (error) throw error
@@ -217,6 +255,7 @@ function lineRow(l: NewLine & { id?: string }, estimateId: string, position: num
     unit: l.unit,
     unit_price: cents(l.unit_price),
     source: l.source,
+    group_id: l.group_id ?? null,
   }
 }
 
@@ -246,6 +285,21 @@ export async function saveLines(estimateId: string, lines: EstimateLine[], remov
     const { error } = await db()
       .from('estimate_lines')
       .upsert(lines.map((l, i) => lineRow(l, estimateId, i)))
+    if (error) throw error
+  }
+}
+
+/** Saves the rooms in order; removed rooms are deleted (their lines become "not in a room").
+ *  Runs before saveLines so new rooms exist when lines point at them. */
+export async function saveGroups(estimateId: string, groups: EstimateGroup[], removedIds: string[]) {
+  if (groups.length) {
+    const { error } = await db()
+      .from('estimate_groups')
+      .upsert(groups.map((g, i) => ({ id: g.id, estimate_id: estimateId, name: g.name, approved: g.approved, position: i })))
+    if (error) throw error
+  }
+  if (removedIds.length) {
+    const { error } = await db().from('estimate_groups').delete().in('id', removedIds)
     if (error) throw error
   }
 }
