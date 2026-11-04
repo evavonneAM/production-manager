@@ -30,6 +30,7 @@ const LeafBag = lazy(() => import('./screens/calculators/LeafBag'))
 const CushionPricing = lazy(() => import('./screens/calculators/CushionPricing'))
 const FabricYardage = lazy(() => import('./screens/calculators/FabricYardage'))
 const Upholstery = lazy(() => import('./screens/calculators/Upholstery'))
+const PillowPricing = lazy(() => import('./screens/calculators/PillowPricing'))
 const DraperyPleat = lazy(() => import('./screens/calculators/DraperyPleat'))
 const FloorplanMeasure = lazy(() => import('./screens/calculators/floorplan/FloorplanMeasure'))
 const WorkOrder = lazy(() => import('./screens/calculators/WorkOrder'))
@@ -106,6 +107,7 @@ export default function App() {
         <Route path="/tools/floorplan-measure" element={page(<FloorplanMeasure />)} />
         <Route path="/tools/cushion-pricing" element={<AdminOnly>{page(<CushionPricing />)}</AdminOnly>} />
         <Route path="/tools/upholstery" element={<AdminOnly>{page(<Upholstery />)}</AdminOnly>} />
+        <Route path="/tools/pillow-pricing" element={<AdminOnly>{page(<PillowPricing />)}</AdminOnly>} />
         <Route path="/tools/work-order" element={<AdminOnly>{page(<WorkOrder />)}</AdminOnly>} />
         <Route path="/estimates" element={<AdminOnly>{page(<Estimates />)}</AdminOnly>} />
         <Route path="/estimates/:estimateId" element={<AdminOnly>{page(<EstimateDetail />)}</AdminOnly>} />

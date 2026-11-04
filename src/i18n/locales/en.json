@@ -526,6 +526,10 @@
       "estimates": {
         "name": "Estimates",
         "desc": "Client estimates with each business's logo, ready as a PDF"
+      },
+      "pillowPricing": {
+        "name": "Pillow Pricing",
+        "desc": "Throw pillows, lumbars and bolsters: $125 labor + insert + add-ons, with yards"
       }
     },
     "adminOnlyTitle": "Admins only",
@@ -1477,6 +1481,53 @@
     "noCharge": "No charge",
     "fabricYardsAll": "{{n}} yd on the whole estimate",
     "removeFabricConfirm": "Remove this fabric? Items stop using it.",
-    "removeFabric": "Remove fabric"
+    "removeFabric": "Remove fabric",
+    "add_pillowPricing": "Add pillow"
+  },
+  "pillowPricing": {
+    "intro": "Labor {{labor}} per pillow, any size, plus the insert and add-ons: welting +{{welt}}, contrast flange +{{flange}}, outdoor Celeste Bio tick +{{tick}}. Insert prices are from the PILLOW INSERT PRICING sheet.",
+    "pillowN": "Pillow {{n}}",
+    "remove": "Remove pillow",
+    "name": "Name",
+    "namePlaceholder": "Back pillows",
+    "qty": "Qty",
+    "standard": "Standard size",
+    "pickSize": "Pick…",
+    "shape": "Shape",
+    "shape_square": "Square / lumbar",
+    "shape_bolster": "Bolster",
+    "shape_round": "Round",
+    "width": "Width",
+    "height": "Height",
+    "length": "Length",
+    "diameter": "Diameter",
+    "insert": "Insert",
+    "style": "Style",
+    "style_knifeEdge": "Knife Edge",
+    "style_welted": "Welted",
+    "style_flange": "Flange",
+    "style_butterfly": "Butterfly Corner",
+    "flangeFabric": "Flange fabric",
+    "weltFabric": "Welt",
+    "noWelt": "No welt",
+    "self": "Self",
+    "contrast": "Contrast",
+    "flangeSize": "Flange size",
+    "fabric": "Fabric",
+    "contrastFabricName": "Contrast fabric",
+    "com": "Client's own fabric (COM)",
+    "tick": "Outdoor Celeste Bio tick (+{{price}})",
+    "each": "Each",
+    "breakdown": "Labor {{labor}} + insert {{insert}} + add-ons {{addOns}}",
+    "yards": "{{n}} yd fabric",
+    "contrastYards": "{{n}} yd contrast",
+    "overMax": "Over {{n}}\" diameter",
+    "fillIn": "Fill in the size to see the price.",
+    "quoteTitle": "Quote",
+    "lineTotal": "Line total",
+    "fabricCol": "Fabric",
+    "total": "Total",
+    "yardsNote": "Yards come from the cut pieces laid on a 54\" roll: ½\" seams, a self flange cut in one with the face, contrast flange as border strips, welt as bias cording. Each pillow line is rounded up on its own.",
+    "clearConfirm": "Clear all pillows?"
   }
 }

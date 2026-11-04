@@ -84,6 +84,15 @@ export const TOOLS: Tool[] = [
     ),
   },
   {
+    id: 'pillowPricing',
+    group: 'cushions',
+    adminOnly: true,
+    route: '/tools/pillow-pricing',
+    url: null,
+    keywords: 'pillow pillows throw lumbar bolster insert down flange welt price',
+    icon: <path d="M5 6c5 2 9 2 14 0c-2 5-2 9 0 14c-5-2-9-2-14 0c2-5 2-9 0-14z" />,
+  },
+  {
     id: 'upholstery',
     group: 'other',
     adminOnly: true,

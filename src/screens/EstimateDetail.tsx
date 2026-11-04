@@ -629,7 +629,7 @@ export default function EstimateDetail() {
   const toolButtons = (groupId: string | null) =>
     !isNew && (
       <>
-        {(['cushionPricing', 'upholstery'] as const).map((tool) => (
+        {(['cushionPricing', 'upholstery', 'pillowPricing'] as const).map((tool) => (
           <Button
             key={tool}
             icon={<PlusOutlined />}

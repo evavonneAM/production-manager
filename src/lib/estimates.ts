@@ -196,7 +196,7 @@ export const roomOrder = (lines: EstimateLine[]) => [
   ...lines.filter((l) => l.kind === 'fabric'),
 ]
 
-export type WorksheetTool = 'cushionPricing' | 'upholstery'
+export type WorksheetTool = 'cushionPricing' | 'upholstery' | 'pillowPricing'
 /** Every line sent from one tool session shares one worksheet; reopening it
  *  in the tool brings back all its inputs, and "Update" replaces its lines. */
 export type LineSpec = { tool: WorksheetTool; version: 1; worksheet: string; input: unknown }
@@ -204,6 +204,7 @@ export type LineSpec = { tool: WorksheetTool; version: 1; worksheet: string; inp
 export const TOOL_ROUTES: Record<WorksheetTool, string> = {
   cushionPricing: '/tools/cushion-pricing',
   upholstery: '/tools/upholstery',
+  pillowPricing: '/tools/pillow-pricing',
 }
 
 /** A room or window on the estimate, with its own subtotal. */

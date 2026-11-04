@@ -525,6 +525,10 @@
       "estimates": {
         "name": "Presupuestos",
         "desc": "Presupuestos con el logo de cada empresa, listos en PDF"
+      },
+      "pillowPricing": {
+        "name": "Precios de almohadas",
+        "desc": "Almohadas, lumbares y cilindros: $125 de mano de obra + relleno + extras, con yardas"
       }
     },
     "adminOnlyTitle": "Solo administradores",
@@ -1477,6 +1481,53 @@
     "noCharge": "Sin cargo",
     "fabricYardsAll": "{{n}} yd en todo el presupuesto",
     "removeFabricConfirm": "¿Quitar esta tela? Los artículos dejarán de usarla.",
-    "removeFabric": "Quitar tela"
+    "removeFabric": "Quitar tela",
+    "add_pillowPricing": "Añadir almohada"
+  },
+  "pillowPricing": {
+    "intro": "Mano de obra {{labor}} por almohada, de cualquier tamaño, más el relleno y extras: vivo +{{welt}}, pestaña de contraste +{{flange}}, funda exterior Celeste Bio +{{tick}}. Precios de relleno de la hoja PILLOW INSERT PRICING.",
+    "pillowN": "Almohada {{n}}",
+    "remove": "Quitar almohada",
+    "name": "Nombre",
+    "namePlaceholder": "Almohadas de respaldo",
+    "qty": "Cant.",
+    "standard": "Tamaño estándar",
+    "pickSize": "Elegir…",
+    "shape": "Forma",
+    "shape_square": "Cuadrada / lumbar",
+    "shape_bolster": "Cilindro",
+    "shape_round": "Redonda",
+    "width": "Ancho",
+    "height": "Alto",
+    "length": "Largo",
+    "diameter": "Diámetro",
+    "insert": "Relleno",
+    "style": "Estilo",
+    "style_knifeEdge": "Sin vivo",
+    "style_welted": "Con vivo",
+    "style_flange": "Con pestaña",
+    "style_butterfly": "Butterfly Corner",
+    "flangeFabric": "Tela de la pestaña",
+    "weltFabric": "Vivo",
+    "noWelt": "Sin vivo",
+    "self": "Misma tela",
+    "contrast": "Contraste",
+    "flangeSize": "Ancho de pestaña",
+    "fabric": "Tela",
+    "contrastFabricName": "Tela de contraste",
+    "com": "Tela del cliente (COM)",
+    "tick": "Funda exterior Celeste Bio (+{{price}})",
+    "each": "C/u",
+    "breakdown": "Mano de obra {{labor}} + relleno {{insert}} + extras {{addOns}}",
+    "yards": "{{n}} yd de tela",
+    "contrastYards": "{{n}} yd de contraste",
+    "overMax": "Más de {{n}}\" de diámetro",
+    "fillIn": "Escriba el tamaño para ver el precio.",
+    "quoteTitle": "Cotización",
+    "lineTotal": "Total de línea",
+    "fabricCol": "Tela",
+    "total": "Total",
+    "yardsNote": "Las yardas salen de las piezas en un rollo de 54\": costuras de ½\", pestaña de la misma tela cortada con el frente, pestaña de contraste en tiras, vivo al bies. Cada línea se redondea por separado.",
+    "clearConfirm": "¿Borrar todas las almohadas?"
   }
 }
