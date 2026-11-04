@@ -87,7 +87,114 @@ export type EstimateLine = {
   group_id?: string | null
   /** The pricing tool's worksheet this line came from (null = typed in). */
   spec?: LineSpec | null
+  /** 'item' (default) or 'fabric' — a room's line for one fabric, added up from its items. */
+  kind?: 'item' | 'fabric'
+  /** kind 'fabric': which fabric. */
+  fabric_id?: string | null
+  /** kind 'item': yards of each fabric this item needs (rounded up per item). */
+  fabric_uses?: FabricUse[] | null
+  /** kind 'fabric': yards typed over instead of added up. */
+  qty_override?: boolean
 }
+
+export type FabricKind = 'fabric' | 'com' | 'tbd'
+export type EstimateFabric = {
+  id: string
+  kind: FabricKind
+  name: string
+  vendor: string | null
+  sidemark: string | null
+  /** Wholesale $/yd; never on the client PDF. */
+  wholesale: number | null
+}
+/** `name` is a hint from a tool (the fabric typed there), matched to the job's fabrics on arrival. */
+export type FabricUse = { fabric_id: string | null; role: string; yards: number; name?: string }
+
+/** Client price per yard: wholesale × 2, never under $75 (owner 2026-10-24). COM and not-chosen: no charge. */
+export const retailPerYard = (f: Pick<EstimateFabric, 'kind' | 'wholesale'>) =>
+  f.kind === 'fabric' && f.wholesale ? cents(Math.max(75, f.wholesale * 2)) : 0
+
+/** How the fabric line reads on the estimate and PDF. */
+export function fabricLabel(f: Pick<EstimateFabric, 'kind' | 'name'>) {
+  const n = f.name.trim()
+  if (f.kind === 'com') return `Client's own fabric (COM)${n ? ` – ${n}` : ''}`
+  if (f.kind === 'tbd') return `Fabric to be determined${n ? ` – ${n}` : ''} (not included)`
+  return n || 'Fabric'
+}
+export const fabricNoCharge = (f: Pick<EstimateFabric, 'kind'> | undefined) => !!f && f.kind !== 'fabric'
+
+const itemLines = (lines: EstimateLine[]) => lines.filter((l) => (l.kind ?? 'item') === 'item')
+const roomKey = (g: string | null | undefined) => g ?? ''
+
+/** Yards of a fabric that a room's items need (each item already rounded up). */
+export function fabricNeed(lines: EstimateLine[], fabricId: string, groupId: string | null | undefined) {
+  return itemLines(lines)
+    .filter((l) => roomKey(l.group_id) === roomKey(groupId))
+    .reduce((n, l) => n + (l.fabric_uses ?? []).filter((u) => u.fabric_id === fabricId).reduce((m, u) => m + (u.yards || 0), 0), 0)
+}
+
+/**
+ * Makes the fabric lines match the items: one per room per fabric used there,
+ * yards added up unless typed over, priced from the fabric. Lines for fabric
+ * no longer used in a room go away.
+ */
+export function syncFabricLines(lines: EstimateLine[], fabrics: EstimateFabric[]): { lines: EstimateLine[]; removed: string[] } {
+  const byId = new Map(fabrics.map((f) => [f.id, f]))
+  const removed: string[] = []
+  const out: EstimateLine[] = []
+  const seen = new Set<string>()
+  for (const l of lines) {
+    if ((l.kind ?? 'item') !== 'fabric') {
+      out.push(l)
+      continue
+    }
+    const f = l.fabric_id ? byId.get(l.fabric_id) : undefined
+    const key = `${roomKey(l.group_id)}|${l.fabric_id}`
+    const need = f ? fabricNeed(lines, f.id, l.group_id) : 0
+    if (!f || need <= 0 || seen.has(key)) {
+      removed.push(l.id)
+      continue
+    }
+    seen.add(key)
+    out.push({
+      ...l,
+      name: fabricLabel(f),
+      description: f.kind === 'com' ? 'Yards to send us' : 'Fabric',
+      unit: 'yd',
+      unit_price: retailPerYard(f),
+      quantity: l.qty_override ? l.quantity : need,
+    })
+  }
+  const rooms = [...new Set(itemLines(lines).map((l) => roomKey(l.group_id)))]
+  for (const g of rooms) {
+    for (const f of fabrics) {
+      const need = fabricNeed(lines, f.id, g || null)
+      if (need <= 0 || seen.has(`${g}|${f.id}`)) continue
+      seen.add(`${g}|${f.id}`)
+      out.push({
+        id: crypto.randomUUID(),
+        kind: 'fabric',
+        fabric_id: f.id,
+        group_id: g || null,
+        section: null,
+        name: fabricLabel(f),
+        description: f.kind === 'com' ? 'Yards to send us' : 'Fabric',
+        quantity: need,
+        unit: 'yd',
+        unit_price: retailPerYard(f),
+        source: null,
+        qty_override: false,
+      })
+    }
+  }
+  return { lines: out, removed }
+}
+
+/** Items first, then their fabric — how a room reads. */
+export const roomOrder = (lines: EstimateLine[]) => [
+  ...lines.filter((l) => (l.kind ?? 'item') === 'item'),
+  ...lines.filter((l) => l.kind === 'fabric'),
+]
 
 export type WorksheetTool = 'cushionPricing' | 'upholstery'
 /** Every line sent from one tool session shares one worksheet; reopening it
@@ -129,7 +236,7 @@ export type Estimate = {
 }
 
 export type EstimateSummary = Estimate & { client: Pick<Client, 'name' | 'company'> | null; total: number }
-export type EstimateFull = Estimate & { client: Client | null; lines: EstimateLine[]; groups: EstimateGroup[] }
+export type EstimateFull = Estimate & { client: Client | null; lines: EstimateLine[]; groups: EstimateGroup[]; fabrics: EstimateFabric[] }
 
 /** HOV10001 — the same shape as the job code the project will get. */
 export const estimateCode = (e: { store: string; number: number }) => `${e.store}${e.number}`
@@ -205,10 +312,11 @@ export async function listEstimates(): Promise<EstimateSummary[]> {
 export async function getEstimate(id: string): Promise<EstimateFull> {
   const { data, error } = await db()
     .from('estimates')
-    .select('*, client:clients ( * ), lines:estimate_lines ( * ), groups:estimate_groups ( id, name, approved, position )')
+    .select('*, client:clients ( * ), lines:estimate_lines ( * ), groups:estimate_groups ( id, name, approved, position ), fabrics:estimate_fabrics ( * )')
     .eq('id', id)
     .order('position', { referencedTable: 'estimate_lines' })
     .order('position', { referencedTable: 'estimate_groups' })
+    .order('position', { referencedTable: 'estimate_fabrics' })
     .single()
   if (error) throw error
   const e = data as unknown as EstimateFull
@@ -216,6 +324,14 @@ export async function getEstimate(id: string): Promise<EstimateFull> {
     ...e,
     deposit_pct: Number(e.deposit_pct ?? 50),
     groups: (e.groups ?? []).map(({ id, name, approved }) => ({ id, name, approved })),
+    fabrics: (e.fabrics ?? []).map(({ id, kind, name, vendor, sidemark, wholesale }) => ({
+      id,
+      kind,
+      name,
+      vendor,
+      sidemark,
+      wholesale: wholesale === null || wholesale === undefined ? null : Number(wholesale),
+    })),
     lines: e.lines.map((l) => ({ ...l, quantity: Number(l.quantity), unit_price: Number(l.unit_price) })),
   }
 }
@@ -230,7 +346,10 @@ export async function createEstimate(
     .select('id')
     .single()
   if (error) throw error
-  if (lines.length) await appendLines(data.id, lines)
+  if (lines.length) {
+    await appendLines(data.id, lines)
+    await settleFabrics(data.id)
+  }
   return data.id
 }
 
@@ -269,6 +388,10 @@ function lineRow(l: NewLine & { id?: string }, estimateId: string, position: num
     source: l.source,
     group_id: l.group_id ?? null,
     spec: (l.spec ?? null) as never,
+    kind: l.kind ?? 'item',
+    fabric_id: l.fabric_id ?? null,
+    fabric_uses: (l.fabric_uses ?? null) as never,
+    qty_override: l.qty_override ?? false,
   }
 }
 
@@ -360,6 +483,7 @@ export async function sendWorksheet(
   const tagged = lines.map((l) => ({ ...l, group_id: opts.groupId ?? null, spec: { tool, version: 1 as const, worksheet, input } }))
   if (!opts.worksheet) {
     await appendLines(estimateId, tagged)
+    await settleFabrics(estimateId)
     return worksheet
   }
   const { data: all, error } = await db()
@@ -386,7 +510,66 @@ export async function sendWorksheet(
     const { error: posErr } = await db().from('estimate_lines').upsert(moved)
     if (posErr) throw posErr
   }
+  await settleFabrics(estimateId)
   return worksheet
+}
+
+/** Saves the job's fabric list (before lines, which point at it). */
+export async function saveFabrics(estimateId: string, fabrics: EstimateFabric[], removedIds: string[]) {
+  if (fabrics.length) {
+    const { error } = await db()
+      .from('estimate_fabrics')
+      .upsert(
+        fabrics.map((f, i) => ({
+          id: f.id,
+          estimate_id: estimateId,
+          position: i,
+          kind: f.kind,
+          name: f.name,
+          vendor: f.vendor,
+          sidemark: f.sidemark,
+          wholesale: f.wholesale,
+        })),
+      )
+    if (error) throw error
+  }
+  if (removedIds.length) {
+    const { error } = await db().from('estimate_fabrics').delete().in('id', removedIds)
+    if (error) throw error
+  }
+}
+
+/**
+ * After a tool sends lines: match the fabric names it used to the job's
+ * fabrics (adding new ones), then rebuild the fabric lines.
+ */
+export async function settleFabrics(estimateId: string) {
+  const est = await getEstimate(estimateId)
+  const fabrics = [...est.fabrics]
+  const find = (name: string) => fabrics.find((f) => f.name.trim().toLowerCase() === name.trim().toLowerCase())
+  let changed = false
+  const lines = est.lines.map((l) => {
+    if (!l.fabric_uses?.some((u) => !u.fabric_id)) return l
+    changed = true
+    return {
+      ...l,
+      fabric_uses: l.fabric_uses.map((u) => {
+        if (u.fabric_id) return u
+        const name = (u.name ?? '').trim()
+        let f = name ? find(name) : fabrics.find((x) => x.kind === 'tbd' && !x.name)
+        if (!f) {
+          const com = /^com\b|client'?s own/i.test(name)
+          f = { id: crypto.randomUUID(), kind: com ? 'com' : name ? 'fabric' : 'tbd', name: com ? '' : name, vendor: null, sidemark: null, wholesale: null }
+          fabrics.push(f)
+        }
+        return { fabric_id: f.id, role: u.role, yards: u.yards }
+      }),
+    }
+  })
+  const synced = syncFabricLines(lines, fabrics)
+  if (!changed && !synced.removed.length && synced.lines.length === lines.length) return
+  await saveFabrics(estimateId, fabrics, [])
+  await saveLines(estimateId, synced.lines, synced.removed)
 }
 
 export async function listDraftEstimates(): Promise<EstimateSummary[]> {

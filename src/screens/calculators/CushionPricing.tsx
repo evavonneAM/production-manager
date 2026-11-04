@@ -827,6 +827,13 @@ export default function CushionPricing() {
           unit: 'ea',
           unit_price: cents(l.each),
           source: 'cushionPricing',
+          // Fabric is its own estimate line: this cushion's yards, matched to the job's fabrics by name.
+          fabric_uses: [
+            { fabric_id: null, role: r.part === 'seat' ? 'Seat' : 'Body', yards: l.seatYards, name: r.com === 'com15' ? 'COM' : l.seatFabric },
+            ...(l.backYards > 0
+              ? [{ fabric_id: null, role: 'Back', yards: l.backYards, name: r.com === 'com15' ? 'COM' : l.backFabric || l.seatFabric }]
+              : []),
+          ].filter((u) => u.yards > 0),
         },
       ]
     }),

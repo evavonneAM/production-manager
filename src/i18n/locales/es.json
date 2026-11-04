@@ -1447,6 +1447,36 @@
     "saveFirst": "Guarde el presupuesto antes de abrir una herramienta.",
     "openIn": "Abrir en {{tool}}",
     "add_cushionPricing": "Añadir cojín",
-    "add_upholstery": "Añadir tapicería"
+    "add_upholstery": "Añadir tapicería",
+    "fabricUses": "Tela que usa este artículo",
+    "fabric": "Tela",
+    "pickFabric": "Elija una tela",
+    "fabricRole": "Para",
+    "yards": "Yardas",
+    "removeFabricUse": "Quitar tela",
+    "addFabricFirst": "Primero añada la tela en “Telas de este trabajo”.",
+    "addFabricUse": "Añadir tela",
+    "yardsTyped": "Escrito a mano (los artículos suman {{n}} yd)",
+    "yardsAdded": "Suma de los artículos de esta habitación",
+    "useAdded": "Usar {{n}} yd",
+    "fabrics": "Telas de este trabajo",
+    "addFabric": "Añadir tela",
+    "fabricsHelp": "Cada tela se escribe una vez. Los artículos la eligen y cada habitación tiene una línea de tela con la suma de yardas. Precio al cliente: mayorista × 2, nunca menos de $75/yd. Proveedor, sidemark y mayorista son internos.",
+    "noFabrics": "Aún no hay telas. Las herramientas añaden los nombres de tela que usan; puede añadir más aquí.",
+    "fabricKind": "Tipo",
+    "fabricKinds": {
+      "fabric": "Tela nuestra",
+      "com": "Tela del cliente (COM)",
+      "tbd": "Por definir"
+    },
+    "fabricName": "Tela",
+    "vendor": "Proveedor",
+    "sidemark": "Sidemark",
+    "wholesale": "Mayorista $/yd",
+    "clientPerYard": "Cliente $/yd",
+    "noCharge": "Sin cargo",
+    "fabricYardsAll": "{{n}} yd en todo el presupuesto",
+    "removeFabricConfirm": "¿Quitar esta tela? Los artículos dejarán de usarla.",
+    "removeFabric": "Quitar tela"
   }
 }

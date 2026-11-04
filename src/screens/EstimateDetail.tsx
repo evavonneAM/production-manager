@@ -56,6 +56,15 @@ import {
   type Client,
   type EstimateFull,
   type EstimateGroup,
+  type EstimateFabric,
+  type FabricKind,
+  type FabricUse,
+  fabricNeed,
+  fabricNoCharge,
+  retailPerYard,
+  roomOrder,
+  saveFabrics,
+  syncFabricLines,
   type EstimateLine,
   type EstimateStatus,
   type NewLine,
@@ -148,6 +157,7 @@ function LineCard({
   count,
   sections,
   groups,
+  fabrics,
   openTool,
   update,
   move,
@@ -158,6 +168,7 @@ function LineCard({
   count: number
   sections: string[]
   groups: EstimateGroup[]
+  fabrics: EstimateFabric[]
   /** Reopen this line's worksheet in its tool; undefined while there are unsaved changes. */
   openTool?: () => void
   update: (patch: Partial<EstimateLine>) => void
@@ -261,8 +272,210 @@ function LineCard({
               />
             </Form.Item>
           </Col>
+          <Col xs={24}>
+            <FabricUses uses={line.fabric_uses ?? []} fabrics={fabrics} onChange={(fabric_uses) => update({ fabric_uses })} />
+          </Col>
         </Row>
       </Form>
+    </Card>
+  )
+}
+
+/** The fabric an item uses (body, welt, back…) and its yards. */
+function FabricUses({ uses, fabrics, onChange }: { uses: FabricUse[]; fabrics: EstimateFabric[]; onChange: (u: FabricUse[] | null) => void }) {
+  const { t } = useTranslation()
+  const set = (i: number, patch: Partial<FabricUse>) => onChange(uses.map((u, j) => (j === i ? { ...u, ...patch } : u)))
+  return (
+    <div style={{ marginTop: 12 }}>
+      <Typography.Text type="secondary">{t('estimates.fabricUses')}</Typography.Text>
+      {uses.map((u, i) => (
+        <Space.Compact key={i} style={{ width: '100%', marginTop: 6 }}>
+          <Select
+            aria-label={t('estimates.fabric')}
+            placeholder={t('estimates.pickFabric')}
+            value={u.fabric_id ?? undefined}
+            onChange={(v) => set(i, { fabric_id: v })}
+            options={fabrics.map((f) => ({ value: f.id, label: f.name.trim() || t(`estimates.fabricKinds.${f.kind}`) }))}
+            style={{ flex: 2, minWidth: 0 }}
+          />
+          <Input aria-label={t('estimates.fabricRole')} value={u.role} onChange={(e) => set(i, { role: e.target.value })} style={{ flex: 1, minWidth: 0 }} />
+          <InputNumber
+            aria-label={t('estimates.yards')}
+            min={0}
+            precision={0}
+            suffix="yd"
+            value={u.yards}
+            onChange={(v) => set(i, { yards: v ?? 0 })}
+            style={{ width: 96 }}
+          />
+          <Button icon={<DeleteOutlined />} aria-label={t('estimates.removeFabricUse')} onClick={() => onChange(uses.filter((_, j) => j !== i))} />
+        </Space.Compact>
+      ))}
+      <div>
+        <Button
+          type="link"
+          size="small"
+          icon={<PlusOutlined />}
+          disabled={fabrics.length === 0}
+          title={fabrics.length === 0 ? t('estimates.addFabricFirst') : undefined}
+          onClick={() => onChange([...uses, { fabric_id: fabrics[0]?.id ?? null, role: uses.length ? 'Welt' : 'Body', yards: 1 }])}
+          style={{ paddingInline: 0 }}
+        >
+          {t('estimates.addFabricUse')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** A room's line for one fabric: yards added up from its items, or typed over. */
+function FabricLineCard({
+  line,
+  fabric,
+  need,
+  update,
+}: {
+  line: EstimateLine
+  fabric: EstimateFabric | undefined
+  need: number
+  update: (patch: Partial<EstimateLine>) => void
+}) {
+  const { t } = useTranslation()
+  const free = fabricNoCharge(fabric)
+  return (
+    <Card size="small" style={{ background: 'var(--ant-color-fill-quaternary, #fafafa)' }}>
+      <Space style={{ width: '100%', justifyContent: 'space-between' }} align="center" wrap>
+        <div>
+          <Typography.Text strong>{line.name}</Typography.Text>
+          <div>
+            <Typography.Text type="secondary">
+              {line.qty_override ? t('estimates.yardsTyped', { n: need }) : t('estimates.yardsAdded')}
+            </Typography.Text>
+          </div>
+        </div>
+        <Space wrap align="center">
+          <InputNumber
+            aria-label={t('estimates.yards')}
+            min={0}
+            precision={0}
+            suffix="yd"
+            value={line.quantity}
+            onChange={(v) => update({ quantity: v ?? 0, qty_override: true })}
+            style={{ width: 100 }}
+          />
+          {line.qty_override && (
+            <Button size="small" onClick={() => update({ quantity: need, qty_override: false })}>
+              {t('estimates.useAdded', { n: need })}
+            </Button>
+          )}
+          <Typography.Text type="secondary">× {free ? '—' : money(line.unit_price)}</Typography.Text>
+          <Typography.Text strong style={{ minWidth: 90, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+            {free ? '—' : money(lineTotal(line))}
+          </Typography.Text>
+        </Space>
+      </Space>
+    </Card>
+  )
+}
+
+/** The job's fabrics: picked once, used by any item. */
+function FabricsCard({
+  fabrics,
+  lines,
+  sidemarkDefault,
+  onChange,
+  onRemove,
+}: {
+  fabrics: EstimateFabric[]
+  lines: EstimateLine[]
+  sidemarkDefault: string
+  onChange: (f: EstimateFabric[]) => void
+  onRemove: (id: string) => void
+}) {
+  const { t } = useTranslation()
+  const set = (id: string, patch: Partial<EstimateFabric>) => onChange(fabrics.map((f) => (f.id === id ? { ...f, ...patch } : f)))
+  const totalYards = (id: string) =>
+    lines.filter((l) => (l.kind ?? 'item') === 'item').reduce((n, l) => n + (l.fabric_uses ?? []).filter((u) => u.fabric_id === id).reduce((m, u) => m + u.yards, 0), 0)
+  return (
+    <Card
+      title={t('estimates.fabrics')}
+      extra={
+        <Button
+          icon={<PlusOutlined />}
+          onClick={() => onChange([...fabrics, { id: crypto.randomUUID(), kind: 'fabric', name: '', vendor: null, sidemark: null, wholesale: null }])}
+        >
+          {t('estimates.addFabric')}
+        </Button>
+      }
+    >
+      <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+        {t('estimates.fabricsHelp')}
+      </Typography.Paragraph>
+      {fabrics.length === 0 && <Typography.Text type="secondary">{t('estimates.noFabrics')}</Typography.Text>}
+      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+        {fabrics.map((f) => (
+          <Card key={f.id} size="small">
+            <Form layout="vertical" component="div">
+              <Row gutter={12}>
+                <Col xs={24} sm={8}>
+                  <Form.Item label={t('estimates.fabricKind')} style={{ marginBottom: 8 }}>
+                    <Select
+                      value={f.kind}
+                      onChange={(kind: FabricKind) => set(f.id, { kind })}
+                      options={(['fabric', 'com', 'tbd'] as const).map((k) => ({ value: k, label: t(`estimates.fabricKinds.${k}`) }))}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={16}>
+                  <Form.Item label={t('estimates.fabricName')} style={{ marginBottom: 8 }}>
+                    <Input value={f.name} placeholder="Kravet 34521 Linen, Natural" onChange={(e) => set(f.id, { name: e.target.value })} />
+                  </Form.Item>
+                </Col>
+                <Col xs={12} sm={8}>
+                  <Form.Item label={t('estimates.vendor')} style={{ marginBottom: 8 }}>
+                    <Input value={f.vendor ?? ''} onChange={(e) => set(f.id, { vendor: e.target.value || null })} />
+                  </Form.Item>
+                </Col>
+                <Col xs={12} sm={8}>
+                  <Form.Item label={t('estimates.sidemark')} style={{ marginBottom: 8 }}>
+                    <Input value={f.sidemark ?? ''} placeholder={sidemarkDefault} onChange={(e) => set(f.id, { sidemark: e.target.value || null })} />
+                  </Form.Item>
+                </Col>
+                {f.kind === 'fabric' && (
+                  <Col xs={12} sm={4}>
+                    <Form.Item label={t('estimates.wholesale')} style={{ marginBottom: 8 }}>
+                      <InputNumber
+                        prefix="$"
+                        min={0}
+                        precision={2}
+                        value={f.wholesale}
+                        onChange={(v) => set(f.id, { wholesale: v })}
+                        style={{ width: '100%' }}
+                        inputMode="decimal"
+                      />
+                    </Form.Item>
+                  </Col>
+                )}
+                <Col xs={12} sm={4}>
+                  <Form.Item label={t('estimates.clientPerYard')} style={{ marginBottom: 8 }}>
+                    <Typography.Text strong style={{ lineHeight: '32px' }}>
+                      {f.kind === 'fabric' ? (f.wholesale ? money(retailPerYard(f)) : '—') : t('estimates.noCharge')}
+                    </Typography.Text>
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Form>
+            <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
+              <Typography.Text type="secondary">{t('estimates.fabricYardsAll', { n: totalYards(f.id) })}</Typography.Text>
+              <Popconfirm title={t('estimates.removeFabricConfirm')} okText={t('estimates.removeFabric')} cancelText={t('common.cancel')} onConfirm={() => onRemove(f.id)}>
+                <Button type="text" danger size="small" icon={<DeleteOutlined />}>
+                  {t('estimates.removeFabric')}
+                </Button>
+              </Popconfirm>
+            </Space>
+          </Card>
+        ))}
+      </Space>
     </Card>
   )
 }
@@ -309,8 +522,9 @@ export default function EstimateDetail() {
   const [lines, setLines] = useState<EstimateLine[]>(() =>
     ((location.state as { lines?: NewLine[] } | null)?.lines ?? []).map((l) => blankLine(l)),
   )
-  const [removed, setRemoved] = useState<string[]>([])
   const [groups, setGroups] = useState<EstimateGroup[]>([])
+  const [fabrics, setFabrics] = useState<EstimateFabric[]>([])
+  const [removedFabrics, setRemovedFabrics] = useState<string[]>([])
   const [removedGroups, setRemovedGroups] = useState<string[]>([])
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -337,8 +551,9 @@ export default function EstimateDetail() {
         })
         setLines(e.lines)
         setGroups(e.groups)
-        setRemoved([])
+        setFabrics(e.fabrics)
         setRemovedGroups([])
+        setRemovedFabrics([])
         setDirty(false)
       },
       (e) => setLoadError(e.message),
@@ -353,12 +568,32 @@ export default function EstimateDetail() {
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty, isNew])
 
+  const changeFabrics = (next: EstimateFabric[]) => {
+    setFabrics(next)
+    setLines((ls) => syncFabricLines(ls, next).lines)
+    setDirty(true)
+  }
+  const removeFabric = (id: string) => {
+    const next = fabrics.filter((f) => f.id !== id)
+    setFabrics(next)
+    setLines((ls) =>
+      syncFabricLines(
+        ls.map((l) => (l.fabric_uses?.some((u) => u.fabric_id === id) ? { ...l, fabric_uses: l.fabric_uses.filter((u) => u.fabric_id !== id) } : l)),
+        next,
+      ).lines,
+    )
+    if (loaded?.fabrics.some((f) => f.id === id)) setRemovedFabrics((r) => [...r, id])
+    setDirty(true)
+  }
+
   const set = (patch: Partial<Fields>) => {
     setFields((f) => ({ ...f, ...patch }))
     setDirty(true)
   }
+  // Fabric lines follow the items: every change to lines re-adds them.
+  const editLines = (fn: (ls: EstimateLine[]) => EstimateLine[]) => setLines((ls) => syncFabricLines(fn(ls), fabrics).lines)
   const updateLine = (id: string, patch: Partial<EstimateLine>) => {
-    setLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+    editLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)))
     setDirty(true)
   }
   /** Swaps a line with its neighbour in the same room (or among lines not in a room). */
@@ -367,7 +602,7 @@ export default function EstimateDetail() {
       const i = ls.findIndex((l) => l.id === id)
       const room = ls[i].group_id ?? null
       let j = i + dir
-      while (j >= 0 && j < ls.length && (ls[j].group_id ?? null) !== room) j += dir
+      while (j >= 0 && j < ls.length && ((ls[j].group_id ?? null) !== room || ls[j].kind === 'fabric')) j += dir
       if (j < 0 || j >= ls.length) return ls
       const next = [...ls]
       ;[next[i], next[j]] = [next[j], next[i]]
@@ -411,7 +646,7 @@ export default function EstimateDetail() {
     const g: EstimateGroup = { id: crypto.randomUUID(), name: '', approved: true }
     setGroups((gs) => [...gs, g])
     // The first room collects the lines already on the estimate.
-    if (groups.length === 0) setLines((ls) => ls.map((l) => ({ ...l, group_id: g.id })))
+    if (groups.length === 0) editLines((ls) => ls.map((l) => ({ ...l, group_id: g.id })))
     setDirty(true)
   }
   const updateGroup = (id: string, patch: Partial<EstimateGroup>) => {
@@ -428,13 +663,12 @@ export default function EstimateDetail() {
   }
   const removeGroup = (id: string) => {
     setGroups((gs) => gs.filter((g) => g.id !== id))
-    setLines((ls) => ls.map((l) => (l.group_id === id ? { ...l, group_id: null } : l)))
+    editLines((ls) => ls.map((l) => (l.group_id === id ? { ...l, group_id: null } : l)))
     if (loaded?.groups.some((g) => g.id === id)) setRemovedGroups((r) => [...r, id])
     setDirty(true)
   }
   const removeLine = (id: string) => {
-    setLines((ls) => ls.filter((l) => l.id !== id))
-    if (loaded?.lines.some((l) => l.id === id)) setRemoved((r) => [...r, id])
+    editLines((ls) => ls.filter((l) => l.id !== id))
     setDirty(true)
   }
 
@@ -480,14 +714,18 @@ export default function EstimateDetail() {
       })
       // Lines first move off rooms being removed, then rooms, then lines.
       await saveGroups(loaded.id, groups, [])
-      await saveLines(loaded.id, lines, removed)
+      await saveFabrics(loaded.id, fabrics, [])
+      const removedIds = loaded.lines.filter((l) => !lines.some((x) => x.id === l.id)).map((l) => l.id)
+      await saveLines(loaded.id, lines, removedIds)
       if (removedGroups.length) await saveGroups(loaded.id, [], removedGroups)
+      if (removedFabrics.length) await saveFabrics(loaded.id, [], removedFabrics)
       const fresh = await getEstimate(loaded.id)
       setLoaded(fresh)
       setLines(fresh.lines)
       setGroups(fresh.groups)
-      setRemoved([])
+      setFabrics(fresh.fabrics)
       setRemovedGroups([])
+      setRemovedFabrics([])
       setDirty(false)
       msg.success(t('estimates.saved'))
     } catch (e) {
@@ -501,7 +739,7 @@ export default function EstimateDetail() {
     if (!loaded) return
     try {
       const { downloadEstimatePdf } = await import('../lib/estimatePdf')
-      await downloadEstimatePdf({ ...loaded, ...fields, client, lines, groups })
+      await downloadEstimatePdf({ ...loaded, ...fields, client, lines, groups, fabrics })
     } catch (e) {
       msg.error(errorText(e))
     }
@@ -517,6 +755,31 @@ export default function EstimateDetail() {
       msg.error(errorText(e))
     }
   }
+
+  const renderLine = (l: EstimateLine, i: number, count: number) =>
+    l.kind === 'fabric' ? (
+      <FabricLineCard
+        key={l.id}
+        line={l}
+        fabric={fabrics.find((f) => f.id === l.fabric_id)}
+        need={l.fabric_id ? fabricNeed(lines, l.fabric_id, l.group_id) : 0}
+        update={(patch) => updateLine(l.id, patch)}
+      />
+    ) : (
+      <LineCard
+        key={l.id}
+        line={l}
+        index={i}
+        count={count}
+        sections={sections}
+        groups={groups}
+        fabrics={fabrics}
+        openTool={openToolFor(l)}
+        update={(patch) => updateLine(l.id, patch)}
+        move={(dir) => moveLine(l.id, dir)}
+        remove={() => removeLine(l.id)}
+      />
+    )
 
   if (loadError) return <Alert type="error" title={loadError} style={{ margin: 24 }} />
   if (!isNew && !loaded) return <FullScreenLoader />
@@ -644,20 +907,7 @@ export default function EstimateDetail() {
               </Space>
               <Space orientation="vertical" size={12} style={{ width: '100%' }}>
                 {inRoom.length === 0 && <Typography.Text type="secondary">{t('estimates.emptyRoom')}</Typography.Text>}
-                {inRoom.map((l, i) => (
-                  <LineCard
-                    key={l.id}
-                    line={l}
-                    index={i}
-                    count={inRoom.length}
-                    sections={sections}
-                    groups={groups}
-                    openTool={openToolFor(l)}
-                    update={(patch) => updateLine(l.id, patch)}
-                    move={(dir) => moveLine(l.id, dir)}
-                    remove={() => removeLine(l.id)}
-                  />
-                ))}
+                {roomOrder(inRoom).map((l, i) => renderLine(l, i, inRoom.filter((x) => x.kind !== 'fabric').length))}
                 <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
                   <Space wrap>
                     {toolButtons(g.id)}
@@ -679,20 +929,7 @@ export default function EstimateDetail() {
             {t('estimates.noRoom')}
           </Typography.Title>
         )}
-        {looseLines.map((l, i) => (
-          <LineCard
-            key={l.id}
-            line={l}
-            index={i}
-            count={looseLines.length}
-            sections={sections}
-            groups={groups}
-            openTool={openToolFor(l)}
-            update={(patch) => updateLine(l.id, patch)}
-            move={(dir) => moveLine(l.id, dir)}
-            remove={() => removeLine(l.id)}
-          />
-        ))}
+        {roomOrder(looseLines).map((l, i) => renderLine(l, i, looseLines.filter((x) => x.kind !== 'fabric').length))}
         {groups.length === 0 && (
           <Space wrap style={{ width: '100%' }}>
             {toolButtons(null)}
@@ -728,6 +965,16 @@ export default function EstimateDetail() {
             )}
           </Row>
         </Card>
+
+        {!isNew && (
+          <FabricsCard
+            fabrics={fabrics}
+            lines={lines}
+            sidemarkDefault={[client?.name, fields.title.trim()].filter(Boolean).join(' / ')}
+            onChange={changeFabrics}
+            onRemove={removeFabric}
+          />
+        )}
 
         {!isNew && (
           <Card title={t('estimates.installAt')}>

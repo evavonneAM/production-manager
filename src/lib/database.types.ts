@@ -248,6 +248,42 @@ export type Database = {
         }
         Relationships: []
       }
+      estimate_fabrics: {
+        Row: {
+          created_at: string
+          estimate_id: string
+          id: string
+          kind: string
+          name: string
+          position: number
+          sidemark: string | null
+          vendor: string | null
+          wholesale: number | null
+        }
+        Insert: {
+          created_at?: string
+          estimate_id: string
+          id?: string
+          kind?: string
+          name?: string
+          position?: number
+          sidemark?: string | null
+          vendor?: string | null
+          wholesale?: number | null
+        }
+        Update: {
+          created_at?: string
+          estimate_id?: string
+          id?: string
+          kind?: string
+          name?: string
+          position?: number
+          sidemark?: string | null
+          vendor?: string | null
+          wholesale?: number | null
+        }
+        Relationships: []
+      }
       estimate_groups: {
         Row: {
           approved: boolean
@@ -288,10 +324,14 @@ export type Database = {
           created_at: string
           description: string | null
           estimate_id: string
+          fabric_id: string | null
+          fabric_uses: Json | null
           group_id: string | null
           id: string
+          kind: string
           name: string
           position: number
+          qty_override: boolean
           quantity: number
           section: string | null
           source: string | null
@@ -304,10 +344,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           estimate_id: string
+          fabric_id?: string | null
+          fabric_uses?: Json | null
           group_id?: string | null
           id?: string
+          kind?: string
           name?: string
           position?: number
+          qty_override?: boolean
           quantity?: number
           section?: string | null
           source?: string | null
@@ -319,10 +363,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           estimate_id?: string
+          fabric_id?: string | null
+          fabric_uses?: Json | null
           group_id?: string | null
           id?: string
+          kind?: string
           name?: string
           position?: number
+          qty_override?: boolean
           quantity?: number
           section?: string | null
           source?: string | null

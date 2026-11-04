@@ -408,15 +408,20 @@ export default function Upholstery() {
   // Estimate Rocket write-up (made plain) for the client.
   const estimateLines = (): NewLine[] => {
     const piece = `${type.name} – ${est.service === 'slip' ? 'Slipcover' : 'Upholstery'}`
-    return est.lines.map((l, i) => ({
-      section: piece,
-      name: l.item,
-      description: i === 0 ? `${l.desc}\n\n${erToPlain(erText)}` : l.desc,
-      quantity: Math.round(l.qty * 100) / 100,
-      unit: null,
-      unit_price: cents(l.rate),
-      source: 'upholstery',
-    }))
+    // Fabric is its own estimate line, so the tool's yardage line stays out;
+    // the piece's yards ride on its first line and are matched to the job's fabric by name.
+    return est.lines
+      .filter((l) => l.section !== 'Yardage')
+      .map((l, i) => ({
+        section: piece,
+        name: l.item,
+        description: i === 0 ? `${l.desc}\n\n${erToPlain(erText)}` : l.desc,
+        quantity: Math.round(l.qty * 100) / 100,
+        unit: null,
+        unit_price: cents(l.rate),
+        source: 'upholstery',
+        fabric_uses: i === 0 && est.yards > 0 ? [{ fabric_id: null, role: 'Body', yards: est.yards, name: draft.com ? 'COM' : draft.fabric }] : null,
+      }))
   }
 
   const rateFields: [keyof Rates, string][] = [

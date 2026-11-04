@@ -1447,6 +1447,36 @@
     "saveFirst": "Save the estimate first to open a tool.",
     "openIn": "Open in {{tool}}",
     "add_cushionPricing": "Add cushion",
-    "add_upholstery": "Add upholstery"
+    "add_upholstery": "Add upholstery",
+    "fabricUses": "Fabric this item uses",
+    "fabric": "Fabric",
+    "pickFabric": "Pick a fabric",
+    "fabricRole": "Used for",
+    "yards": "Yards",
+    "removeFabricUse": "Remove fabric",
+    "addFabricFirst": "Add the fabric under “Fabrics on this job” first.",
+    "addFabricUse": "Add fabric",
+    "yardsTyped": "Typed over (items add up to {{n}} yd)",
+    "yardsAdded": "Added up from this room’s items",
+    "useAdded": "Use {{n}} yd",
+    "fabrics": "Fabrics on this job",
+    "addFabric": "Add fabric",
+    "fabricsHelp": "Each fabric is entered once. Items pick it, and every room gets one fabric line adding up its yards. Client price is wholesale × 2, never under $75/yd. Vendor, sidemark and wholesale stay internal.",
+    "noFabrics": "No fabrics yet. Tools add the fabric names they use; you can add more here.",
+    "fabricKind": "Type",
+    "fabricKinds": {
+      "fabric": "Fabric we supply",
+      "com": "Client's own (COM)",
+      "tbd": "To be determined"
+    },
+    "fabricName": "Fabric",
+    "vendor": "Vendor",
+    "sidemark": "Sidemark",
+    "wholesale": "Wholesale $/yd",
+    "clientPerYard": "Client $/yd",
+    "noCharge": "No charge",
+    "fabricYardsAll": "{{n}} yd on the whole estimate",
+    "removeFabricConfirm": "Remove this fabric? Items stop using it.",
+    "removeFabric": "Remove fabric"
   }
 }

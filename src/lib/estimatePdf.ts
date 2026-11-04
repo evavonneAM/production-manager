@@ -4,7 +4,9 @@ import {
   depositAmount,
   estimateCode,
   estimateTotal,
+  fabricNoCharge,
   groupTotals,
+  roomOrder,
   lineTotal,
   money,
   type EstimateFull,
@@ -203,7 +205,9 @@ export function buildEstimatePdf(doc: JsPDF, est: EstimateFull, logo: Logo): JsP
     })
   }
 
+  const fabricById = new Map((est.fabrics ?? []).map((f) => [f.id, f]))
   const drawLine = (l: EstimateLine) => {
+    const free = l.kind === 'fabric' && fabricNoCharge(l.fabric_id ? fabricById.get(l.fabric_id) : undefined)
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(9.5)
     const name = doc.splitTextToSize(clean(l.name || ''), ITEM_W) as string[]
@@ -219,9 +223,9 @@ export function buildEstimatePdf(doc: JsPDF, est: EstimateFull, logo: Logo): JsP
     doc.setFontSize(9)
     doc.setTextColor(...INK2)
     doc.text(qtyText(l), C_QTY, ty, { align: 'right' })
-    doc.text(money(l.unit_price), C_EACH, ty, { align: 'right' })
+    doc.text(free ? '—' : money(l.unit_price), C_EACH, ty, { align: 'right' })
     doc.setTextColor(...INK)
-    doc.text(money(lineTotal(l)), C_AMT, ty, { align: 'right' })
+    doc.text(free ? '—' : money(lineTotal(l)), C_AMT, ty, { align: 'right' })
     ty += (name.length - 1) * 12 + 3
     for (const d of desc) {
       d.rest.forEach((part, i) => {
@@ -264,7 +268,7 @@ export function buildEstimatePdf(doc: JsPDF, est: EstimateFull, logo: Logo): JsP
       y += 20
     }
     colHeader()
-    for (const l of roomLines) drawLine(l)
+    for (const l of roomOrder(roomLines)) drawLine(l)
     if (subtotal !== null) {
       ensure(24)
       y += 16
