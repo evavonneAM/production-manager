@@ -95,6 +95,9 @@ Picture: https://claude.ai/artifact/YTWGY3t8CERq6smN6qLvPt (copy kept in
   each fabric line becomes a **fabric to order** for that job. The purchase list shows the
   pooled yards (all items on one roll, rounded once) as a **suggestion** beside the estimate's
   yards; the buyer picks either or types their own.
+- **Lines become jobs** (owner, 2026-11-02): each item line in an approved room becomes its
+  own job (HOV10001-A, -B…). Fabric, hardware and install lines are not jobs. A one-item
+  estimate gets the bare number.
 
 ## Estimate design (settled with the owner 2026-10-24)
 
