@@ -59,6 +59,8 @@ import {
   type EstimateLine,
   type EstimateStatus,
   type NewLine,
+  TOOL_ROUTES,
+  type WorksheetTool,
   type Store,
   errorText,
 } from '../lib/estimates'
@@ -146,6 +148,7 @@ function LineCard({
   count,
   sections,
   groups,
+  openTool,
   update,
   move,
   remove,
@@ -155,6 +158,8 @@ function LineCard({
   count: number
   sections: string[]
   groups: EstimateGroup[]
+  /** Reopen this line's worksheet in its tool; undefined while there are unsaved changes. */
+  openTool?: () => void
   update: (patch: Partial<EstimateLine>) => void
   move: (dir: -1 | 1) => void
   remove: () => void
@@ -167,6 +172,11 @@ function LineCard({
       title={line.name.trim() || t('estimates.lineN', { n: index + 1 })}
       extra={
         <Space size={0}>
+          {line.spec && (
+            <Button type="link" size="small" disabled={!openTool} onClick={openTool} title={openTool ? undefined : t('estimates.saveFirst')}>
+              {t('estimates.openIn', { tool: t(`tools.items.${line.spec.tool}.name`) })}
+            </Button>
+          )}
           <Button type="text" icon={<ArrowUpOutlined />} aria-label={t('estimates.moveUp')} disabled={index === 0} onClick={() => move(-1)} />
           <Button type="text" icon={<ArrowDownOutlined />} aria-label={t('estimates.moveDown')} disabled={index === count - 1} onClick={() => move(1)} />
           <Button type="text" danger icon={<DeleteOutlined />} aria-label={t('estimates.removeLine')} onClick={remove} />
@@ -372,6 +382,31 @@ export default function EstimateDetail() {
     })
     setDirty(true)
   }
+  // Tools open tied to this saved estimate; unsaved edits would be lost, so save first.
+  const openToolFor = (l: EstimateLine) =>
+    l.spec && loaded && !dirty
+      ? () => navigate(`${TOOL_ROUTES[l.spec!.tool]}?estimate=${loaded.id}&worksheet=${l.spec!.worksheet}`)
+      : undefined
+  const addFromTool = (tool: WorksheetTool, groupId: string | null) => {
+    if (!loaded) return
+    navigate(`${TOOL_ROUTES[tool]}?estimate=${loaded.id}${groupId ? `&group=${groupId}` : ''}`)
+  }
+  const toolButtons = (groupId: string | null) =>
+    !isNew && (
+      <>
+        {(['cushionPricing', 'upholstery'] as const).map((tool) => (
+          <Button
+            key={tool}
+            icon={<PlusOutlined />}
+            disabled={dirty}
+            title={dirty ? t('estimates.saveFirst') : undefined}
+            onClick={() => addFromTool(tool, groupId)}
+          >
+            {t(`estimates.add_${tool}`)}
+          </Button>
+        ))}
+      </>
+    )
   const addGroup = () => {
     const g: EstimateGroup = { id: crypto.randomUUID(), name: '', approved: true }
     setGroups((gs) => [...gs, g])
@@ -617,15 +652,19 @@ export default function EstimateDetail() {
                     count={inRoom.length}
                     sections={sections}
                     groups={groups}
+                    openTool={openToolFor(l)}
                     update={(patch) => updateLine(l.id, patch)}
                     move={(dir) => moveLine(l.id, dir)}
                     remove={() => removeLine(l.id)}
                   />
                 ))}
                 <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
-                  <Button type="dashed" icon={<PlusOutlined />} onClick={() => addLine(g.id)}>
-                    {t('estimates.addLine')}
-                  </Button>
+                  <Space wrap>
+                    {toolButtons(g.id)}
+                    <Button type="dashed" icon={<PlusOutlined />} onClick={() => addLine(g.id)}>
+                      {t('estimates.addLine')}
+                    </Button>
+                  </Space>
                   <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
                     {t('estimates.roomSubtotal', { name: g.name.trim() || t('estimates.unnamedRoom') })}: {money(sub)}
                   </Typography.Text>
@@ -648,17 +687,21 @@ export default function EstimateDetail() {
             count={looseLines.length}
             sections={sections}
             groups={groups}
+            openTool={openToolFor(l)}
             update={(patch) => updateLine(l.id, patch)}
             move={(dir) => moveLine(l.id, dir)}
             remove={() => removeLine(l.id)}
           />
         ))}
         {groups.length === 0 && (
-          <Button type="dashed" block size="large" icon={<PlusOutlined />} onClick={() => addLine(null)}>
-            {t('estimates.addLine')}
-          </Button>
+          <Space wrap style={{ width: '100%' }}>
+            {toolButtons(null)}
+            <Button type="dashed" icon={<PlusOutlined />} onClick={() => addLine(null)}>
+              {t('estimates.addLine')}
+            </Button>
+          </Space>
         )}
-        <Typography.Text type="secondary">{t('estimates.fromTools')}</Typography.Text>
+        {!isNew && dirty && <Typography.Text type="secondary">{t('estimates.saveFirst')}</Typography.Text>}
 
         <Card>
           <Row gutter={[16, 16]}>

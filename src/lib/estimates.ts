@@ -85,6 +85,18 @@ export type EstimateLine = {
   source: string | null
   /** Room / window group; null = not in a room. */
   group_id?: string | null
+  /** The pricing tool's worksheet this line came from (null = typed in). */
+  spec?: LineSpec | null
+}
+
+export type WorksheetTool = 'cushionPricing' | 'upholstery'
+/** Every line sent from one tool session shares one worksheet; reopening it
+ *  in the tool brings back all its inputs, and "Update" replaces its lines. */
+export type LineSpec = { tool: WorksheetTool; version: 1; worksheet: string; input: unknown }
+
+export const TOOL_ROUTES: Record<WorksheetTool, string> = {
+  cushionPricing: '/tools/cushion-pricing',
+  upholstery: '/tools/upholstery',
 }
 
 /** A room or window on the estimate, with its own subtotal. */
@@ -256,6 +268,7 @@ function lineRow(l: NewLine & { id?: string }, estimateId: string, position: num
     unit_price: cents(l.unit_price),
     source: l.source,
     group_id: l.group_id ?? null,
+    spec: (l.spec ?? null) as never,
   }
 }
 
@@ -302,6 +315,78 @@ export async function saveGroups(estimateId: string, groups: EstimateGroup[], re
     const { error } = await db().from('estimate_groups').delete().in('id', removedIds)
     if (error) throw error
   }
+}
+
+/** Number and rooms of an estimate, for a tool that is adding to it. */
+export async function getEstimateBrief(id: string) {
+  const { data, error } = await db()
+    .from('estimates')
+    .select('id, store, number, status, groups:estimate_groups ( id, name )')
+    .eq('id', id)
+    .single()
+  if (error) throw error
+  return data as unknown as { id: string; store: Store; number: number; status: EstimateStatus; groups: { id: string; name: string }[] }
+}
+
+/** The inputs of one worksheet on an estimate, and the room its lines are in. */
+export async function getWorksheet(estimateId: string, worksheet: string) {
+  const { data, error } = await db()
+    .from('estimate_lines')
+    .select('spec, group_id, position')
+    .eq('estimate_id', estimateId)
+    .eq('spec->>worksheet', worksheet)
+    .order('position')
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) return null
+  const spec = data.spec as unknown as LineSpec
+  return { tool: spec.tool, input: spec.input, groupId: data.group_id }
+}
+
+/**
+ * Sends a tool's lines to an estimate with their worksheet. A new worksheet is
+ * added after the existing lines; an existing one replaces its old lines in
+ * the same place on the estimate.
+ */
+export async function sendWorksheet(
+  estimateId: string,
+  tool: WorksheetTool,
+  input: unknown,
+  lines: NewLine[],
+  opts: { worksheet?: string | null; groupId?: string | null } = {},
+) {
+  const worksheet = opts.worksheet ?? crypto.randomUUID()
+  const tagged = lines.map((l) => ({ ...l, group_id: opts.groupId ?? null, spec: { tool, version: 1 as const, worksheet, input } }))
+  if (!opts.worksheet) {
+    await appendLines(estimateId, tagged)
+    return worksheet
+  }
+  const { data: all, error } = await db()
+    .from('estimate_lines')
+    .select('id, position, spec')
+    .eq('estimate_id', estimateId)
+    .order('position')
+  if (error) throw error
+  const old = (all ?? []).filter((l) => (l.spec as { worksheet?: string } | null)?.worksheet === worksheet)
+  const at = old.length ? (all ?? []).findIndex((l) => l.id === old[0].id) : (all ?? []).length
+  const keep = (all ?? []).filter((l) => !old.some((o) => o.id === l.id))
+  if (old.length) {
+    const { error: delErr } = await db().from('estimate_lines').delete().in('id', old.map((o) => o.id))
+    if (delErr) throw delErr
+  }
+  const fresh = tagged.map((l) => ({ ...l, id: crypto.randomUUID() }))
+  const order = [...keep.slice(0, at).map((l) => l.id), ...fresh.map((l) => l.id), ...keep.slice(at).map((l) => l.id)]
+  const { error: insErr } = await db()
+    .from('estimate_lines')
+    .insert(fresh.map((l) => lineRow(l, estimateId, order.indexOf(l.id))))
+  if (insErr) throw insErr
+  const moved = keep.map((l) => ({ id: l.id, estimate_id: estimateId, position: order.indexOf(l.id) }))
+  if (moved.length) {
+    const { error: posErr } = await db().from('estimate_lines').upsert(moved)
+    if (posErr) throw posErr
+  }
+  return worksheet
 }
 
 export async function listDraftEstimates(): Promise<EstimateSummary[]> {

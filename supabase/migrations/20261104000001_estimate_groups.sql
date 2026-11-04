@@ -29,3 +29,8 @@ alter table estimates
 alter table estimate_groups enable row level security;
 create policy estimate_groups_admin on estimate_groups for all to authenticated using (is_admin()) with check (is_admin());
 revoke all on estimate_groups from anon;
+
+-- Worksheets (decision 3): a line made by a pricing tool keeps the tool's inputs,
+-- so it can be reopened in the tool, re-priced and later become a cut sheet.
+-- { tool: 'cushionPricing' | 'upholstery' | …, version: 1, input: {…} }
+alter table estimate_lines add column spec jsonb;

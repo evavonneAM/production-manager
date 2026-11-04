@@ -22,7 +22,8 @@ import {
   message,
 } from 'antd'
 import { cents, erToPlain, type NewLine } from '../../lib/estimates'
-import { AddToEstimate } from '../../components/AddToEstimate'
+import { AddToEstimate, EstimateLinkBanner } from '../../components/AddToEstimate'
+import { useEstimateLink } from '../../lib/estimateLink'
 import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { parseInches } from '../../lib/calculators/inches'
 import { FURNITURE_PHOTOS } from '../../assets/furniture'
@@ -302,6 +303,17 @@ export default function Upholstery() {
   const [msg, ctx] = message.useMessage()
   const [draft, setDraft] = useState<Draft>(loadDraft)
   const [rates, setRates] = useState<Rates>(() => load(RATES_KEY, { ...DEFAULT_RATES }))
+  // Opened from an estimate: a reopened worksheet replaces the draft (and its rates).
+  const link = useEstimateLink((input) => {
+    const saved = input as { draft?: Draft; rates?: Partial<Rates> } | null
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(saved?.draft ?? {}))
+    } catch {
+      // Saving is a convenience only.
+    }
+    setDraft(loadDraft())
+    setRates({ ...DEFAULT_RATES, ...(saved?.rates ?? {}) })
+  })
 
   useEffect(() => {
     try {
@@ -442,6 +454,7 @@ export default function Upholstery() {
           {t('tools.title')}
         </Button>
       </Link>
+      <EstimateLinkBanner link={link.link} error={link.error} />
       <Typography.Title level={3} style={{ marginTop: 4, marginBottom: 4 }}>
         {t('tools.items.upholstery.name')}
       </Typography.Title>
@@ -903,7 +916,7 @@ export default function Upholstery() {
           title={t('upholstery.s5')}
           extra={
             <Space wrap>
-              <AddToEstimate lines={estimateLines} disabled={est.lines.length === 0} />
+              <AddToEstimate tool="upholstery" input={() => ({ draft, rates })} link={link.link} lines={estimateLines} disabled={est.lines.length === 0 || link.loading} />
               <Button type="primary" icon={<CopyOutlined />} onClick={copy}>
                 {t('upholstery.copy')}
               </Button>

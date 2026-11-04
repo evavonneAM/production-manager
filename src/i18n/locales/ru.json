@@ -1461,6 +1461,17 @@
     "installDifferent": "Другой адрес",
     "installSameHelp": "Адрес клиента.",
     "installName": "Название объекта",
-    "installNameHelp": "Печатается в PDF, например «Дом Парков»"
+    "installNameHelp": "Печатается в PDF, например «Дом Парков»",
+    "updateIn": "Обновить {{code}}",
+    "addToRoom": "Добавить в {{code}} · {{room}}",
+    "addTo": "Добавить в {{code}}",
+    "bannerReopen": "Правка строк из {{code}}. Измените что нужно и нажмите «Обновить {{code}}».",
+    "bannerAddRoom": "Добавление в {{code}} · {{room}}. Посчитайте и нажмите «Добавить в {{code}}».",
+    "bannerAdd": "Добавление в {{code}}. Посчитайте и нажмите «Добавить в {{code}}».",
+    "backToEstimate": "Назад к смете",
+    "saveFirst": "Сначала сохраните смету, чтобы открыть инструмент.",
+    "openIn": "Открыть в «{{tool}}»",
+    "add_cushionPricing": "Добавить подушку",
+    "add_upholstery": "Добавить обивку"
   }
 }

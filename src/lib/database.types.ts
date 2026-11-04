@@ -295,6 +295,7 @@ export type Database = {
           quantity: number
           section: string | null
           source: string | null
+          spec: Json | null
           total: number
           unit: string | null
           unit_price: number
@@ -310,6 +311,7 @@ export type Database = {
           quantity?: number
           section?: string | null
           source?: string | null
+          spec?: Json | null
           unit?: string | null
           unit_price?: number
         }
@@ -324,6 +326,7 @@ export type Database = {
           quantity?: number
           section?: string | null
           source?: string | null
+          spec?: Json | null
           unit?: string | null
           unit_price?: number
         }

@@ -1436,6 +1436,17 @@
     "installDifferent": "Different from client",
     "installSameHelp": "The client’s address.",
     "installName": "Site name",
-    "installNameHelp": "Shown on the PDF, like “Park residence”"
+    "installNameHelp": "Shown on the PDF, like “Park residence”",
+    "updateIn": "Update {{code}}",
+    "addToRoom": "Add to {{code}} · {{room}}",
+    "addTo": "Add to {{code}}",
+    "bannerReopen": "Editing lines from {{code}}. Change anything, then press “Update {{code}}”.",
+    "bannerAddRoom": "Adding to {{code}} · {{room}}. Price it, then press “Add to {{code}}”.",
+    "bannerAdd": "Adding to {{code}}. Price it, then press “Add to {{code}}”.",
+    "backToEstimate": "Back to estimate",
+    "saveFirst": "Save the estimate first to open a tool.",
+    "openIn": "Open in {{tool}}",
+    "add_cushionPricing": "Add cushion",
+    "add_upholstery": "Add upholstery"
   }
 }

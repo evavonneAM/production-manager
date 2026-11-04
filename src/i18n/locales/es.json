@@ -1436,6 +1436,17 @@
     "installDifferent": "Distinta del cliente",
     "installSameHelp": "La dirección del cliente.",
     "installName": "Nombre del sitio",
-    "installNameHelp": "Aparece en el PDF, como “Residencia Park”"
+    "installNameHelp": "Aparece en el PDF, como “Residencia Park”",
+    "updateIn": "Actualizar {{code}}",
+    "addToRoom": "Añadir a {{code}} · {{room}}",
+    "addTo": "Añadir a {{code}}",
+    "bannerReopen": "Editando líneas de {{code}}. Cambie lo que necesite y pulse “Actualizar {{code}}”.",
+    "bannerAddRoom": "Añadiendo a {{code}} · {{room}}. Calcule y pulse “Añadir a {{code}}”.",
+    "bannerAdd": "Añadiendo a {{code}}. Calcule y pulse “Añadir a {{code}}”.",
+    "backToEstimate": "Volver al presupuesto",
+    "saveFirst": "Guarde el presupuesto antes de abrir una herramienta.",
+    "openIn": "Abrir en {{tool}}",
+    "add_cushionPricing": "Añadir cojín",
+    "add_upholstery": "Añadir tapicería"
   }
 }

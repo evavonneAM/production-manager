@@ -28,7 +28,8 @@ import { SHEET_PRICE, fitsSheet, planPlywood, type Board } from '../../lib/calcu
 import { ADD_ONS, FOAM_INSERTS, PRICE_OPTIONS, SEWING_STYLES, estimateRocketText, isWelted, money, slashStyle, type PriceOption } from '../../lib/calculators/cushionPricing'
 import { BOARD_INSET, DEFAULT_HEIGHT_DEDUCTION, DEFAULT_LENGTH_DEDUCTION, boardCuts, cushionCuts, wedgeCuts } from '../../lib/calculators/cushionCut'
 import { cents, erToPlain, type NewLine } from '../../lib/estimates'
-import { AddToEstimate } from '../../components/AddToEstimate'
+import { AddToEstimate, EstimateLinkBanner } from '../../components/AddToEstimate'
+import { useEstimateLink } from '../../lib/estimateLink'
 import {
   DEFAULT_END_ALLOWANCE,
   DEFAULT_EXTRA,
@@ -584,6 +585,15 @@ type Pick = { label: string; amount: number }
 export default function CushionPricing() {
   const { t } = useTranslation()
   const [rows, setRows] = useState<Row[]>(loadDraft)
+  // Opened from an estimate: a reopened worksheet replaces the draft.
+  const est = useEstimateLink((input) => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify((input as { rows?: unknown })?.rows ?? []))
+    } catch {
+      // Draft saving is a convenience only.
+    }
+    setRows(loadDraft())
+  })
   const [paste, setPaste] = useState('')
   const [designer, setDesigner] = useState(() => {
     try {
@@ -1049,6 +1059,7 @@ export default function CushionPricing() {
           {t('tools.title')}
         </Button>
       </Link>
+      <EstimateLinkBanner link={est.link} error={est.error} />
       <Typography.Title level={3} style={{ marginTop: 4, marginBottom: 4 }}>
         {t('tools.items.cushionPricing.name')}
       </Typography.Title>
@@ -1409,7 +1420,7 @@ export default function CushionPricing() {
           </Card>
         )}
 
-        <Card title={t('cushionPricing.quoteTitle')} extra={<AddToEstimate lines={estimateLines} disabled={quote.lines.length === 0} />}>
+        <Card title={t('cushionPricing.quoteTitle')} extra={<AddToEstimate tool="cushionPricing" input={() => ({ rows })} link={est.link} lines={estimateLines} disabled={quote.lines.length === 0 || est.loading} />}>
           {quote.lines.length > 0 ? (
             <Table
               size="small"
