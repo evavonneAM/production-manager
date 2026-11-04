@@ -314,7 +314,9 @@
     "scope": "Scope",
     "jobs": "Jobs",
     "noJobs": "No jobs yet.",
-    "viewWorkOrder": "View work order (Estimate Rocket)"
+    "viewWorkOrder": "View work order (Estimate Rocket)",
+    "erDeadline": "Estimate Rocket deadline",
+    "erDeadlineHint": "From the Estimate Rocket calendar"
   },
   "jobDetail": {
     "currentStage": "Current stage",
@@ -432,11 +434,12 @@
     "showBusiness": "Deadlines: {{business}}",
     "erKey": "{{business}} deadlines",
     "productionKey": "Production schedule",
-    "erHint": "Coloured marks are project deadlines from Estimate Rocket (red dot = past due): tap one to see it.",
+    "erHint": "Coloured marks are project deadlines from Estimate Rocket (red dot = past due): tap one to open its project.",
     "openProject": "Open project",
     "erReadOnly": "Deadline from Estimate Rocket. To change it, edit it there; the app updates every 15 minutes.",
     "more": "+{{count}} more",
-    "openInEr": "Open in Estimate Rocket"
+    "openInEr": "Open in Estimate Rocket",
+    "erDue": "due {{date}}"
   },
   "priority": {
     "title": "Priority Board",

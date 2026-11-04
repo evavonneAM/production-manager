@@ -23,7 +23,7 @@ import { Notes } from '../components/Notes'
 import { FilesTab } from '../components/FilesTab'
 import { Appointments } from '../components/Appointments'
 import { localized } from '../lib/i18nText'
-import { getProjectMaterials } from '../lib/data'
+import { getProjectMaterials, getProjectErDeadlines } from '../lib/data'
 import type { JobWithStages, ProjectStatus } from '../lib/types'
 
 const PROJECT_TAG_COLOR: Record<ProjectStatus, string> = {
@@ -353,10 +353,17 @@ function JobRow({ job }: { job: JobWithStages }) {
   )
 }
 
+/** An ER deadline whose day has passed (still in the feed, so still pending). */
+function erPastDue(startsAt: string) {
+  const n = new Date()
+  return new Date(startsAt).getTime() < Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())
+}
+
 export default function ProjectDetail() {
   const { projectId } = useParams()
   const { t, i18n } = useTranslation()
   const { profile } = useAuth()
+  const { token } = theme.useToken()
   const [reloadKey, setReloadKey] = useState(0)
   const { data: project, loading, error } = useAsync(
     () => getProject(projectId as string),
@@ -364,6 +371,11 @@ export default function ProjectDetail() {
   )
   const [tab, setTab] = useState('overview')
   const [showQr, setShowQr] = useState(false)
+  // TEMPORARY: deadlines from the Estimate Rocket calendars, matched by ER's project id.
+  const { data: erDeadlines } = useAsync(
+    () => getProjectErDeadlines(project?.estimate_rocket_id ?? null),
+    [project?.estimate_rocket_id],
+  )
 
   if (loading) return <FullScreenLoader />
   if (error || !project) return <Alert type="error" showIcon title={t('common.error')} style={{ margin: 16 }} />
@@ -481,6 +493,20 @@ export default function ProjectDetail() {
                 </Card>
               </Col>
             )}
+            {(erDeadlines ?? []).map((d) => (
+              <Col span={12} key={d.id}>
+                <Card size="small" style={{ height: '100%' }}>
+                  <Statistic
+                    title={t('projectDetail.erDeadline')}
+                    value={formatDate(d.all_day ? d.starts_at.slice(0, 10) : d.starts_at, i18n.language)}
+                    styles={{ content: { fontSize: 16, color: erPastDue(d.starts_at) ? token.colorError : undefined } }}
+                  />
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    {t('projectDetail.erDeadlineHint')}
+                  </Typography.Text>
+                </Card>
+              </Col>
+            ))}
           </Row>
 
           <ErLineItemsPanel jobs={project.jobs} onJobsChanged={() => setReloadKey((k) => k + 1)} />

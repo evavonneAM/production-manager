@@ -9,6 +9,7 @@ import {
   getCalendarProjects,
   getCalendarEvents,
   getErAppointments,
+  getErDeadlinesByProject,
   updateProjectSchedule,
   syncGcalNow,
   syncErCalendarsNow,
@@ -101,6 +102,9 @@ export default function Calendar() {
   const { data: projects, loading, error } = useAsync(getCalendarProjects, [reloadKey])
   const { data: events } = useAsync(() => getCalendarEvents(fromIso, toIso), [fromIso, toIso, reloadKey])
   const { data: appts } = useAsync(() => getErAppointments(fromIso, toIso), [fromIso, toIso, reloadKey])
+  const { data: erDeadlines } = useAsync(getErDeadlinesByProject, [reloadKey])
+  // A deadline matched to an app project opens that project; others show their details.
+  const openErItem = (a: ErAppointment) => (a.project_id && canOpenProjects ? navigate(`/projects/${a.project_id}`) : setOpenAppt(a))
 
   const todayUTC = useMemo(() => {
     const n = new Date()
@@ -197,6 +201,9 @@ export default function Calendar() {
   }
 
   const unscheduled = (projects ?? []).filter((p) => !p.scheduled_start && p.status !== 'complete' && p.status !== 'delivered')
+  // Ones with an Estimate Rocket deadline first, soonest first.
+  const firstDue = (id: string) => erDeadlines?.get(id)?.[0]?.starts_at ?? '9999'
+  unscheduled.sort((a, b) => firstDue(a.id).localeCompare(firstDue(b.id)))
 
   return (
     <div style={{ maxWidth: 1152, width: '100%', margin: '0 auto', padding: '24px 16px' }}>
@@ -295,7 +302,7 @@ export default function Calendar() {
             compact={compact}
             inMonth={(d) => mode === 'week' || new Date(d).getUTCMonth() === new Date(anchor).getUTCMonth()}
             onBarClick={(p) => (isAdmin ? setEditing(p) : canOpenProjects && navigate(`/projects/${p.id}`))}
-            onApptClick={setOpenAppt}
+            onApptClick={openErItem}
             onMore={setOpenDay}
           />
         ))}
@@ -317,6 +324,11 @@ export default function Calendar() {
             {unscheduled.map((p) => (
               <Button key={p.id} style={{ borderStyle: 'dashed' }} onClick={() => setEditing(p)}>
                 {[p.work_order_number, p.client_name].filter(Boolean).join(' · ')}
+                {erDeadlines?.get(p.id)?.[0] && (
+                  <Typography.Text type="secondary" style={{ fontSize: 12, marginLeft: 6 }}>
+                    {t('calendar.erDue', { date: dueLabel(erDeadlines.get(p.id)![0], i18n.language) })}
+                  </Typography.Text>
+                )}
               </Button>
             ))}
           </div>
@@ -353,7 +365,7 @@ export default function Calendar() {
               onClick={() => {
                 if (it.kind === 'er') {
                   setOpenDay(null)
-                  setOpenAppt(it.ev)
+                  openErItem(it.ev)
                 }
               }}
             />
@@ -383,6 +395,11 @@ function pastDue(item: DayItem) {
   return new Date(item.ev.starts_at).getTime() < Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())
 }
 
+/** "Nov 6" for an ER deadline (all-day dates are stored as UTC midnight). */
+function dueLabel(a: ErAppointment, lang: string) {
+  return new Date(a.starts_at).toLocaleDateString(lang, { month: 'short', day: 'numeric', ...(a.all_day ? { timeZone: 'UTC' } : {}) })
+}
+
 function timeLabel(iso: string, lang: string) {
   return new Date(iso).toLocaleTimeString(lang, { hour: 'numeric', minute: '2-digit' })
 }
@@ -396,7 +413,7 @@ function ItemChip({ item, onClick, large }: { item: DayItem; onClick: () => void
     <button
       type="button"
       onClick={onClick}
-      title={item.ev.title}
+      title={item.kind === 'er' && item.ev.work_order_number ? `${item.ev.work_order_number} · ${item.ev.title}` : item.ev.title}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -418,6 +435,9 @@ function ItemChip({ item, onClick, large }: { item: DayItem; onClick: () => void
       {pastDue(item) && <span style={{ flexShrink: 0, width: 6, height: 6, borderRadius: '50%', background: token.colorError }} />}
       {item.kind === 'er' && large && <span style={{ fontWeight: 600, color }}>{item.ev.business}</span>}
       {time && <span style={{ color: token.colorTextSecondary, flexShrink: 0 }}>{time}</span>}
+      {item.kind === 'er' && large && item.ev.work_order_number && (
+        <span style={{ flexShrink: 0, fontFamily: 'ui-monospace, monospace', fontSize: 13, color: token.colorTextSecondary }}>{item.ev.work_order_number}</span>
+      )}
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shortTitle(item)}</span>
     </button>
   )

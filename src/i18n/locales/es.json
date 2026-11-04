@@ -304,7 +304,9 @@
     "scope": "Alcance",
     "jobs": "Trabajos",
     "noJobs": "Aún no hay trabajos.",
-    "viewWorkOrder": "Ver orden de trabajo (Estimate Rocket)"
+    "viewWorkOrder": "Ver orden de trabajo (Estimate Rocket)",
+    "erDeadline": "Fecha límite de Estimate Rocket",
+    "erDeadlineHint": "Del calendario de Estimate Rocket"
   },
   "jobDetail": {
     "currentStage": "Etapa actual",
@@ -431,11 +433,12 @@
     "showBusiness": "Fechas límite: {{business}}",
     "erKey": "Fechas límite de {{business}}",
     "productionKey": "Calendario de producción",
-    "erHint": "Las marcas de color son fechas límite de proyectos de Estimate Rocket (punto rojo = vencida): toca una para verla.",
+    "erHint": "Las marcas de color son fechas límite de proyectos de Estimate Rocket (punto rojo = vencida): toca una para abrir su proyecto.",
     "openProject": "Abrir proyecto",
     "erReadOnly": "Fecha límite de Estimate Rocket. Para cambiarla, edítala allí; la app se actualiza cada 15 minutos.",
     "more": "+{{count}} más",
-    "openInEr": "Abrir en Estimate Rocket"
+    "openInEr": "Abrir en Estimate Rocket",
+    "erDue": "vence {{date}}"
   },
   "priority": {
     "title": "Prioridades",
