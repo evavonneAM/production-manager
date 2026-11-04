@@ -700,6 +700,8 @@ export type ErAppointment = {
   description: string | null
   er_url: string | null
   project_id: string | null
+  /** Filled in when the appointment is matched to an app project. */
+  work_order_number?: string | null
 }
 
 /** Estimate Rocket appointments in a date window. */
@@ -709,6 +711,58 @@ export async function getErAppointments(fromIso: string, toIso: string): Promise
     .select('id, business, title, starts_at, ends_at, all_day, location, description, er_url, project_id')
     .gte('starts_at', fromIso)
     .lte('starts_at', toIso)
+    .order('starts_at')
+  if (error) throw error
+  return linkErAppointments((data ?? []) as ErAppointment[])
+}
+
+// TEMPORARY (owner request 2026-11-04): match Estimate Rocket calendar deadlines to
+// app projects. Each event's link ends in ER's own project id
+// (…estimaterocket.com/projects/<id>), the same id er-intake saves as
+// projects.estimate_rocket_id. Customer names repeat across work orders, so the id
+// is the only reliable key. Remove this block when ER sends deadlines with the order.
+
+/** ER's project id at the end of an appointment's link, lower-cased. */
+export function erProjectIdFromUrl(url: string | null): string | null {
+  const m = url?.match(/\/projects\/([0-9a-f-]{36})\/?$/i)
+  return m ? m[1].toLowerCase() : null
+}
+
+/** Fill in project_id (and the work-order number) for appointments whose ER id matches a project. */
+async function linkErAppointments(rows: ErAppointment[]): Promise<ErAppointment[]> {
+  const ids = [...new Set(rows.map((r) => erProjectIdFromUrl(r.er_url)).filter((x): x is string => !!x))]
+  if (ids.length === 0) return rows
+  const { data } = await client().from('projects').select('id, work_order_number, estimate_rocket_id').in('estimate_rocket_id', ids)
+  const byErId = new Map((data ?? []).map((p) => [String(p.estimate_rocket_id).toLowerCase(), p]))
+  const byId = new Map((data ?? []).map((p) => [p.id as string, p]))
+  return rows.map((r) => {
+    const p = byErId.get(erProjectIdFromUrl(r.er_url) ?? '') ?? (r.project_id ? byId.get(r.project_id) : undefined)
+    return p ? { ...r, project_id: p.id, work_order_number: p.work_order_number } : r
+  })
+}
+
+/** Every Estimate Rocket deadline matched to an app project, keyed by project id (earliest first). */
+export async function getErDeadlinesByProject(): Promise<Map<string, ErAppointment[]>> {
+  const { data, error } = await client()
+    .from('er_appointments')
+    .select('id, business, title, starts_at, ends_at, all_day, location, description, er_url, project_id')
+    .order('starts_at')
+  if (error) throw error
+  const map = new Map<string, ErAppointment[]>()
+  for (const a of await linkErAppointments((data ?? []) as ErAppointment[])) {
+    if (!a.project_id) continue
+    map.set(a.project_id, [...(map.get(a.project_id) ?? []), a])
+  }
+  return map
+}
+
+/** The Estimate Rocket deadlines for one project (matched by ER's project id). */
+export async function getProjectErDeadlines(estimateRocketId: string | null): Promise<ErAppointment[]> {
+  if (!estimateRocketId) return []
+  const { data, error } = await client()
+    .from('er_appointments')
+    .select('id, business, title, starts_at, ends_at, all_day, location, description, er_url, project_id')
+    .ilike('er_url', `%/projects/${estimateRocketId}`)
     .order('starts_at')
   if (error) throw error
   return (data ?? []) as ErAppointment[]

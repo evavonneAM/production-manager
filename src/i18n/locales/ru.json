@@ -317,7 +317,9 @@
     "scope": "Описание",
     "jobs": "Работы",
     "noJobs": "Пока нет работ.",
-    "viewWorkOrder": "Открыть заказ-наряд (Estimate Rocket)"
+    "viewWorkOrder": "Открыть заказ-наряд (Estimate Rocket)",
+    "erDeadline": "Срок в Estimate Rocket",
+    "erDeadlineHint": "Из календаря Estimate Rocket"
   },
   "jobDetail": {
     "currentStage": "Текущий этап",
@@ -435,11 +437,12 @@
     "showBusiness": "Сроки: {{business}}",
     "erKey": "Сроки {{business}}",
     "productionKey": "График производства",
-    "erHint": "Цветные отметки — сроки проектов из Estimate Rocket (красная точка — просрочено): нажмите, чтобы открыть.",
+    "erHint": "Цветные отметки — сроки проектов из Estimate Rocket (красная точка — просрочено): нажмите, чтобы открыть проект.",
     "openProject": "Открыть проект",
     "erReadOnly": "Срок из Estimate Rocket. Изменять нужно там; приложение обновляется каждые 15 минут.",
     "more": "ещё {{count}}",
-    "openInEr": "Открыть в Estimate Rocket"
+    "openInEr": "Открыть в Estimate Rocket",
+    "erDue": "срок {{date}}"
   },
   "priority": {
     "title": "Приоритеты",
