@@ -401,6 +401,8 @@ export type Database = {
           id: string
           notes: string | null
           number: number
+          replaces_id: string | null
+          revision: number
           status: string
           store: string
           terms: string | null
@@ -419,6 +421,8 @@ export type Database = {
           id?: string
           notes?: string | null
           number?: number
+          replaces_id?: string | null
+          revision?: number
           status?: string
           store: string
           terms?: string | null
@@ -437,6 +441,8 @@ export type Database = {
           id?: string
           notes?: string | null
           number?: number
+          replaces_id?: string | null
+          revision?: number
           status?: string
           store?: string
           terms?: string | null

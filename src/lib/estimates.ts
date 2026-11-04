@@ -232,6 +232,9 @@ export type Estimate = {
   install_name: string | null
   install_address: string | null
   deposit_pct: number
+  /** 0 = the original; 1, 2… = revised copies made after it was Sent. */
+  revision: number
+  replaces_id: string | null
   created_at: string
   updated_at: string
 }
@@ -240,7 +243,11 @@ export type EstimateSummary = Estimate & { client: Pick<Client, 'name' | 'compan
 export type EstimateFull = Estimate & { client: Client | null; lines: EstimateLine[]; groups: EstimateGroup[]; fabrics: EstimateFabric[] }
 
 /** HOV10001 — the same shape as the job code the project will get. */
-export const estimateCode = (e: { store: string; number: number }) => `${e.store}${e.number}`
+export const estimateCode = (e: { store: string; number: number; revision?: number }) =>
+  `${e.store}${e.number}${e.revision ? `-R${e.revision}` : ''}`
+
+/** Sent, Accepted and Declined estimates are kept as the client saw them; changes go on a revised copy. */
+export const isLocked = (e: { status: EstimateStatus }) => e.status !== 'draft'
 
 /** Round to the cent, the same way the pricing tools show money. */
 export const cents = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
@@ -445,11 +452,11 @@ export async function saveGroups(estimateId: string, groups: EstimateGroup[], re
 export async function getEstimateBrief(id: string) {
   const { data, error } = await db()
     .from('estimates')
-    .select('id, store, number, status, groups:estimate_groups ( id, name )')
+    .select('id, store, number, revision, status, groups:estimate_groups ( id, name )')
     .eq('id', id)
     .single()
   if (error) throw error
-  return data as unknown as { id: string; store: Store; number: number; status: EstimateStatus; groups: { id: string; name: string }[] }
+  return data as unknown as { id: string; store: Store; number: number; revision: number; status: EstimateStatus; groups: { id: string; name: string }[] }
 }
 
 /** The inputs of one worksheet on an estimate, and the room its lines are in. */
@@ -571,6 +578,57 @@ export async function settleFabrics(estimateId: string) {
   if (!changed && !synced.removed.length && synced.lines.length === lines.length) return
   await saveFabrics(estimateId, fabrics, [])
   await saveLines(estimateId, synced.lines, synced.removed)
+}
+
+/**
+ * Makes a revised copy of a sent estimate: same business and number, the next
+ * revision, back to Draft, with its rooms, fabrics and lines copied over.
+ */
+export async function createRevision(id: string): Promise<string> {
+  const src = await getEstimate(id)
+  const { data: revs, error: revErr } = await db().from('estimates').select('revision').eq('number', src.number)
+  if (revErr) throw revErr
+  const revision = Math.max(0, ...(revs ?? []).map((r) => r.revision)) + 1
+  const { data, error } = await db()
+    .from('estimates')
+    .insert({
+      store: src.store,
+      number: src.number,
+      revision,
+      replaces_id: src.id,
+      client_id: src.client_id,
+      title: src.title,
+      status: 'draft',
+      notes: src.notes,
+      terms: src.terms,
+      install_same: src.install_same,
+      install_name: src.install_name,
+      install_address: src.install_address,
+      deposit_pct: src.deposit_pct,
+    })
+    .select('id')
+    .single()
+  if (error) throw error
+  const groupIds = new Map(src.groups.map((g) => [g.id, crypto.randomUUID()]))
+  const fabricIds = new Map(src.fabrics.map((f) => [f.id, crypto.randomUUID()]))
+  await saveGroups(data.id, src.groups.map((g) => ({ ...g, id: groupIds.get(g.id)! })), [])
+  await saveFabrics(data.id, src.fabrics.map((f) => ({ ...f, id: fabricIds.get(f.id)! })), [])
+  const lines = src.lines.map((l) => ({
+    ...l,
+    id: crypto.randomUUID(),
+    group_id: l.group_id ? (groupIds.get(l.group_id) ?? null) : null,
+    fabric_id: l.fabric_id ? (fabricIds.get(l.fabric_id) ?? null) : null,
+    fabric_uses: l.fabric_uses?.map((u) => ({ ...u, fabric_id: u.fabric_id ? (fabricIds.get(u.fabric_id) ?? null) : null })) ?? null,
+  }))
+  await saveLines(data.id, lines, [])
+  return data.id
+}
+
+/** The estimate a revision replaces (number, revision and when it was sent). */
+export async function getReplaced(id: string) {
+  const { data, error } = await db().from('estimates').select('id, store, number, revision, estimate_date').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data as { id: string; store: Store; number: number; revision: number; estimate_date: string } | null
 }
 
 export async function listDraftEstimates(): Promise<EstimateSummary[]> {

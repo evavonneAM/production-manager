@@ -1482,7 +1482,13 @@
     "fabricYardsAll": "{{n}} yd en todo el presupuesto",
     "removeFabricConfirm": "¿Quitar esta tela? Los artículos dejarán de usarla.",
     "removeFabric": "Quitar tela",
-    "add_pillowPricing": "Añadir almohada"
+    "add_pillowPricing": "Añadir almohada",
+    "revisionOf": "Revisión {{n}} de {{code}}.",
+    "openReplaced": "Abrir la versión enviada",
+    "lockedTitle": "{{status}}: se guarda como lo vio el cliente",
+    "lockedBody": "Puede cambiar el estado o descargar el PDF. Para cambiar lo demás, haga una copia revisada: mantiene el número (-R1, -R2…) y empieza como Borrador.",
+    "revise": "Hacer copia revisada",
+    "lockedTool": "{{code}} ya se envió y no se puede cambiar aquí. Ábralo y haga primero una copia revisada."
   },
   "pillowPricing": {
     "intro": "Mano de obra {{labor}} por almohada, de cualquier tamaño, más el relleno y extras: vivo +{{welt}}, pestaña de contraste +{{flange}}, funda exterior Celeste Bio +{{tick}}. Precios de relleno de la hoja PILLOW INSERT PRICING.",

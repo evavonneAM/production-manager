@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { estimateCode, getEstimateBrief, getWorksheet } from './estimates'
+import { estimateCode, getEstimateBrief, getWorksheet, isLocked } from './estimates'
 
 /**
  * A pricing tool opened from an estimate: ?estimate=<id>[&group=<id>][&worksheet=<id>].
@@ -14,6 +14,8 @@ export type EstimateLink = {
   groupId: string | null
   groupName: string | null
   worksheet: string | null
+  /** Sent / Accepted / Declined: kept as the client saw it, so the tool can't change it. */
+  locked: boolean
 }
 
 export function useEstimateLink(onInput: (input: unknown) => void): {
@@ -43,6 +45,7 @@ export function useEstimateLink(onInput: (input: unknown) => void): {
           groupId: group?.id ?? null,
           groupName: group ? group.name.trim() || null : null,
           worksheet: ws ? worksheet : null,
+          locked: isLocked(est),
         })
         if (ws) onInput(ws.input)
       })

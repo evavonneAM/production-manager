@@ -6,6 +6,7 @@ import {
   AutoComplete,
   Button,
   Card,
+  ConfigProvider,
   Col,
   Form,
   Input,
@@ -40,6 +41,9 @@ import {
   STATUS_COLOR,
   STORES,
   createEstimate,
+  createRevision,
+  getReplaced,
+  isLocked,
   depositAmount,
   groupTotals,
   saveGroups,
@@ -529,6 +533,9 @@ export default function EstimateDetail() {
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState(false)
   const [clientEdit, setClientEdit] = useState<ClientDraft | null>(null)
+  const [replaced, setReplaced] = useState<{ code: string; date: string; id: string } | null>(null)
+  // Sent, Accepted and Declined are kept as the client saw them: only the status changes.
+  const locked = !!loaded && isLocked(loaded)
 
   useEffect(() => {
     listClients().then(setClients, (e) => setLoadError(e.message))
@@ -536,6 +543,11 @@ export default function EstimateDetail() {
     getEstimate(estimateId!).then(
       (e) => {
         setLoaded(e)
+        if (e.replaces_id)
+          getReplaced(e.replaces_id).then(
+            (r) => r && setReplaced({ id: r.id, code: estimateCode(r), date: r.estimate_date }),
+            () => setReplaced(null),
+          )
         setFields({
           store: e.store,
           client_id: e.client_id,
@@ -619,7 +631,7 @@ export default function EstimateDetail() {
   }
   // Tools open tied to this saved estimate; unsaved edits would be lost, so save first.
   const openToolFor = (l: EstimateLine) =>
-    l.spec && loaded && !dirty
+    l.spec && loaded && !dirty && !locked
       ? () => navigate(`${TOOL_ROUTES[l.spec!.tool]}?estimate=${loaded.id}&worksheet=${l.spec!.worksheet}`)
       : undefined
   const addFromTool = (tool: WorksheetTool, groupId: string | null) => {
@@ -627,7 +639,7 @@ export default function EstimateDetail() {
     navigate(`${TOOL_ROUTES[tool]}?estimate=${loaded.id}${groupId ? `&group=${groupId}` : ''}`)
   }
   const toolButtons = (groupId: string | null) =>
-    !isNew && (
+    !isNew && !locked && (
       <>
         {(['cushionPricing', 'upholstery', 'pillowPricing'] as const).map((tool) => (
           <Button
@@ -739,9 +751,22 @@ export default function EstimateDetail() {
     if (!loaded) return
     try {
       const { downloadEstimatePdf } = await import('../lib/estimatePdf')
-      await downloadEstimatePdf({ ...loaded, ...fields, client, lines, groups, fabrics })
+      await downloadEstimatePdf({ ...loaded, ...fields, client, lines, groups, fabrics }, replaced ? { code: replaced.code, date: replaced.date } : null)
     } catch (e) {
       msg.error(errorText(e))
+    }
+  }
+
+  const revise = async () => {
+    if (!loaded) return
+    setBusy(true)
+    try {
+      const id = await createRevision(loaded.id)
+      navigate(`/estimates/${id}`)
+    } catch (e) {
+      msg.error(errorText(e))
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -785,10 +810,11 @@ export default function EstimateDetail() {
   if (!isNew && !loaded) return <FullScreenLoader />
 
   return (
+    <ConfigProvider componentDisabled={locked}>
     <div style={{ maxWidth: 880, width: '100%', margin: '0 auto', padding: '16px 16px 120px' }}>
       {ctx}
       <Link to="/estimates">
-        <Button type="link" icon={<ArrowLeftOutlined />} style={{ paddingInline: 0 }}>
+        <Button type="link" disabled={false} icon={<ArrowLeftOutlined />} style={{ paddingInline: 0 }}>
           {t('estimates.title')}
         </Button>
       </Link>
@@ -805,6 +831,30 @@ export default function EstimateDetail() {
         </Space>
         {loaded && <Tag color={STATUS_COLOR[fields.status]}>{t(`estimates.statuses.${fields.status}`)}</Tag>}
       </Space>
+      {replaced && (
+        <Typography.Paragraph type="secondary" style={{ margin: '6px 0 0' }}>
+          {t('estimates.revisionOf', { n: loaded?.revision, code: replaced.code })}{' '}
+          <Link to={`/estimates/${replaced.id}`}>
+            <Button type="link" size="small" disabled={false} style={{ paddingInline: 0 }}>
+              {t('estimates.openReplaced')}
+            </Button>
+          </Link>
+        </Typography.Paragraph>
+      )}
+      {locked && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginTop: 12 }}
+          title={t('estimates.lockedTitle', { status: t(`estimates.statuses.${loaded!.status}`) })}
+          description={t('estimates.lockedBody')}
+          action={
+            <Button type="primary" disabled={false} loading={busy} onClick={revise}>
+              {t('estimates.revise')}
+            </Button>
+          }
+        />
+      )}
 
       <Space orientation="vertical" size={16} style={{ width: '100%', marginTop: 16 }}>
         <Card>
@@ -824,6 +874,7 @@ export default function EstimateDetail() {
                 <Segmented
                   block
                   value={fields.status}
+                  disabled={false}
                   onChange={(v) => set({ status: v as EstimateStatus })}
                   options={ESTIMATE_STATUSES.map((s) => ({ value: s, label: t(`estimates.statuses.${s}`) }))}
                 />
@@ -1063,7 +1114,7 @@ export default function EstimateDetail() {
               </Button>
             ) : (
               <>
-                <Button size="large" icon={<FilePdfOutlined />} onClick={pdf}>
+                <Button size="large" disabled={false} icon={<FilePdfOutlined />} onClick={pdf}>
                   {t('estimates.pdf')}
                 </Button>
                 <Button
@@ -1095,5 +1146,6 @@ export default function EstimateDetail() {
       />
       )}
     </div>
+    </ConfigProvider>
   )
 }

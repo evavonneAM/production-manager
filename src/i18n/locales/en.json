@@ -1482,7 +1482,13 @@
     "fabricYardsAll": "{{n}} yd on the whole estimate",
     "removeFabricConfirm": "Remove this fabric? Items stop using it.",
     "removeFabric": "Remove fabric",
-    "add_pillowPricing": "Add pillow"
+    "add_pillowPricing": "Add pillow",
+    "revisionOf": "Revision {{n}} of {{code}}.",
+    "openReplaced": "Open the sent version",
+    "lockedTitle": "{{status}}: kept as the client saw it",
+    "lockedBody": "You can still change the status or download the PDF. To change anything else, make a revised copy. It keeps the number (-R1, -R2…) and starts as a Draft.",
+    "revise": "Make revised copy",
+    "lockedTool": "{{code}} was already sent, so it can't be changed here. Open it and make a revised copy first."
   },
   "pillowPricing": {
     "intro": "Labor {{labor}} per pillow, any size, plus the insert and add-ons: welting +{{welt}}, contrast flange +{{flange}}, outdoor Celeste Bio tick +{{tick}}. Insert prices are from the PILLOW INSERT PRICING sheet.",

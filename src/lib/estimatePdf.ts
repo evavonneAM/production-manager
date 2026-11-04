@@ -63,15 +63,17 @@ export async function loadLogo(url: string, aspect: number): Promise<Logo> {
   return { dataUrl, aspect }
 }
 
-export async function downloadEstimatePdf(est: EstimateFull): Promise<void> {
+export type Replaces = { code: string; date: string } | null
+
+export async function downloadEstimatePdf(est: EstimateFull, replaces: Replaces = null): Promise<void> {
   const b = BUSINESSES[est.store]
   const [{ jsPDF }, logo] = await Promise.all([import('jspdf'), loadLogo(b.logo, b.logoAspect)])
-  const doc = buildEstimatePdf(new jsPDF({ unit: 'pt', format: 'letter' }), est, logo)
+  const doc = buildEstimatePdf(new jsPDF({ unit: 'pt', format: 'letter' }), est, logo, replaces)
   const who = est.client?.name || est.title
   doc.save(`${b.name} Estimate ${estimateCode(est)}${who ? ` - ${who}` : ''}.pdf`.replace(/[\\/:*?"<>|]/g, '-'))
 }
 
-export function buildEstimatePdf(doc: JsPDF, est: EstimateFull, logo: Logo): JsPDF {
+export function buildEstimatePdf(doc: JsPDF, est: EstimateFull, logo: Logo, replaces: Replaces = null): JsPDF {
   const b = BUSINESSES[est.store]
   const code = estimateCode(est)
   const date = new Date(est.estimate_date + 'T00:00:00').toLocaleDateString('en-US', {
@@ -128,7 +130,14 @@ export function buildEstimatePdf(doc: JsPDF, est: EstimateFull, logo: Logo): JsP
   doc.setTextColor(...INK)
   doc.text('Estimate', C_AMT, y + 22, { align: 'right', charSpace: 1 })
   caps(`${code}  ·  ${date}`, C_AMT, y + 38, { align: 'right', size: 6.8 })
-  y = Math.max(y + logoH + (logo.aspect >= 2 ? 16 : 0), y + 38) + 16
+  if (est.revision && replaces) {
+    const was = new Date(replaces.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7.5)
+    doc.setTextColor(...INK3)
+    doc.text(`Revision ${est.revision}  ·  Replaces ${replaces.code}, ${was}`, C_AMT, y + 50, { align: 'right' })
+  }
+  y = Math.max(y + logoH + (logo.aspect >= 2 ? 16 : 0), y + (est.revision && replaces ? 50 : 38)) + 16
   hair(y, INK, 0.8)
 
   // ── Stone band: Prepared for / Install at / Rooms ──

@@ -73,7 +73,7 @@ export function AddToEstimate({
     return (
       <>
         {ctx}
-        <Button type="primary" icon={<FileAddOutlined />} disabled={disabled} loading={!!busy} onClick={sendToLink}>
+        <Button type="primary" icon={<FileAddOutlined />} disabled={disabled || link.locked} loading={!!busy} onClick={sendToLink}>
           {link.worksheet
             ? t('estimates.updateIn', { code: link.code })
             : link.groupName
@@ -145,6 +145,16 @@ export function EstimateLinkBanner({ link, error }: { link: EstimateLink | null;
   const navigate = useNavigate()
   if (error) return <Alert type="error" showIcon title={error} style={{ marginBottom: 16 }} />
   if (!link) return null
+  if (link.locked)
+    return (
+      <Alert
+        type="warning"
+        showIcon
+        style={{ marginBottom: 16 }}
+        title={t('estimates.lockedTool', { code: link.code })}
+        action={<Button onClick={() => navigate(`/estimates/${link.estimateId}`)}>{t('estimates.backToEstimate')}</Button>}
+      />
+    )
   return (
     <Alert
       type="info"
