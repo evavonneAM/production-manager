@@ -1081,7 +1081,7 @@ export default function EstimateDetail() {
             cancelText={t('common.cancel')}
             onConfirm={remove}
           >
-            <Button danger icon={<DeleteOutlined />}>
+            <Button danger disabled={false} icon={<DeleteOutlined />}>
               {t('estimates.delete')}
             </Button>
           </Popconfirm>
