@@ -1077,7 +1077,8 @@ export default function EstimateDetail() {
           <Popconfirm
             title={t('estimates.deleteConfirm')}
             okText={t('estimates.delete')}
-            okButtonProps={{ danger: true }}
+            okButtonProps={{ danger: true, disabled: false }}
+            cancelButtonProps={{ disabled: false }}
             cancelText={t('common.cancel')}
             onConfirm={remove}
           >
