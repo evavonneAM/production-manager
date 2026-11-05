@@ -6,6 +6,7 @@ import {
   AutoComplete,
   Button,
   Card,
+  ConfigProvider,
   Col,
   Form,
   Input,
@@ -17,6 +18,7 @@ import {
   Select,
   Space,
   Statistic,
+  Switch,
   Tag,
   Typography,
   message,
@@ -38,7 +40,15 @@ import {
   ESTIMATE_STATUSES,
   STATUS_COLOR,
   STORES,
+  appendLines,
   createEstimate,
+  settleFabrics,
+  createRevision,
+  getReplaced,
+  isLocked,
+  depositAmount,
+  groupTotals,
+  saveGroups,
   deleteEstimate,
   estimateCode,
   estimateTotal,
@@ -51,9 +61,21 @@ import {
   updateEstimate,
   type Client,
   type EstimateFull,
+  type EstimateGroup,
+  type EstimateFabric,
+  type FabricKind,
+  type FabricUse,
+  fabricNeed,
+  fabricNoCharge,
+  retailPerYard,
+  roomOrder,
+  saveFabrics,
+  syncFabricLines,
   type EstimateLine,
   type EstimateStatus,
   type NewLine,
+  TOOL_ROUTES,
+  type WorksheetTool,
   type Store,
   errorText,
 } from '../lib/estimates'
@@ -140,6 +162,9 @@ function LineCard({
   index,
   count,
   sections,
+  groups,
+  fabrics,
+  openTool,
   update,
   move,
   remove,
@@ -148,6 +173,10 @@ function LineCard({
   index: number
   count: number
   sections: string[]
+  groups: EstimateGroup[]
+  fabrics: EstimateFabric[]
+  /** Reopen this line's worksheet in its tool; undefined while there are unsaved changes. */
+  openTool?: () => void
   update: (patch: Partial<EstimateLine>) => void
   move: (dir: -1 | 1) => void
   remove: () => void
@@ -160,6 +189,11 @@ function LineCard({
       title={line.name.trim() || t('estimates.lineN', { n: index + 1 })}
       extra={
         <Space size={0}>
+          {line.spec && (
+            <Button type="link" size="small" disabled={!openTool} onClick={openTool} title={openTool ? undefined : t('estimates.saveFirst')}>
+              {t('estimates.openIn', { tool: t(`tools.items.${line.spec.tool}.name`) })}
+            </Button>
+          )}
           <Button type="text" icon={<ArrowUpOutlined />} aria-label={t('estimates.moveUp')} disabled={index === 0} onClick={() => move(-1)} />
           <Button type="text" icon={<ArrowDownOutlined />} aria-label={t('estimates.moveDown')} disabled={index === count - 1} onClick={() => move(1)} />
           <Button type="text" danger icon={<DeleteOutlined />} aria-label={t('estimates.removeLine')} onClick={remove} />
@@ -168,6 +202,21 @@ function LineCard({
     >
       <Form layout="vertical" component="div">
         <Row gutter={12}>
+          {groups.length > 0 && (
+            <Col xs={24}>
+              <Form.Item label={t('estimates.room')} htmlFor={`room-${id}`} style={{ marginBottom: 12 }}>
+                <Select
+                  id={`room-${id}`}
+                  value={line.group_id ?? ''}
+                  onChange={(v) => update({ group_id: v || null })}
+                  options={[
+                    ...groups.map((g) => ({ value: g.id, label: g.name.trim() || t('estimates.unnamedRoom') })),
+                    { value: '', label: t('estimates.noRoom') },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+          )}
           <Col xs={24} sm={10}>
             <Form.Item label={t('estimates.section')} htmlFor={`sec-${id}`} extra={t('estimates.sectionHelp')} style={{ marginBottom: 12 }}>
               <AutoComplete
@@ -229,8 +278,210 @@ function LineCard({
               />
             </Form.Item>
           </Col>
+          <Col xs={24}>
+            <FabricUses uses={line.fabric_uses ?? []} fabrics={fabrics} onChange={(fabric_uses) => update({ fabric_uses })} />
+          </Col>
         </Row>
       </Form>
+    </Card>
+  )
+}
+
+/** The fabric an item uses (body, welt, back…) and its yards. */
+function FabricUses({ uses, fabrics, onChange }: { uses: FabricUse[]; fabrics: EstimateFabric[]; onChange: (u: FabricUse[] | null) => void }) {
+  const { t } = useTranslation()
+  const set = (i: number, patch: Partial<FabricUse>) => onChange(uses.map((u, j) => (j === i ? { ...u, ...patch } : u)))
+  return (
+    <div style={{ marginTop: 12 }}>
+      <Typography.Text type="secondary">{t('estimates.fabricUses')}</Typography.Text>
+      {uses.map((u, i) => (
+        <Space.Compact key={i} style={{ width: '100%', marginTop: 6 }}>
+          <Select
+            aria-label={t('estimates.fabric')}
+            placeholder={t('estimates.pickFabric')}
+            value={u.fabric_id ?? undefined}
+            onChange={(v) => set(i, { fabric_id: v })}
+            options={fabrics.map((f) => ({ value: f.id, label: f.name.trim() || t(`estimates.fabricKinds.${f.kind}`) }))}
+            style={{ flex: 2, minWidth: 0 }}
+          />
+          <Input aria-label={t('estimates.fabricRole')} value={u.role} onChange={(e) => set(i, { role: e.target.value })} style={{ flex: 1, minWidth: 0 }} />
+          <InputNumber
+            aria-label={t('estimates.yards')}
+            min={0}
+            precision={0}
+            suffix="yd"
+            value={u.yards}
+            onChange={(v) => set(i, { yards: v ?? 0 })}
+            style={{ width: 96 }}
+          />
+          <Button icon={<DeleteOutlined />} aria-label={t('estimates.removeFabricUse')} onClick={() => onChange(uses.filter((_, j) => j !== i))} />
+        </Space.Compact>
+      ))}
+      <div>
+        <Button
+          type="link"
+          size="small"
+          icon={<PlusOutlined />}
+          disabled={fabrics.length === 0}
+          title={fabrics.length === 0 ? t('estimates.addFabricFirst') : undefined}
+          onClick={() => onChange([...uses, { fabric_id: fabrics[0]?.id ?? null, role: uses.length ? 'Welt' : 'Body', yards: 1 }])}
+          style={{ paddingInline: 0 }}
+        >
+          {t('estimates.addFabricUse')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** A room's line for one fabric: yards added up from its items, or typed over. */
+function FabricLineCard({
+  line,
+  fabric,
+  need,
+  update,
+}: {
+  line: EstimateLine
+  fabric: EstimateFabric | undefined
+  need: number
+  update: (patch: Partial<EstimateLine>) => void
+}) {
+  const { t } = useTranslation()
+  const free = fabricNoCharge(fabric)
+  return (
+    <Card size="small" style={{ background: 'var(--ant-color-fill-quaternary, #fafafa)' }}>
+      <Space style={{ width: '100%', justifyContent: 'space-between' }} align="center" wrap>
+        <div>
+          <Typography.Text strong>{line.name}</Typography.Text>
+          <div>
+            <Typography.Text type="secondary">
+              {line.qty_override ? t('estimates.yardsTyped', { n: need }) : t('estimates.yardsAdded')}
+            </Typography.Text>
+          </div>
+        </div>
+        <Space wrap align="center">
+          <InputNumber
+            aria-label={t('estimates.yards')}
+            min={0}
+            precision={0}
+            suffix="yd"
+            value={line.quantity}
+            onChange={(v) => update({ quantity: v ?? 0, qty_override: true })}
+            style={{ width: 100 }}
+          />
+          {line.qty_override && (
+            <Button size="small" onClick={() => update({ quantity: need, qty_override: false })}>
+              {t('estimates.useAdded', { n: need })}
+            </Button>
+          )}
+          <Typography.Text type="secondary">× {free ? '—' : money(line.unit_price)}</Typography.Text>
+          <Typography.Text strong style={{ minWidth: 90, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+            {free ? '—' : money(lineTotal(line))}
+          </Typography.Text>
+        </Space>
+      </Space>
+    </Card>
+  )
+}
+
+/** The job's fabrics: picked once, used by any item. */
+function FabricsCard({
+  fabrics,
+  lines,
+  sidemarkDefault,
+  onChange,
+  onRemove,
+}: {
+  fabrics: EstimateFabric[]
+  lines: EstimateLine[]
+  sidemarkDefault: string
+  onChange: (f: EstimateFabric[]) => void
+  onRemove: (id: string) => void
+}) {
+  const { t } = useTranslation()
+  const set = (id: string, patch: Partial<EstimateFabric>) => onChange(fabrics.map((f) => (f.id === id ? { ...f, ...patch } : f)))
+  const totalYards = (id: string) =>
+    lines.filter((l) => (l.kind ?? 'item') === 'item').reduce((n, l) => n + (l.fabric_uses ?? []).filter((u) => u.fabric_id === id).reduce((m, u) => m + u.yards, 0), 0)
+  return (
+    <Card
+      title={t('estimates.fabrics')}
+      extra={
+        <Button
+          icon={<PlusOutlined />}
+          onClick={() => onChange([...fabrics, { id: crypto.randomUUID(), kind: 'fabric', name: '', vendor: null, sidemark: null, wholesale: null }])}
+        >
+          {t('estimates.addFabric')}
+        </Button>
+      }
+    >
+      <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+        {t('estimates.fabricsHelp')}
+      </Typography.Paragraph>
+      {fabrics.length === 0 && <Typography.Text type="secondary">{t('estimates.noFabrics')}</Typography.Text>}
+      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+        {fabrics.map((f) => (
+          <Card key={f.id} size="small">
+            <Form layout="vertical" component="div">
+              <Row gutter={12}>
+                <Col xs={24} sm={8}>
+                  <Form.Item label={t('estimates.fabricKind')} style={{ marginBottom: 8 }}>
+                    <Select
+                      value={f.kind}
+                      onChange={(kind: FabricKind) => set(f.id, { kind })}
+                      options={(['fabric', 'com', 'tbd'] as const).map((k) => ({ value: k, label: t(`estimates.fabricKinds.${k}`) }))}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={16}>
+                  <Form.Item label={t('estimates.fabricName')} style={{ marginBottom: 8 }}>
+                    <Input value={f.name} placeholder="Kravet 34521 Linen, Natural" onChange={(e) => set(f.id, { name: e.target.value })} />
+                  </Form.Item>
+                </Col>
+                <Col xs={12} sm={8}>
+                  <Form.Item label={t('estimates.vendor')} style={{ marginBottom: 8 }}>
+                    <Input value={f.vendor ?? ''} onChange={(e) => set(f.id, { vendor: e.target.value || null })} />
+                  </Form.Item>
+                </Col>
+                <Col xs={12} sm={8}>
+                  <Form.Item label={t('estimates.sidemark')} style={{ marginBottom: 8 }}>
+                    <Input value={f.sidemark ?? ''} placeholder={sidemarkDefault} onChange={(e) => set(f.id, { sidemark: e.target.value || null })} />
+                  </Form.Item>
+                </Col>
+                {f.kind === 'fabric' && (
+                  <Col xs={12} sm={4}>
+                    <Form.Item label={t('estimates.wholesale')} style={{ marginBottom: 8 }}>
+                      <InputNumber
+                        prefix="$"
+                        min={0}
+                        precision={2}
+                        value={f.wholesale}
+                        onChange={(v) => set(f.id, { wholesale: v })}
+                        style={{ width: '100%' }}
+                        inputMode="decimal"
+                      />
+                    </Form.Item>
+                  </Col>
+                )}
+                <Col xs={12} sm={4}>
+                  <Form.Item label={t('estimates.clientPerYard')} style={{ marginBottom: 8 }}>
+                    <Typography.Text strong style={{ lineHeight: '32px' }}>
+                      {f.kind === 'fabric' ? (f.wholesale ? money(retailPerYard(f)) : '—') : t('estimates.noCharge')}
+                    </Typography.Text>
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Form>
+            <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
+              <Typography.Text type="secondary">{t('estimates.fabricYardsAll', { n: totalYards(f.id) })}</Typography.Text>
+              <Popconfirm title={t('estimates.removeFabricConfirm')} okText={t('estimates.removeFabric')} cancelText={t('common.cancel')} onConfirm={() => onRemove(f.id)}>
+                <Button type="text" danger size="small" icon={<DeleteOutlined />}>
+                  {t('estimates.removeFabric')}
+                </Button>
+              </Popconfirm>
+            </Space>
+          </Card>
+        ))}
+      </Space>
     </Card>
   )
 }
@@ -243,6 +494,10 @@ type Fields = {
   estimate_date: string
   notes: string | null
   terms: string | null
+  install_same: boolean
+  install_name: string | null
+  install_address: string | null
+  deposit_pct: number
 }
 
 /** One estimate (or a new one at /estimates/new). Admins only. */
@@ -265,14 +520,24 @@ export default function EstimateDetail() {
     estimate_date: today(),
     notes: null,
     terms: null,
+    install_same: true,
+    install_name: null,
+    install_address: null,
+    deposit_pct: 50,
   })
   const [lines, setLines] = useState<EstimateLine[]>(() =>
     ((location.state as { lines?: NewLine[] } | null)?.lines ?? []).map((l) => blankLine(l)),
   )
-  const [removed, setRemoved] = useState<string[]>([])
+  const [groups, setGroups] = useState<EstimateGroup[]>([])
+  const [fabrics, setFabrics] = useState<EstimateFabric[]>([])
+  const [removedFabrics, setRemovedFabrics] = useState<string[]>([])
+  const [removedGroups, setRemovedGroups] = useState<string[]>([])
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState(false)
   const [clientEdit, setClientEdit] = useState<ClientDraft | null>(null)
+  const [replaced, setReplaced] = useState<{ code: string; date: string; id: string } | null>(null)
+  // Sent, Accepted and Declined are kept as the client saw them: only the status changes.
+  const locked = !!loaded && isLocked(loaded)
 
   useEffect(() => {
     listClients().then(setClients, (e) => setLoadError(e.message))
@@ -280,6 +545,11 @@ export default function EstimateDetail() {
     getEstimate(estimateId!).then(
       (e) => {
         setLoaded(e)
+        if (e.replaces_id)
+          getReplaced(e.replaces_id).then(
+            (r) => r && setReplaced({ id: r.id, code: estimateCode(r), date: r.estimate_date }),
+            () => setReplaced(null),
+          )
         setFields({
           store: e.store,
           client_id: e.client_id,
@@ -288,9 +558,16 @@ export default function EstimateDetail() {
           estimate_date: e.estimate_date,
           notes: e.notes,
           terms: e.terms,
+          install_same: e.install_same,
+          install_name: e.install_name,
+          install_address: e.install_address,
+          deposit_pct: e.deposit_pct,
         })
         setLines(e.lines)
-        setRemoved([])
+        setGroups(e.groups)
+        setFabrics(e.fabrics)
+        setRemovedGroups([])
+        setRemovedFabrics([])
         setDirty(false)
       },
       (e) => setLoadError(e.message),
@@ -305,41 +582,144 @@ export default function EstimateDetail() {
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty, isNew])
 
+  const changeFabrics = (next: EstimateFabric[]) => {
+    setFabrics(next)
+    setLines((ls) => syncFabricLines(ls, next).lines)
+    setDirty(true)
+  }
+  const removeFabric = (id: string) => {
+    const next = fabrics.filter((f) => f.id !== id)
+    setFabrics(next)
+    setLines((ls) =>
+      syncFabricLines(
+        ls.map((l) => (l.fabric_uses?.some((u) => u.fabric_id === id) ? { ...l, fabric_uses: l.fabric_uses.filter((u) => u.fabric_id !== id) } : l)),
+        next,
+      ).lines,
+    )
+    if (loaded?.fabrics.some((f) => f.id === id)) setRemovedFabrics((r) => [...r, id])
+    setDirty(true)
+  }
+
   const set = (patch: Partial<Fields>) => {
     setFields((f) => ({ ...f, ...patch }))
     setDirty(true)
   }
+  // Fabric lines follow the items: every change to lines re-adds them.
+  const editLines = (fn: (ls: EstimateLine[]) => EstimateLine[]) => setLines((ls) => syncFabricLines(fn(ls), fabrics).lines)
   const updateLine = (id: string, patch: Partial<EstimateLine>) => {
-    setLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+    editLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)))
     setDirty(true)
   }
-  const moveLine = (i: number, dir: -1 | 1) => {
+  /** Swaps a line with its neighbour in the same room (or among lines not in a room). */
+  const moveLine = (id: string, dir: -1 | 1) => {
     setLines((ls) => {
+      const i = ls.findIndex((l) => l.id === id)
+      const room = ls[i].group_id ?? null
+      let j = i + dir
+      while (j >= 0 && j < ls.length && ((ls[j].group_id ?? null) !== room || ls[j].kind === 'fabric')) j += dir
+      if (j < 0 || j >= ls.length) return ls
       const next = [...ls]
+      ;[next[i], next[j]] = [next[j], next[i]]
+      return next
+    })
+    setDirty(true)
+  }
+  const addLine = (groupId: string | null) => {
+    setLines((ls) => {
+      const inRoom = ls.filter((l) => (l.group_id ?? null) === groupId)
+      return [...ls, blankLine({ section: inRoom[inRoom.length - 1]?.section ?? null, unit: 'ea', group_id: groupId })]
+    })
+    setDirty(true)
+  }
+  // Tools open tied to this saved estimate; unsaved edits would be lost, so save first.
+  const openToolFor = (l: EstimateLine) =>
+    l.spec && loaded && !dirty && !locked
+      ? () => navigate(`${TOOL_ROUTES[l.spec!.tool]}?estimate=${loaded.id}&worksheet=${l.spec!.worksheet}`)
+      : undefined
+  const addFromTool = (tool: WorksheetTool, groupId: string | null) => {
+    if (isNew) return void create({ tool })
+    if (!loaded) return
+    navigate(`${TOOL_ROUTES[tool]}?estimate=${loaded.id}${groupId ? `&group=${groupId}` : ''}`)
+  }
+  const toolButtons = (groupId: string | null) =>
+    !locked && (
+      <>
+        {(['cushionPricing', 'upholstery', 'pillowPricing'] as const).map((tool) => (
+          <Button
+            key={tool}
+            icon={<PlusOutlined />}
+            disabled={dirty && !isNew}
+            loading={busy && isNew}
+            title={dirty && !isNew ? t('estimates.saveFirst') : undefined}
+            onClick={() => addFromTool(tool, groupId)}
+          >
+            {t(`estimates.add_${tool}`)}
+          </Button>
+        ))}
+      </>
+    )
+  const addGroup = () => {
+    const g: EstimateGroup = { id: crypto.randomUUID(), name: '', approved: true }
+    setGroups((gs) => [...gs, g])
+    // The first room collects the lines already on the estimate.
+    if (groups.length === 0) editLines((ls) => ls.map((l) => ({ ...l, group_id: g.id })))
+    setDirty(true)
+  }
+  const updateGroup = (id: string, patch: Partial<EstimateGroup>) => {
+    setGroups((gs) => gs.map((g) => (g.id === id ? { ...g, ...patch } : g)))
+    setDirty(true)
+  }
+  const moveGroup = (i: number, dir: -1 | 1) => {
+    setGroups((gs) => {
+      const next = [...gs]
       ;[next[i], next[i + dir]] = [next[i + dir], next[i]]
       return next
     })
     setDirty(true)
   }
+  const removeGroup = (id: string) => {
+    setGroups((gs) => gs.filter((g) => g.id !== id))
+    editLines((ls) => ls.map((l) => (l.group_id === id ? { ...l, group_id: null } : l)))
+    if (loaded?.groups.some((g) => g.id === id)) setRemovedGroups((r) => [...r, id])
+    setDirty(true)
+  }
   const removeLine = (id: string) => {
-    setLines((ls) => ls.filter((l) => l.id !== id))
-    if (loaded?.lines.some((l) => l.id === id)) setRemoved((r) => [...r, id])
+    editLines((ls) => ls.filter((l) => l.id !== id))
     setDirty(true)
   }
 
   const sections = useMemo(() => [...new Set(lines.map((l) => l.section?.trim()).filter((s): s is string => !!s))], [lines])
   const total = estimateTotal(lines)
+  const totals = groupTotals(groups, lines)
+  const deposit = depositAmount(groups, lines, fields.deposit_pct)
+  const groupIds = new Set(groups.map((g) => g.id))
+  const looseLines = lines.filter((l) => !l.group_id || !groupIds.has(l.group_id))
   const client = clients.find((c) => c.id === fields.client_id) ?? null
   const business = BUSINESSES[fields.store]
 
-  const create = async () => {
+  /**
+   * Creates the estimate. With `then`, it also starts a room and/or opens a
+   * tool right away, so a new estimate can use every button before it exists.
+   */
+  const create = async (then?: { room?: boolean; tool?: WorksheetTool }) => {
     setBusy(true)
     try {
-      const id = await createEstimate(
-        { store: fields.store, client_id: fields.client_id, title: fields.title.trim(), estimate_date: fields.estimate_date },
-        lines,
-      )
+      const head = { store: fields.store, client_id: fields.client_id, title: fields.title.trim(), estimate_date: fields.estimate_date }
+      let id: string
+      let groupId: string | null = null
+      if (then?.room) {
+        id = await createEstimate(head, [])
+        groupId = crypto.randomUUID()
+        await saveGroups(id, [{ id: groupId, name: '', approved: true }], [])
+        if (lines.length) {
+          await appendLines(id, lines.map((l) => ({ ...l, group_id: groupId })))
+          await settleFabrics(id)
+        }
+      } else {
+        id = await createEstimate(head, lines)
+      }
       navigate(`/estimates/${id}`, { replace: true })
+      if (then?.tool) navigate(`${TOOL_ROUTES[then.tool]}?estimate=${id}${groupId ? `&group=${groupId}` : ''}`)
     } catch (e) {
       msg.error(errorText(e))
     } finally {
@@ -358,12 +738,25 @@ export default function EstimateDetail() {
         estimate_date: fields.estimate_date,
         notes: fields.notes?.trim() || null,
         terms: fields.terms?.trim() || null,
+        install_same: fields.install_same,
+        install_name: fields.install_same ? null : fields.install_name?.trim() || null,
+        install_address: fields.install_same ? null : fields.install_address?.trim() || null,
+        deposit_pct: fields.deposit_pct,
       })
-      await saveLines(loaded.id, lines, removed)
+      // Lines first move off rooms being removed, then rooms, then lines.
+      await saveGroups(loaded.id, groups, [])
+      await saveFabrics(loaded.id, fabrics, [])
+      const removedIds = loaded.lines.filter((l) => !lines.some((x) => x.id === l.id)).map((l) => l.id)
+      await saveLines(loaded.id, lines, removedIds)
+      if (removedGroups.length) await saveGroups(loaded.id, [], removedGroups)
+      if (removedFabrics.length) await saveFabrics(loaded.id, [], removedFabrics)
       const fresh = await getEstimate(loaded.id)
       setLoaded(fresh)
       setLines(fresh.lines)
-      setRemoved([])
+      setGroups(fresh.groups)
+      setFabrics(fresh.fabrics)
+      setRemovedGroups([])
+      setRemovedFabrics([])
       setDirty(false)
       msg.success(t('estimates.saved'))
     } catch (e) {
@@ -377,9 +770,22 @@ export default function EstimateDetail() {
     if (!loaded) return
     try {
       const { downloadEstimatePdf } = await import('../lib/estimatePdf')
-      await downloadEstimatePdf({ ...loaded, ...fields, client, lines })
+      await downloadEstimatePdf({ ...loaded, ...fields, client, lines, groups, fabrics }, replaced ? { code: replaced.code, date: replaced.date } : null)
     } catch (e) {
       msg.error(errorText(e))
+    }
+  }
+
+  const revise = async () => {
+    if (!loaded) return
+    setBusy(true)
+    try {
+      const id = await createRevision(loaded.id)
+      navigate(`/estimates/${id}`)
+    } catch (e) {
+      msg.error(errorText(e))
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -394,14 +800,40 @@ export default function EstimateDetail() {
     }
   }
 
+  const renderLine = (l: EstimateLine, i: number, count: number) =>
+    l.kind === 'fabric' ? (
+      <FabricLineCard
+        key={l.id}
+        line={l}
+        fabric={fabrics.find((f) => f.id === l.fabric_id)}
+        need={l.fabric_id ? fabricNeed(lines, l.fabric_id, l.group_id) : 0}
+        update={(patch) => updateLine(l.id, patch)}
+      />
+    ) : (
+      <LineCard
+        key={l.id}
+        line={l}
+        index={i}
+        count={count}
+        sections={sections}
+        groups={groups}
+        fabrics={fabrics}
+        openTool={openToolFor(l)}
+        update={(patch) => updateLine(l.id, patch)}
+        move={(dir) => moveLine(l.id, dir)}
+        remove={() => removeLine(l.id)}
+      />
+    )
+
   if (loadError) return <Alert type="error" title={loadError} style={{ margin: 24 }} />
   if (!isNew && !loaded) return <FullScreenLoader />
 
   return (
+    <ConfigProvider componentDisabled={locked}>
     <div style={{ maxWidth: 880, width: '100%', margin: '0 auto', padding: '16px 16px 120px' }}>
       {ctx}
       <Link to="/estimates">
-        <Button type="link" icon={<ArrowLeftOutlined />} style={{ paddingInline: 0 }}>
+        <Button type="link" disabled={false} icon={<ArrowLeftOutlined />} style={{ paddingInline: 0 }}>
           {t('estimates.title')}
         </Button>
       </Link>
@@ -418,6 +850,30 @@ export default function EstimateDetail() {
         </Space>
         {loaded && <Tag color={STATUS_COLOR[fields.status]}>{t(`estimates.statuses.${fields.status}`)}</Tag>}
       </Space>
+      {replaced && (
+        <Typography.Paragraph type="secondary" style={{ margin: '6px 0 0' }}>
+          {t('estimates.revisionOf', { n: loaded?.revision, code: replaced.code })}{' '}
+          <Link to={`/estimates/${replaced.id}`}>
+            <Button type="link" size="small" disabled={false} style={{ paddingInline: 0 }}>
+              {t('estimates.openReplaced')}
+            </Button>
+          </Link>
+        </Typography.Paragraph>
+      )}
+      {locked && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginTop: 12 }}
+          title={t('estimates.lockedTitle', { status: t(`estimates.statuses.${loaded!.status}`) })}
+          description={t('estimates.lockedBody')}
+          action={
+            <Button type="primary" disabled={false} loading={busy} onClick={revise}>
+              {t('estimates.revise')}
+            </Button>
+          }
+        />
+      )}
 
       <Space orientation="vertical" size={16} style={{ width: '100%', marginTop: 16 }}>
         <Card>
@@ -437,6 +893,7 @@ export default function EstimateDetail() {
                 <Segmented
                   block
                   value={fields.status}
+                  disabled={false}
                   onChange={(v) => set({ status: v as EstimateStatus })}
                   options={ESTIMATE_STATUSES.map((s) => ({ value: s, label: t(`estimates.statuses.${s}`) }))}
                 />
@@ -477,39 +934,151 @@ export default function EstimateDetail() {
           </Form>
         </Card>
 
-        <Typography.Title level={4} style={{ margin: '8px 0 0' }}>
-          {t('estimates.lines')}
-        </Typography.Title>
-        {lines.length === 0 && <Typography.Text type="secondary">{t('estimates.noLines')}</Typography.Text>}
-        {lines.map((l, i) => (
-          <LineCard
-            key={l.id}
-            line={l}
-            index={i}
-            count={lines.length}
-            sections={sections}
-            update={(patch) => updateLine(l.id, patch)}
-            move={(dir) => moveLine(i, dir)}
-            remove={() => removeLine(l.id)}
-          />
-        ))}
-        <Button
-          type="dashed"
-          block
-          size="large"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            setLines((ls) => [...ls, blankLine({ section: ls[ls.length - 1]?.section ?? null, unit: 'ea' })])
-            setDirty(true)
-          }}
-        >
-          {t('estimates.addLine')}
-        </Button>
-        <Typography.Text type="secondary">{t('estimates.fromTools')}</Typography.Text>
+        <Space style={{ width: '100%', justifyContent: 'space-between', marginTop: 8 }} align="center" wrap>
+          <Typography.Title level={4} style={{ margin: 0 }}>
+            {t('estimates.lines')}
+          </Typography.Title>
+          {!locked && (
+            <Button icon={<PlusOutlined />} loading={busy && isNew} onClick={isNew ? () => create({ room: true }) : addGroup}>
+              {t('estimates.addRoom')}
+            </Button>
+          )}
+        </Space>
+        {lines.length === 0 && groups.length === 0 && <Typography.Text type="secondary">{t('estimates.noLines')}</Typography.Text>}
+        {groups.length > 0 && <Typography.Text type="secondary">{t('estimates.roomsHelp')}</Typography.Text>}
+
+        {totals.rooms.map(({ group: g, total: sub }, gi) => {
+          const inRoom = lines.filter((l) => l.group_id === g.id)
+          return (
+            <div key={g.id} style={{ border: '1px solid var(--ant-color-border-secondary, #e5e5e5)', borderRadius: 10, padding: 12 }}>
+              <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 12 }} align="center" wrap>
+                <Input
+                  size="large"
+                  aria-label={t('estimates.roomName')}
+                  placeholder={t('estimates.roomPlaceholder')}
+                  value={g.name}
+                  onChange={(e) => updateGroup(g.id, { name: e.target.value })}
+                  style={{ minWidth: 200, fontWeight: 600 }}
+                />
+                <Space size={4} wrap align="center">
+                  <Switch checked={g.approved} onChange={(v) => updateGroup(g.id, { approved: v })} aria-label={t('estimates.clientApproved')} />
+                  <Typography.Text type={g.approved ? undefined : 'secondary'}>{t('estimates.clientApproved')}</Typography.Text>
+                  <Button type="text" icon={<ArrowUpOutlined />} aria-label={t('estimates.moveUp')} disabled={gi === 0} onClick={() => moveGroup(gi, -1)} />
+                  <Button type="text" icon={<ArrowDownOutlined />} aria-label={t('estimates.moveDown')} disabled={gi === groups.length - 1} onClick={() => moveGroup(gi, 1)} />
+                  <Popconfirm
+                    title={t('estimates.removeRoomConfirm')}
+                    okText={t('estimates.removeRoom')}
+                    cancelText={t('common.cancel')}
+                    onConfirm={() => removeGroup(g.id)}
+                  >
+                    <Button type="text" danger icon={<DeleteOutlined />} aria-label={t('estimates.removeRoom')} />
+                  </Popconfirm>
+                </Space>
+              </Space>
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+                {inRoom.length === 0 && <Typography.Text type="secondary">{t('estimates.emptyRoom')}</Typography.Text>}
+                {roomOrder(inRoom).map((l, i) => renderLine(l, i, inRoom.filter((x) => x.kind !== 'fabric').length))}
+                <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
+                  <Space wrap>
+                    {toolButtons(g.id)}
+                    <Button type="dashed" icon={<PlusOutlined />} onClick={() => addLine(g.id)}>
+                      {t('estimates.addLine')}
+                    </Button>
+                  </Space>
+                  <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {t('estimates.roomSubtotal', { name: g.name.trim() || t('estimates.unnamedRoom') })}: {money(sub)}
+                  </Typography.Text>
+                </Space>
+              </Space>
+            </div>
+          )
+        })}
+
+        {groups.length > 0 && looseLines.length > 0 && (
+          <Typography.Title level={5} style={{ margin: '8px 0 0' }}>
+            {t('estimates.noRoom')}
+          </Typography.Title>
+        )}
+        {roomOrder(looseLines).map((l, i) => renderLine(l, i, looseLines.filter((x) => x.kind !== 'fabric').length))}
+        {groups.length === 0 && (
+          <Space wrap style={{ width: '100%' }}>
+            {toolButtons(null)}
+            <Button type="dashed" icon={<PlusOutlined />} onClick={() => addLine(null)}>
+              {t('estimates.addLine')}
+            </Button>
+          </Space>
+        )}
+        {!isNew && dirty && <Typography.Text type="secondary">{t('estimates.saveFirst')}</Typography.Text>}
+        {isNew && <Typography.Text type="secondary">{t('estimates.newHelp')}</Typography.Text>}
 
         <Card>
-          <Statistic title={t('estimates.total')} value={money(total)} valueStyle={{ fontWeight: 700 }} />
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12}>
+              <Statistic title={t('estimates.total')} value={money(total)} valueStyle={{ fontWeight: 700 }} />
+            </Col>
+            {!isNew && (
+              <Col xs={24} sm={12}>
+                <Statistic title={t('estimates.depositTitle', { pct: fields.deposit_pct })} value={money(deposit)} />
+                <Space style={{ marginTop: 8 }} wrap>
+                  <InputNumber
+                    aria-label={t('estimates.depositPct')}
+                    min={0}
+                    max={100}
+                    precision={0}
+                    suffix="%"
+                    value={fields.deposit_pct}
+                    onChange={(v) => set({ deposit_pct: v ?? 0 })}
+                    style={{ width: 100 }}
+                  />
+                  {groups.length > 0 && <Typography.Text type="secondary">{t('estimates.depositRooms')}</Typography.Text>}
+                </Space>
+              </Col>
+            )}
+          </Row>
         </Card>
+
+        {!isNew && (
+          <FabricsCard
+            fabrics={fabrics}
+            lines={lines}
+            sidemarkDefault={[client?.name, fields.title.trim()].filter(Boolean).join(' / ')}
+            onChange={changeFabrics}
+            onRemove={removeFabric}
+          />
+        )}
+
+        {!isNew && (
+          <Card title={t('estimates.installAt')}>
+            <Segmented
+              block
+              value={fields.install_same ? 'same' : 'different'}
+              onChange={(v) => set({ install_same: v === 'same' })}
+              options={[
+                { value: 'same', label: t('estimates.installSame') },
+                { value: 'different', label: t('estimates.installDifferent') },
+              ]}
+            />
+            {fields.install_same ? (
+              <Typography.Paragraph type="secondary" style={{ margin: '12px 0 0' }}>
+                {client?.address?.trim() ? client.address : t('estimates.installSameHelp')}
+              </Typography.Paragraph>
+            ) : (
+              <Form layout="vertical" component="div" style={{ marginTop: 12 }}>
+                <Form.Item label={t('estimates.installName')} htmlFor="est-iname" extra={t('estimates.installNameHelp')} style={{ marginBottom: 12 }}>
+                  <Input id="est-iname" value={fields.install_name ?? ''} onChange={(e) => set({ install_name: e.target.value })} />
+                </Form.Item>
+                <Form.Item label={t('estimates.address')} htmlFor="est-iaddr" style={{ marginBottom: 0 }}>
+                  <Input.TextArea
+                    id="est-iaddr"
+                    autoSize={{ minRows: 2, maxRows: 4 }}
+                    value={fields.install_address ?? ''}
+                    onChange={(e) => set({ install_address: e.target.value })}
+                  />
+                </Form.Item>
+              </Form>
+            )}
+          </Card>
+        )}
 
         {!isNew && (
           <Card>
@@ -528,11 +1097,12 @@ export default function EstimateDetail() {
           <Popconfirm
             title={t('estimates.deleteConfirm')}
             okText={t('estimates.delete')}
-            okButtonProps={{ danger: true }}
+            okButtonProps={{ danger: true, disabled: false }}
+            cancelButtonProps={{ disabled: false }}
             cancelText={t('common.cancel')}
             onConfirm={remove}
           >
-            <Button danger icon={<DeleteOutlined />}>
+            <Button danger disabled={false} icon={<DeleteOutlined />}>
               {t('estimates.delete')}
             </Button>
           </Popconfirm>
@@ -549,18 +1119,23 @@ export default function EstimateDetail() {
             <Typography.Text strong style={{ marginRight: 'auto', fontVariantNumeric: 'tabular-nums' }}>
               {t('estimates.total')}: {money(total)}
               {!isNew && (
+                <Typography.Text type="secondary" style={{ marginLeft: 8, fontWeight: 400 }}>
+                  {t('estimates.depositShort')}: {money(deposit)}
+                </Typography.Text>
+              )}
+              {!isNew && (
                 <Typography.Text type={dirty ? 'warning' : 'success'} style={{ marginLeft: 8, fontWeight: 400 }}>
                   {dirty ? t('estimates.unsaved') : t('estimates.allSaved')}
                 </Typography.Text>
               )}
             </Typography.Text>
             {isNew ? (
-              <Button type="primary" size="large" loading={busy} onClick={create}>
+              <Button type="primary" size="large" loading={busy} onClick={() => create()}>
                 {t('estimates.create')}
               </Button>
             ) : (
               <>
-                <Button size="large" icon={<FilePdfOutlined />} onClick={pdf}>
+                <Button size="large" disabled={false} icon={<FilePdfOutlined />} onClick={pdf}>
                   {t('estimates.pdf')}
                 </Button>
                 <Button
@@ -592,5 +1167,6 @@ export default function EstimateDetail() {
       />
       )}
     </div>
+    </ConfigProvider>
   )
 }

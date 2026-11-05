@@ -22,7 +22,8 @@ import {
   message,
 } from 'antd'
 import { cents, erToPlain, type NewLine } from '../../lib/estimates'
-import { AddToEstimate } from '../../components/AddToEstimate'
+import { AddToEstimate, EstimateLinkBanner } from '../../components/AddToEstimate'
+import { useEstimateLink } from '../../lib/estimateLink'
 import { ArrowLeftOutlined, CopyOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { parseInches } from '../../lib/calculators/inches'
 import { FURNITURE_PHOTOS } from '../../assets/furniture'
@@ -302,6 +303,17 @@ export default function Upholstery() {
   const [msg, ctx] = message.useMessage()
   const [draft, setDraft] = useState<Draft>(loadDraft)
   const [rates, setRates] = useState<Rates>(() => load(RATES_KEY, { ...DEFAULT_RATES }))
+  // Opened from an estimate: a reopened worksheet replaces the draft (and its rates).
+  const link = useEstimateLink((input) => {
+    const saved = input as { draft?: Draft; rates?: Partial<Rates> } | null
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(saved?.draft ?? {}))
+    } catch {
+      // Saving is a convenience only.
+    }
+    setDraft(loadDraft())
+    setRates({ ...DEFAULT_RATES, ...(saved?.rates ?? {}) })
+  })
 
   useEffect(() => {
     try {
@@ -396,15 +408,20 @@ export default function Upholstery() {
   // Estimate Rocket write-up (made plain) for the client.
   const estimateLines = (): NewLine[] => {
     const piece = `${type.name} – ${est.service === 'slip' ? 'Slipcover' : 'Upholstery'}`
-    return est.lines.map((l, i) => ({
-      section: piece,
-      name: l.item,
-      description: i === 0 ? `${l.desc}\n\n${erToPlain(erText)}` : l.desc,
-      quantity: Math.round(l.qty * 100) / 100,
-      unit: null,
-      unit_price: cents(l.rate),
-      source: 'upholstery',
-    }))
+    // Fabric is its own estimate line, so the tool's yardage line stays out;
+    // the piece's yards ride on its first line and are matched to the job's fabric by name.
+    return est.lines
+      .filter((l) => l.section !== 'Yardage')
+      .map((l, i) => ({
+        section: piece,
+        name: l.item,
+        description: i === 0 ? `${l.desc}\n\n${erToPlain(erText)}` : l.desc,
+        quantity: Math.round(l.qty * 100) / 100,
+        unit: null,
+        unit_price: cents(l.rate),
+        source: 'upholstery',
+        fabric_uses: i === 0 && est.yards > 0 ? [{ fabric_id: null, role: 'Body', yards: est.yards, name: draft.com ? 'COM' : draft.fabric }] : null,
+      }))
   }
 
   const rateFields: [keyof Rates, string][] = [
@@ -442,6 +459,7 @@ export default function Upholstery() {
           {t('tools.title')}
         </Button>
       </Link>
+      <EstimateLinkBanner link={link.link} error={link.error} />
       <Typography.Title level={3} style={{ marginTop: 4, marginBottom: 4 }}>
         {t('tools.items.upholstery.name')}
       </Typography.Title>
@@ -903,7 +921,7 @@ export default function Upholstery() {
           title={t('upholstery.s5')}
           extra={
             <Space wrap>
-              <AddToEstimate lines={estimateLines} disabled={est.lines.length === 0} />
+              <AddToEstimate tool="upholstery" input={() => ({ draft, rates })} link={link.link} lines={estimateLines} disabled={est.lines.length === 0 || link.loading} />
               <Button type="primary" icon={<CopyOutlined />} onClick={copy}>
                 {t('upholstery.copy')}
               </Button>

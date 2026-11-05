@@ -248,17 +248,94 @@ export type Database = {
         }
         Relationships: []
       }
+      estimate_fabrics: {
+        Row: {
+          created_at: string
+          estimate_id: string
+          id: string
+          kind: string
+          name: string
+          position: number
+          sidemark: string | null
+          vendor: string | null
+          wholesale: number | null
+        }
+        Insert: {
+          created_at?: string
+          estimate_id: string
+          id?: string
+          kind?: string
+          name?: string
+          position?: number
+          sidemark?: string | null
+          vendor?: string | null
+          wholesale?: number | null
+        }
+        Update: {
+          created_at?: string
+          estimate_id?: string
+          id?: string
+          kind?: string
+          name?: string
+          position?: number
+          sidemark?: string | null
+          vendor?: string | null
+          wholesale?: number | null
+        }
+        Relationships: []
+      }
+      estimate_groups: {
+        Row: {
+          approved: boolean
+          created_at: string
+          estimate_id: string
+          id: string
+          name: string
+          position: number
+        }
+        Insert: {
+          approved?: boolean
+          created_at?: string
+          estimate_id: string
+          id?: string
+          name?: string
+          position?: number
+        }
+        Update: {
+          approved?: boolean
+          created_at?: string
+          estimate_id?: string
+          id?: string
+          name?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_groups_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_lines: {
         Row: {
           created_at: string
           description: string | null
           estimate_id: string
+          fabric_id: string | null
+          fabric_uses: Json | null
+          group_id: string | null
           id: string
+          kind: string
           name: string
           position: number
+          qty_override: boolean
           quantity: number
           section: string | null
           source: string | null
+          spec: Json | null
           total: number
           unit: string | null
           unit_price: number
@@ -267,12 +344,18 @@ export type Database = {
           created_at?: string
           description?: string | null
           estimate_id: string
+          fabric_id?: string | null
+          fabric_uses?: Json | null
+          group_id?: string | null
           id?: string
+          kind?: string
           name?: string
           position?: number
+          qty_override?: boolean
           quantity?: number
           section?: string | null
           source?: string | null
+          spec?: Json | null
           unit?: string | null
           unit_price?: number
         }
@@ -280,12 +363,18 @@ export type Database = {
           created_at?: string
           description?: string | null
           estimate_id?: string
+          fabric_id?: string | null
+          fabric_uses?: Json | null
+          group_id?: string | null
           id?: string
+          kind?: string
           name?: string
           position?: number
+          qty_override?: boolean
           quantity?: number
           section?: string | null
           source?: string | null
+          spec?: Json | null
           unit?: string | null
           unit_price?: number
         }
@@ -304,10 +393,16 @@ export type Database = {
           client_id: string | null
           created_at: string
           created_by: string | null
+          deposit_pct: number
           estimate_date: string
+          install_address: string | null
+          install_name: string | null
+          install_same: boolean
           id: string
           notes: string | null
           number: number
+          replaces_id: string | null
+          revision: number
           status: string
           store: string
           terms: string | null
@@ -318,10 +413,16 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           created_by?: string | null
+          deposit_pct?: number
           estimate_date?: string
+          install_address?: string | null
+          install_name?: string | null
+          install_same?: boolean
           id?: string
           notes?: string | null
           number?: number
+          replaces_id?: string | null
+          revision?: number
           status?: string
           store: string
           terms?: string | null
@@ -332,10 +433,16 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           created_by?: string | null
+          deposit_pct?: number
           estimate_date?: string
+          install_address?: string | null
+          install_name?: string | null
+          install_same?: boolean
           id?: string
           notes?: string | null
           number?: number
+          replaces_id?: string | null
+          revision?: number
           status?: string
           store?: string
           terms?: string | null
