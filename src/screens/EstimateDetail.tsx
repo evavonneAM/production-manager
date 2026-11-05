@@ -40,7 +40,9 @@ import {
   ESTIMATE_STATUSES,
   STATUS_COLOR,
   STORES,
+  appendLines,
   createEstimate,
+  settleFabrics,
   createRevision,
   getReplaced,
   isLocked,
@@ -635,18 +637,20 @@ export default function EstimateDetail() {
       ? () => navigate(`${TOOL_ROUTES[l.spec!.tool]}?estimate=${loaded.id}&worksheet=${l.spec!.worksheet}`)
       : undefined
   const addFromTool = (tool: WorksheetTool, groupId: string | null) => {
+    if (isNew) return void create({ tool })
     if (!loaded) return
     navigate(`${TOOL_ROUTES[tool]}?estimate=${loaded.id}${groupId ? `&group=${groupId}` : ''}`)
   }
   const toolButtons = (groupId: string | null) =>
-    !isNew && !locked && (
+    !locked && (
       <>
         {(['cushionPricing', 'upholstery', 'pillowPricing'] as const).map((tool) => (
           <Button
             key={tool}
             icon={<PlusOutlined />}
-            disabled={dirty}
-            title={dirty ? t('estimates.saveFirst') : undefined}
+            disabled={dirty && !isNew}
+            loading={busy && isNew}
+            title={dirty && !isNew ? t('estimates.saveFirst') : undefined}
             onClick={() => addFromTool(tool, groupId)}
           >
             {t(`estimates.add_${tool}`)}
@@ -693,14 +697,29 @@ export default function EstimateDetail() {
   const client = clients.find((c) => c.id === fields.client_id) ?? null
   const business = BUSINESSES[fields.store]
 
-  const create = async () => {
+  /**
+   * Creates the estimate. With `then`, it also starts a room and/or opens a
+   * tool right away, so a new estimate can use every button before it exists.
+   */
+  const create = async (then?: { room?: boolean; tool?: WorksheetTool }) => {
     setBusy(true)
     try {
-      const id = await createEstimate(
-        { store: fields.store, client_id: fields.client_id, title: fields.title.trim(), estimate_date: fields.estimate_date },
-        lines,
-      )
+      const head = { store: fields.store, client_id: fields.client_id, title: fields.title.trim(), estimate_date: fields.estimate_date }
+      let id: string
+      let groupId: string | null = null
+      if (then?.room) {
+        id = await createEstimate(head, [])
+        groupId = crypto.randomUUID()
+        await saveGroups(id, [{ id: groupId, name: '', approved: true }], [])
+        if (lines.length) {
+          await appendLines(id, lines.map((l) => ({ ...l, group_id: groupId })))
+          await settleFabrics(id)
+        }
+      } else {
+        id = await createEstimate(head, lines)
+      }
       navigate(`/estimates/${id}`, { replace: true })
+      if (then?.tool) navigate(`${TOOL_ROUTES[then.tool]}?estimate=${id}${groupId ? `&group=${groupId}` : ''}`)
     } catch (e) {
       msg.error(errorText(e))
     } finally {
@@ -919,8 +938,8 @@ export default function EstimateDetail() {
           <Typography.Title level={4} style={{ margin: 0 }}>
             {t('estimates.lines')}
           </Typography.Title>
-          {!isNew && (
-            <Button icon={<PlusOutlined />} onClick={addGroup}>
+          {!locked && (
+            <Button icon={<PlusOutlined />} loading={busy && isNew} onClick={isNew ? () => create({ room: true }) : addGroup}>
               {t('estimates.addRoom')}
             </Button>
           )}
@@ -990,6 +1009,7 @@ export default function EstimateDetail() {
           </Space>
         )}
         {!isNew && dirty && <Typography.Text type="secondary">{t('estimates.saveFirst')}</Typography.Text>}
+        {isNew && <Typography.Text type="secondary">{t('estimates.newHelp')}</Typography.Text>}
 
         <Card>
           <Row gutter={[16, 16]}>
@@ -1110,7 +1130,7 @@ export default function EstimateDetail() {
               )}
             </Typography.Text>
             {isNew ? (
-              <Button type="primary" size="large" loading={busy} onClick={create}>
+              <Button type="primary" size="large" loading={busy} onClick={() => create()}>
                 {t('estimates.create')}
               </Button>
             ) : (
