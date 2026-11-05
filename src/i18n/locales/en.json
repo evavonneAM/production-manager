@@ -1534,6 +1534,7 @@
     "fabricCol": "Fabric",
     "total": "Total",
     "yardsNote": "Yards come from the cut pieces laid on a 54\" roll: ½\" seams, a self flange cut in one with the face, contrast flange as border strips, welt as bias cording. Each pillow line is rounded up on its own.",
-    "clearConfirm": "Clear all pillows?"
+    "clearConfirm": "Clear all pillows?",
+    "add": "Add pillow"
   }
 }

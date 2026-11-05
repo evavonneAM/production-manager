@@ -1534,6 +1534,7 @@
     "fabricCol": "Tela",
     "total": "Total",
     "yardsNote": "Las yardas salen de las piezas en un rollo de 54\": costuras de ½\", pestaña de la misma tela cortada con el frente, pestaña de contraste en tiras, vivo al bies. Cada línea se redondea por separado.",
-    "clearConfirm": "¿Borrar todas las almohadas?"
+    "clearConfirm": "¿Borrar todas las almohadas?",
+    "add": "Añadir almohada"
   }
 }
